@@ -1,95 +1,135 @@
 # Diagramas de actividades
 
-> Exportaciones de la revisión recibida en Software - entregables. No constituyen diagramas corregidos ni aprobados. Consulte [la matriz](matriz-trazabilidad.md) para los puntos de revisión.
+Este documento presenta los diagramas de actividades de MIGAL SmartOps, organizados por caso de uso.
+
+Las especificaciones completas se encuentran en [Especificaciones de casos de uso](especificaciones-casos-de-uso.md).
+
+## Índice
+
+- [CU-01: Iniciar sesión](#cu-01)
+- [CU-02: Gestionar usuarios y roles](#cu-02)
+- [CU-03: Gestionar catálogo de productos](#cu-03)
+- [CU-04: Consultar disponibilidad](#cu-04)
+- [CU-05: Registrar movimiento](#cu-05)
+- [CU-06: Generar orden de despacho](#cu-06)
+- [CU-07: Consultar Kardex](#cu-07)
+- [CU-08: Procesar documento con OCR](#cu-08)
+- [CU-09: Gestionar cotización](#cu-09)
+- [CU-10: Registrar venta](#cu-10)
+- [CU-11: Registrar proveedor](#cu-11)
+- [CU-12: Registrar orden de compra](#cu-12)
+- [CU-13: Registrar orden de recepción](#cu-13)
+- [CU-14: Consultar agente de IA](#cu-14)
+
+<a id="cu-01"></a>
 
 ## CU-01: Iniciar sesión
 
-[Especificación](especificaciones-casos-de-uso.md#cu-01) · Fuente: Entregables, p. 60.
+[Consultar especificación](especificaciones-casos-de-uso.md#cu-01).
 
-![ACT CU-01](diagramas/imagenes/MIGAL-ACT-CU-01-iniciar-sesion.png)
+![Diagrama de actividades del CU-01: Iniciar sesión](imagenes/MIGAL-ACT-CU-01-iniciar-sesion.png)
+
+<a id="cu-02"></a>
 
 ## CU-02: Gestionar usuarios y roles
 
-[Especificación](especificaciones-casos-de-uso.md#cu-02) · Fuente: Entregables, p. 61.
+[Consultar especificación](especificaciones-casos-de-uso.md#cu-02).
 
-![ACT CU-02](diagramas/imagenes/MIGAL-ACT-CU-02-gestionar-usuarios-roles.png)
+![Diagrama de actividades del CU-02: Gestionar usuarios y roles](imagenes/MIGAL-ACT-CU-02-gestionar-usuarios-roles.png)
+
+<a id="cu-03"></a>
 
 ## CU-03: Gestionar catálogo de productos
 
-[Especificación](especificaciones-casos-de-uso.md#cu-03) · Fuente: Entregables, p. 62.
+[Consultar especificación](especificaciones-casos-de-uso.md#cu-03).
 
-![ACT CU-03](diagramas/imagenes/MIGAL-ACT-CU-03-gestionar-catalogo-productos.png)
+![Diagrama de actividades del CU-03: Gestionar catálogo de productos](imagenes/MIGAL-ACT-CU-03-gestionar-catalogo-productos.png)
+
+<a id="cu-04"></a>
 
 ## CU-04: Consultar disponibilidad
 
-[Especificación](especificaciones-casos-de-uso.md#cu-04) · Fuente: Entregables, p. 63.
+[Consultar especificación](especificaciones-casos-de-uso.md#cu-04).
 
-![ACT CU-04](diagramas/imagenes/MIGAL-ACT-CU-04-consultar-disponibilidad.png)
+
+![Diagrama de actividades del CU-04: Consultar disponibilidad](imagenes/MIGAL-ACT-CU-04-consultar-disponibilidad.png)
+
+<a id="cu-05"></a>
 
 ## CU-05: Registrar movimiento
 
-[Especificación](especificaciones-casos-de-uso.md#cu-05) · Fuente: Entregables, p. 64.
+[Consultar especificación](especificaciones-casos-de-uso.md#cu-05).
 
-![ACT CU-05](diagramas/imagenes/MIGAL-ACT-CU-05-registrar-movimiento.png)
+![Diagrama de actividades del CU-05: Registrar movimiento](imagenes/MIGAL-ACT-CU-05-registrar-movimiento.png)
+
+<a id="cu-06"></a>
 
 ## CU-06: Generar orden de despacho
 
-[Especificación](especificaciones-casos-de-uso.md#cu-06) · Fuente: Entregables, p. 65.
+[Consultar especificación](especificaciones-casos-de-uso.md#cu-06).
 
-![ACT CU-06](diagramas/imagenes/MIGAL-ACT-CU-06-generar-orden-despacho.png)
+![Diagrama de actividades del CU-06: Generar orden de despacho](imagenes/MIGAL-ACT-CU-06-generar-orden-despacho.png)
+
+<a id="cu-07"></a>
 
 ## CU-07: Consultar Kardex
 
-[Especificación](especificaciones-casos-de-uso.md#cu-07) · Fuente: Entregables, p. 67.
+[Consultar especificación](especificaciones-casos-de-uso.md#cu-07).
 
-![ACT CU-07](diagramas/imagenes/MIGAL-ACT-CU-07-consultar-kardex.png)
+![Diagrama de actividades del CU-07: Consultar Kardex](imagenes/MIGAL-ACT-CU-07-consultar-kardex.png)
+
+<a id="cu-08"></a>
 
 ## CU-08: Procesar documento con OCR
 
-[Especificación](especificaciones-casos-de-uso.md#cu-08) · Fuente: Entregables, p. 68.
+[Consultar especificación](especificaciones-casos-de-uso.md#cu-08).
 
-![ACT CU-08](diagramas/imagenes/MIGAL-ACT-CU-08-procesar-documento-ocr.png)
+![Diagrama de actividades del CU-08: Procesar documento con OCR](imagenes/MIGAL-ACT-CU-08-procesar-documento-ocr.png)
+
+<a id="cu-09"></a>
 
 ## CU-09: Gestionar cotización
 
-[Especificación](especificaciones-casos-de-uso.md#cu-09) · Fuente: Entregables, p. 69.
+[Consultar especificación](especificaciones-casos-de-uso.md#cu-09).
 
-![ACT CU-09](diagramas/imagenes/MIGAL-ACT-CU-09-gestionar-cotizacion.png)
+![Diagrama de actividades del CU-09: Gestionar cotización](imagenes/MIGAL-ACT-CU-09-gestionar-cotizacion.png)
+
+<a id="cu-10"></a>
 
 ## CU-10: Registrar venta
 
-[Especificación](especificaciones-casos-de-uso.md#cu-10) · Fuente: Entregables, p. 70.
+[Consultar especificación](especificaciones-casos-de-uso.md#cu-10).
 
-![ACT CU-10](diagramas/imagenes/MIGAL-ACT-CU-10-registrar-venta.png)
+![Diagrama de actividades del CU-10: Registrar venta](imagenes/MIGAL-ACT-CU-10-registrar-venta.png)
+
+<a id="cu-11"></a>
 
 ## CU-11: Registrar proveedor
 
-[Especificación](especificaciones-casos-de-uso.md#cu-11) · Fuente: Entregables, p. 71.
+[Consultar especificación](especificaciones-casos-de-uso.md#cu-11).
 
-![ACT CU-11](diagramas/imagenes/MIGAL-ACT-CU-11-registrar-proveedor.png)
+![Diagrama de actividades del CU-11: Registrar proveedor](imagenes/MIGAL-ACT-CU-11-registrar-proveedor.png)
+
+<a id="cu-12"></a>
 
 ## CU-12: Registrar orden de compra
 
-[Especificación](especificaciones-casos-de-uso.md#cu-12) · Fuente: Entregables, p. 72.
+[Consultar especificación](especificaciones-casos-de-uso.md#cu-12).
 
-![ACT CU-12](diagramas/imagenes/MIGAL-ACT-CU-12-registrar-orden-compra.png)
+![Diagrama de actividades del CU-12: Registrar orden de compra](imagenes/MIGAL-ACT-CU-12-registrar-orden-compra.png)
+
+<a id="cu-13"></a>
 
 ## CU-13: Registrar orden de recepción
 
-[Especificación](especificaciones-casos-de-uso.md#cu-13) · Fuente: Entregables, p. 73.
+[Consultar especificación](especificaciones-casos-de-uso.md#cu-13).
 
-![ACT CU-13](diagramas/imagenes/MIGAL-ACT-CU-13-registrar-orden-recepcion.png)
+![Diagrama de actividades del CU-13: Registrar orden de recepción](imagenes/MIGAL-ACT-CU-13-registrar-orden-recepcion.png)
+
+<a id="cu-14"></a>
 
 ## CU-14: Consultar agente de IA
 
-[Especificación](especificaciones-casos-de-uso.md#cu-14) · Fuente: Entregables, p. 74.
+[Consultar especificación](especificaciones-casos-de-uso.md#cu-14).
 
-![ACT CU-14](diagramas/imagenes/MIGAL-ACT-CU-14-consultar-agente-ia.png)
-
-## Alternativas recibidas pendientes de selección
-
-El PDF contiene una segunda actividad de CU-04 y otra de CU-06. Se preservan ambas para comparación. La primera variante tampoco se considera aprobada.
-
-![Alternativa CU-04](diagramas/imagenes/MIGAL-ACT-CU-04-consultar-disponibilidad-alternativa.png)
-
-![Alternativa CU-06](diagramas/imagenes/MIGAL-ACT-CU-06-generar-orden-despacho-alternativa.png)
+![Diagrama de actividades del CU-14: Consultar agente de IA](imagenes/MIGAL-ACT-CU-14-consultar-agente-ia.png)

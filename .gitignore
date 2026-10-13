@@ -1,0 +1,39 @@
+# Sistema y archivos temporales
+.DS_Store
+Thumbs.db
+~$*
+*.tmp
+*.log
+
+# Secretos y configuración local
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Java
+**/target/
+**/build/
+.gradle/
+
+# Frontend
+node_modules/
+dist/
+coverage/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Datos y archivos operativos locales
+database/backups/
+uploads/

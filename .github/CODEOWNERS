@@ -1,0 +1,9 @@
+# Opcional. Este archivo NO asigna revisores hasta incorporar cuentas reales.
+# Configurarlo después de invitar al equipo. Cada responsable debe tener acceso de escritura.
+# Ejemplos de rutas que pueden asignarse a usuarios GitHub reales:
+# /docs/
+# /backend/
+# /frontend/
+# /servicio-python/
+# /database/
+# No activar "Require review from Code Owners" antes de completar y comprobar las asignaciones.

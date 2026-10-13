@@ -1,14 +1,10 @@
-# Requerimientos
+# Requerimientos del sistema (SWEBOK)
 
-> Estado: base documental migrada, pendiente de revisión del equipo.
-> Fuente: [Software - entregables](../entregas/pc1/antecedentes/MIGAL-PC1-entregables-recibidos.pdf), páginas 13–20.
-> Se conserva el contenido recibido; las observaciones de auditoría no se consideran corregidas ni aprobadas por esta migración.
+## Requerimientos funcionales (RF)
 
-**Pendientes conocidos:** RF-KAR-03 necesita distinguir entradas de abastecimiento de ajustes y traslados; RF-KAR-10 requiere una regla de reorden verificable. Consulte [trazabilidad](matriz-trazabilidad.md).
+### Inventario y Kardex Multi-Almacén
 
-## Inventario y Kardex
-
-| Código | Requerimiento |
+| Código | Requerimiento funcional |
 | --- | --- |
 | RF-KAR-01 | El sistema deberá administrar de manera independiente las existencias correspondientes a la tienda principal y a los dos almacenes adicionales. |
 | RF-KAR-02 | El sistema deberá permitir consultar las existencias de cada producto por ubicación. |
@@ -25,9 +21,9 @@
 | RF-KAR-13 | El sistema deberá permitir generar e imprimir una Orden de Despacho asociada a una venta registrada, incluyendo como mínimo la dirección de entrega y su estado. |
 | RF-KAR-14 | El sistema deberá permitir registrar movimientos manuales de inventario, como mermas y ajustes, exigiendo el ingreso de un motivo justificatorio. |
 
-## OCR
+### Módulo OCR + Visión
 
-| Código | Requerimiento |
+| Código | Requerimiento funcional |
 | --- | --- |
 | RF-OCR-01 | El sistema deberá permitir cargar manualmente fotografías o archivos de documentos operativos (notas manuscritas, capturas de solicitudes o pedidos de clientes y órdenes de recepción), desde la aplicación web. |
 | RF-OCR-02 | El sistema deberá aceptar archivos en formatos PNG, JPG y PDF. |
@@ -38,9 +34,9 @@
 | RF-OCR-07 | El sistema deberá conservar la relación entre el archivo procesado y la información estructurada obtenida. |
 | RF-OCR-08 | Una vez que la información extraída haya sido revisada y validada por el usuario, el sistema deberá permitir transferir los datos estructurados (cotizaciones, ventas o recepciones de mercadería) |
 
-## Normalización
+### Módulo de Normalización (Fuzzy Matching)
 
-| Código | Requerimiento |
+| Código | Requerimiento funcional |
 | --- | --- |
 | RF-FUZ-01 | El sistema deberá recibir términos de productos obtenidos mediante OCR o ingresados manualmente. |
 | RF-FUZ-02 | El sistema deberá comparar los términos recibidos con el catálogo maestro de productos. |
@@ -50,9 +46,9 @@
 | RF-FUZ-06 | El usuario deberá poder confirmar o corregir la asociación propuesta. |
 | RF-FUZ-07 | Una vez validada la asociación, cualquier operación posterior que utilice el producto deberá emplear el SKU oficial del catálogo maestro. |
 
-## IA consultiva
+### Módulo de IA Consultivo
 
-| Código | Requerimiento |
+| Código | Requerimiento funcional |
 | --- | --- |
 | RF-IA-01 | El sistema deberá proporcionar a los usuarios internos una interfaz conversacional integrada en MIGAL SmartOps. |
 | RF-IA-02 | El usuario deberá poder realizar consultas en lenguaje natural relacionadas con inventario, productos y ubicación de mercadería disponible. |
@@ -64,18 +60,18 @@
 | RF-IA-08 | Cuando el agente no disponga de información suficiente, deberá indicarlo sin inventar cantidades o ubicaciones. |
 | RF-IA-09 | Las consultas efectuadas por el agente deberán respetar los permisos correspondientes al usuario autenticado. |
 
-## Usuarios y roles
+### Gestión de Usuarios y Roles
 
-| Código | Requerimiento |
+| Código | Requerimiento funcional |
 | --- | --- |
 | RF-USR-01 | El sistema deberá permitir que los usuarios internos inicien sesión mediante credenciales personales. |
 | RF-USR-02 | El sistema deberá gestionar permisos de acceso de acuerdo con los roles de Administrador, Vendedor, Almacenero y Reponedor. |
 | RF-USR-03 | El sistema deberá restringir las funcionalidades disponibles según los permisos del usuario autenticado. |
 | RF-USR-04 | El sistema deberá registrar al usuario responsable de las operaciones que produzcan modificaciones en el inventario. |
 
-## Catálogo
+### Catálogo Maestro de Productos
 
-| Código | Requerimiento |
+| Código | Requerimiento funcional |
 | --- | --- |
 | RF-PRO-01 | El sistema deberá permitir registrar productos en un catálogo maestro. |
 | RF-PRO-02 | Cada producto deberá poseer como mínimo un SKU único, nombre oficial, descripción, unidad de medida y estado. |
@@ -84,9 +80,9 @@
 | RF-PRO-05 | El sistema deberá permitir consultar la disponibilidad de un producto en la tienda principal y en cada uno de los dos almacenes. |
 | RF-PRO-06 | El sistema deberá permitir establecer un nivel mínimo de stock para cada producto. |
 
-## Ventas
+### Registro de ventas
 
-| Código | Requerimiento |
+| Código | Requerimiento funcional |
 | --- | --- |
 | RF-VEN-01 | El sistema deberá permitir registrar una venta indicando como mínimo productos, cantidades, precios y monto total, pudiendo registrar los datos referenciales del cliente cuando correspondan. |
 | RF-VEN-02 | El sistema deberá permitir registrar los datos básicos del cliente asociados a la venta cuando estos se encuentren disponibles. |
@@ -99,9 +95,9 @@
 | RF-VEN-09 | El sistema deberá permitir registrar una venta directamente o generarla a partir de una cotización previamente aceptada. |
 | RF-VEN-10 | Cuando una venta se origine a partir de una cotización aceptada, el sistema deberá recuperar los productos, cantidades, precios, descuentos y datos referenciales previamente registrados, evitando su digitación nuevamente. |
 
-## Abastecimiento
+### Abastecimiento y órdenes de compra
 
-| Código | Requerimiento |
+| Código | Requerimiento funcional |
 | --- | --- |
 | RF-COM-01 | El sistema deberá permitir registrar una Orden de Compra previamente acordada con un proveedor. |
 | RF-COM-02 | La Orden de Compra deberá registrar como mínimo proveedor, fecha, productos, cantidades, precios de compra y estado. |
@@ -120,9 +116,9 @@
 | RF-COM-15 | La información obtenida mediante OCR y Fuzzy Matching deberá utilizarse únicamente como precarga de la recepción y deberá poder ser revisada y corregida por el personal responsable antes de su confirmación. |
 | RF-COM-16 | El procesamiento automático de documentos de recepción no deberá generar movimientos de inventario por sí mismo; los movimientos de entrada al Kardex se producirán únicamente cuando la recepción sea confirmada. |
 
-## Despacho
+### Orden de despacho
 
-| Código | Requerimiento |
+| Código | Requerimiento funcional |
 | --- | --- |
 | RF-DES-01 | El sistema deberá permitir generar una Orden de Despacho asociada a una venta previamente registrada. |
 | RF-DES-02 | La Orden de Despacho deberá contener como mínimo los productos, cantidades, dirección de entrega y estado. |
@@ -131,9 +127,9 @@
 | RF-DES-05 | La generación o impresión de una Orden de Despacho no deberá volver a reducir las existencias cuando la salida ya haya sido registrada al confirmarse la venta. |
 | RF-DES-06 | El sistema no gestionará rutas, vehículos, choferes, optimización logística ni seguimiento GPS. |
 
-## Cotizaciones
+### Gestión de cotizaciones a clientes
 
-| Código | Requerimiento |
+| Código | Requerimiento funcional |
 | --- | --- |
 | RF-COT-01 | El sistema deberá permitir al Vendedor registrar una cotización dirigida a un cliente antes de concretar una venta. |
 | RF-COT-02 | La cotización deberá permitir registrar, como mínimo, los productos, cantidades, precios unitarios, descuentos aplicables, condiciones comerciales, fecha de emisión y fecha de vencimiento. |
@@ -145,9 +141,9 @@
 | RF-COT-08 | La creación, emisión, rechazo o vencimiento de una cotización no deberá modificar ni reservar existencias del inventario. |
 | RF-COT-09 | Antes de confirmar una venta originada a partir de una cotización aceptada, el sistema deberá volver a consultar y validar el stock disponible. |
 
-## Requerimientos no funcionales
+## Requerimientos no funcionales (RNF)
 
-| Código | Categoría | Requerimiento |
+| Código | Categoría | Requerimiento no funcional |
 | --- | --- | --- |
 | RNF-01 | Base de datos | El sistema deberá utilizar PostgreSQL como sistema gestor de base de datos relacional. |
 | RNF-02 | Arquitectura | El backend principal deberá implementarse utilizando Java con Spring Boot y exponer los servicios necesarios mediante API REST. |
@@ -163,7 +159,3 @@
 | RNF-12 | Recuperabilidad | La base de datos deberá contar con mecanismos periódicos de respaldo. |
 | RNF-13 | Navegadores | La plataforma deberá ser compatible con navegadores web modernos utilizados en los equipos disponibles en la ferretería. |
 | RNF-14 | Mantenibilidad | Los módulos principales deberán encontrarse desacoplados mediante interfaces claramente definidas. |
-
-## Reglas de negocio pendientes de consolidación
-
-Las reglas existentes se encuentran en los RF y CU. Antes de aprobar esta base, consolidar las decisiones sobre reorden, existencias críticas por ubicación, recepciones acumuladas, precisión monetaria, estados de despacho y exclusividad documental. No se asignan reglas nuevas como si hubieran sido aprobadas.

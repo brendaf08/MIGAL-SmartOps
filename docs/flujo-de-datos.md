@@ -1,15 +1,36 @@
 # Flujo de datos
 
-> **DFD DESACTUALIZADO.** Entregables, p. 44, indica que la última versión está en Lucid. El enlace y la versión actual no fueron recibidos. Las siguientes imágenes se conservan como referencia histórica, no como diseño vigente aprobado.
+Este documento presenta los Diagramas de Flujo de Datos (DFD) de MIGAL SmartOps, organizados por nivel.
 
-## N0: contexto
+Los diagramas representan el intercambio de información entre los actores, los procesos del sistema y los almacenes de datos.
 
-![DFD N0](diagramas/imagenes/MIGAL-DFD-N0-contexto.png)
+## Índice
 
-## N1: descomposicion
+- [Nivel 0: Diagrama de contexto](#nivel-0)
+- [Nivel 1: Descomposición del sistema](#nivel-1)
 
-![DFD N1](diagramas/imagenes/MIGAL-DFD-N1-descomposicion.png)
+<a id="nivel-0"></a>
 
-## Revisión pendiente
+## Nivel 0: Diagrama de contexto
 
-Integrar la versión vigente; verificar acceso a almacenes a través de procesos, balanceo, actores, dirección de entradas/salidas y cobertura de cotizaciones, recepción con OCR y agente consultivo. Registrar el enlace oficial en el índice de diagramas.
+Presenta MIGAL SmartOps como un único proceso e identifica las entradas y salidas de información que atraviesan la frontera del sistema.
+
+![Diagrama de flujo de datos de nivel 0: Contexto de MIGAL SmartOps](imagenes/MIGAL-DFD-N0-contexto.png)
+
+<a id="nivel-1"></a>
+
+## Nivel 1: Descomposición del sistema
+
+Descompone el proceso general de MIGAL SmartOps en sus principales procesos internos, mostrando los flujos de información entre estos, los actores y los almacenes de datos.
+
+Las entradas y salidas de este nivel deben mantener correspondencia con las representadas en el diagrama de contexto.
+
+![Diagrama de flujo de datos de nivel 1: Descomposición de MIGAL SmartOps](imagenes/MIGAL-DFD-N1-descomposicion.png)
+
+## Documentación relacionada
+
+- [Alcance y límites](alcance-y-limites.md).
+- [Requerimientos](requerimientos.md).
+- [Casos de uso](casos-de-uso.md).
+- [Modelo y diccionario de datos](modelo-y-diccionario-datos.md).
+- [Arquitectura tecnológica](arquitectura-tecnologica.md).

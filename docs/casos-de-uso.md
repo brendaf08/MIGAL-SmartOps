@@ -1,6 +1,8 @@
 # Casos de uso
 
-> Base documental pendiente de revisión. Las especificaciones completas están en [su documento independiente](especificaciones-casos-de-uso.md).
+Este documento presenta el catálogo de casos de uso de MIGAL SmartOps y sus diagramas UML organizados por módulo.
+
+Las especificaciones completas se encuentran en [Especificaciones de casos de uso](especificaciones-casos-de-uso.md).
 
 ## Catálogo
 
@@ -23,30 +25,59 @@
 
 ## Diagramas por módulo
 
-### Usuarios roles
+### 1. Gestión de usuarios y roles
 
-![usuarios-roles](diagramas/imagenes/MIGAL-DCU-01-usuarios-roles.png)
+![Diagrama de casos de uso de gestión de usuarios y roles](imagenes/MIGAL-DCU-01-usuarios-roles.png)
 
-### Catalogo productos
+El diagrama comprende los siguientes casos de uso:
 
-![catalogo-productos](diagramas/imagenes/MIGAL-DCU-02-catalogo-productos.png)
+- **CU-01:** Iniciar sesión.
+- **CU-02:** Gestionar usuarios y roles.
 
-### Inventario
+### 2. Catálogo de productos
 
-![inventario](diagramas/imagenes/MIGAL-DCU-03-inventario.png)
+![Diagrama de casos de uso del catálogo de productos](imagenes/MIGAL-DCU-02-catalogo-productos.png)
 
-### Ventas cotizaciones
+El diagrama comprende los siguientes casos de uso:
 
-![ventas-cotizaciones](diagramas/imagenes/MIGAL-DCU-04-ventas-cotizaciones.png)
+- **CU-03:** Gestionar catálogo de productos.
+- **CU-04:** Consultar disponibilidad.
 
-### Abastecimiento
+### 3. Gestión de inventario
 
-![abastecimiento](diagramas/imagenes/MIGAL-DCU-05-abastecimiento.png)
+![Diagrama de casos de uso de gestión de inventario](imagenes/MIGAL-DCU-03-inventario.png)
 
-### Agente ia
+El diagrama comprende los siguientes casos de uso:
 
-![agente-ia](diagramas/imagenes/MIGAL-DCU-06-agente-ia.png)
+- **CU-05:** Registrar movimiento.
+- **CU-06:** Generar orden de despacho.
+- **CU-07:** Consultar Kardex.
 
-## Pendiente de corrección
+### 4. Registro de ventas y gestión de cotizaciones
 
-En abastecimiento, la extensión OCR debe apuntar desde Procesar documento con OCR hacia Registrar orden de recepción. La imagen recibida conserva la orientación observada.
+![Diagrama de casos de uso de registro de ventas y gestión de cotizaciones](imagenes/MIGAL-DCU-04-ventas-cotizaciones.png)
+
+El diagrama comprende los siguientes casos de uso:
+
+- **CU-08:** Procesar documento con OCR.
+- **CU-09:** Gestionar cotización.
+- **CU-10:** Registrar venta.
+
+### 5. Abastecimiento
+
+![Diagrama de casos de uso de abastecimiento](imagenes/MIGAL-DCU-05-abastecimiento.png)
+
+El diagrama comprende los siguientes casos de uso:
+
+- **CU-11:** Registrar proveedor.
+- **CU-12:** Registrar orden de compra.
+- **CU-13:** Registrar orden de recepción.
+- **CU-08:** Procesar documento con OCR, como parte de un flujo alternativo de recepción.
+
+### 6. Consulta con agente de inteligencia artificial
+
+![Diagrama de casos de uso de consulta con agente de inteligencia artificial](imagenes/MIGAL-DCU-06-agente-ia.png)
+
+El diagrama comprende el siguiente caso de uso:
+
+- **CU-14:** Consultar agente de IA.

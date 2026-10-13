@@ -1,6 +1,8 @@
-# Sistema y archivos temporales
+# Sistema operativo
 .DS_Store
 Thumbs.db
+
+# Archivos temporales y registros
 ~$*
 *.tmp
 *.log
@@ -12,7 +14,7 @@ Thumbs.db
 *.pem
 *.key
 
-# Java
+# Java y Gradle
 **/target/
 **/build/
 .gradle/
@@ -23,13 +25,13 @@ dist/
 coverage/
 
 # Python
-__pycache__/
-*.py[cod]
 .venv/
 venv/
+__pycache__/
+*.py[cod]
 .pytest_cache/
 
-# IDE
+# Configuración local de editores
 .idea/
 .vscode/
 *.iml

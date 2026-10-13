@@ -2,42 +2,50 @@
 
 Estas reglas se aplican a todos los integrantes y a los cambios de documentación, diagramas, código y base de datos de MIGAL SmartOps.
 
-## 1. Fuentes oficiales
+## 1. Organización y fuentes oficiales
 
-- `docs/` contiene la documentación técnica del sistema.
-- `docs/imagenes/` contiene todas las imágenes de diagramas.
-- `backend/`, `frontend/`, `servicio-python/` y `database/` contienen los componentes de implementación.
-- `entregas/` contiene los informes y archivos de cada hito, organizados por entrega y versión.
-- Notion contiene las tareas, responsables, fechas, observaciones y estados de seguimiento.
+| Ubicación | Contenido |
+| --- | --- |
+| `docs/` | Definiciones técnicas del sistema. |
+| `docs/fuentes/` | Fuentes editables de diagramas mantenidos en el repositorio. |
+| `docs/imagenes/` | Imágenes utilizadas en la documentación. |
+| `scripts/` | Herramientas de automatización. |
+| `backend/`, `frontend/`, `servicio-python/` y `database/` | Componentes de implementación. |
+| `entregas/` | Informes y archivos de cada hito. |
+| Notion | Tareas, responsables, fechas, observaciones y seguimiento. |
 
-Los informes se elaboran desde una versión identificada del repositorio. Una corrección detectada en un informe debe incorporarse primero a la documentación oficial mediante una Pull Request y después reflejarse en el informe.
+Los informes se elaboran desde una versión identificada del repositorio.
+
+Una corrección técnica detectada durante la preparación de un informe debe incorporarse a la documentación correspondiente mediante un pull request y reflejarse también en el informe.
 
 ## 2. Asignación y coordinación
 
 Cada tarea de Notion debe incluir:
 
-- Descripción del resultado esperado.
+- Resultado esperado.
 - Responsable.
 - Fecha objetivo.
 - Criterios de aceptación.
-- Requerimientos, CU y artefactos afectados.
-- Enlace a la Pull Request como evidencia del resultado.
+- Requerimientos, casos de uso y artefactos afectados.
+- Enlace al pull request como evidencia del resultado.
 
-Antes de modificar un archivo, consultar el trabajo en curso y coordinar con quienes estén trabajando en el mismo contenido. Las decisiones sobre reglas compartidas deben quedar registradas en la tarea y reflejadas en la documentación correspondiente.
+Antes de modificar un archivo, consultar las tareas en curso y coordinar con quienes estén trabajando en el mismo contenido.
+
+Las decisiones sobre alcance, permisos, estados y reglas de negocio deben quedar registradas en la tarea y reflejadas en la documentación correspondiente.
 
 ## 3. Ramas
 
-`main` contiene la versión integrada del proyecto. Después de la carga inicial, todos los cambios se incorporan mediante Pull Requests.
+`main` contiene la versión integrada del proyecto. Los cambios se incorporan mediante pull requests.
 
 Crear cada rama desde una copia actualizada de `main`. Utilizar nombres en minúsculas, sin espacios ni tildes y con palabras separadas por guiones.
 
 | Prefijo | Uso | Ejemplo |
 | --- | --- | --- |
-| `docs/` | Documentación y diagramas | `docs/recepciones-parciales` |
+| `docs/` | Documentación y diagramas | `docs/secuencias-autenticacion` |
 | `feat/` | Funcionalidades nuevas | `feat/registro-ventas` |
 | `fix/` | Corrección de errores del software | `fix/validacion-stock` |
 | `refactor/` | Reorganización de código sin cambiar su comportamiento | `refactor/servicio-kardex` |
-| `chore/` | Configuración y mantenimiento | `chore/configuracion-docker` |
+| `chore/` | Configuración y mantenimiento | `chore/generador-secuencias` |
 
 Cada rama debe abordar un cambio concreto o un conjunto de cambios relacionados. No utilizar ramas permanentes por integrante.
 
@@ -54,57 +62,63 @@ tipo: descripcion concreta
 Ejemplos:
 
 ```text
+docs: actualizar secuencia del CU-01
 docs: alinear CU-13 con recepciones parciales
-docs: actualizar cardinalidades del DER
 feat: registrar ventas con salida de inventario
 fix: impedir traslados con stock insuficiente
+chore: configurar generador de secuencias
 ```
 
 Evitar mensajes como `cambios`, `actualizado`, `final` o `arreglos`.
 
-## 5. Pull Requests
+## 5. Pull requests
 
-Toda Pull Request debe utilizar la [plantilla del repositorio](.github/pull_request_template.md) e incluir:
+Cada pull request debe incluir:
 
 1. Enlace a la tarea de Notion.
 2. Explicación de qué cambió y por qué.
-3. Identificación de los RF, CU, diagramas, clases, tablas o componentes afectados.
-4. Actualizaciones de los artefactos relacionados.
+3. Identificación de los requerimientos, casos de uso y artefactos afectados.
+4. Actualizaciones de los archivos relacionados.
 5. Descripción de la verificación realizada.
-6. Pendientes y colaboración de otros integrantes, cuando corresponda.
+6. Pendientes o dependencias, cuando corresponda.
 
-Una corrección que afecta varios artefactos debe presentarse de forma conjunta. Si requiere varias PR, registrar sus dependencias en Notion y mantener la tarea abierta hasta completar el conjunto.
+Utilizar la plantilla del repositorio cuando esté disponible.
 
-Las propuestas incompletas pueden abrirse como borrador. Deben señalar claramente lo que falta antes de solicitar aprobación.
+Una corrección que afecta varios artefactos debe presentarse de forma conjunta. Si requiere varios pull requests, registrar sus dependencias en Notion y mantener la tarea abierta hasta completar el conjunto.
+
+Los cambios incompletos pueden abrirse como borrador. Deben indicar lo que falta antes de solicitar aprobación.
 
 ## 6. Revisión e integración
 
-- Toda PR requiere la aprobación de al menos otro integrante.
+- Todo pull request requiere la aprobación de al menos otro integrante.
 - El revisor comprueba el contenido y su coherencia con los artefactos relacionados.
 - El autor resuelve las observaciones antes de integrar.
-- Si se agregan cambios después de la aprobación, el revisor debe comprobarlos antes de la integración.
-- Las PR se integran mediante **Squash and merge**, con un título que describa el resultado.
+- Si se agregan cambios después de la aprobación, deben revisarse antes de la integración.
+- Los cambios se integran mediante **Squash and merge**, con un título que describa el resultado.
 - Después de integrar, se elimina la rama terminada y se registra la evidencia en Notion.
 - Los demás integrantes actualizan su copia local antes de continuar el trabajo.
 
-Estas reglas rigen para todo el equipo. Cuando el plan de GitHub lo permita, se configuran también como restricciones de `main`. Los archivos del repositorio no sustituyen esa configuración.
+La exigencia técnica de pull requests y aprobaciones debe configurarse en las reglas de protección de `main` en GitHub. Este documento establece el procedimiento del equipo, pero no activa esas restricciones por sí mismo.
 
 ## 7. Documentación Markdown
 
 - Utilizar nombres de archivo en minúsculas, sin espacios ni tildes y separados por guiones.
-- Mantener un título principal por documento y organizar el contenido mediante encabezados.
-- Incorporar un índice interno cuando la extensión del documento lo requiera.
+- Mantener un título principal por documento y una jerarquía coherente de encabezados.
+- Incorporar un índice interno cuando la extensión lo requiera.
 - Utilizar enlaces relativos para documentos e imágenes del repositorio.
-- Mantener los identificadores oficiales de requerimientos y CU.
-- Definir las reglas de negocio en su sección correspondiente y referenciarlas desde los demás artefactos.
+- Mantener los identificadores oficiales de requerimientos y casos de uso.
+- Referenciar las reglas de negocio desde los artefactos que las utilizan.
 - Actualizar índices, enlaces y referencias cuando se incorpore o reorganice contenido.
-- Registrar las observaciones pendientes en Notion; el documento debe expresar de forma clara la definición técnica acordada.
+- Revisar las tablas y las imágenes mediante la vista previa.
+- Registrar las observaciones pendientes en Notion.
 
-Los cambios de alcance, permisos, estados o reglas de negocio deben explicar la decisión y sus efectos sobre los demás entregables. Mantener los códigos existentes; cualquier cambio de identificación requiere actualizar todas sus referencias.
+Los documentos deben expresar las definiciones técnicas acordadas.
 
-## 8. Imágenes y diagramas
+Los cambios de alcance, permisos, estados o reglas de negocio deben explicar la decisión y sus efectos sobre los demás artefactos. Si cambia un identificador, actualizar todas sus referencias.
 
-Todas las imágenes se almacenan en una única carpeta:
+## 8. Imágenes y nomenclatura
+
+Todas las imágenes se almacenan en:
 
 ```text
 docs/imagenes/
@@ -126,29 +140,82 @@ MIGAL-TIPO-IDENTIFICADOR-descripcion.extension
 | `ACT` | Actividades | `MIGAL-ACT-CU-01-iniciar-sesion.png` |
 | `DFD` | Flujo de datos | `MIGAL-DFD-N0-contexto.png` |
 
-Reglas de actualización:
+Reglas:
 
 - Conservar el nombre al actualizar el mismo diagrama.
-- Utilizar el código oficial del CU cuando corresponda.
-- Usar nombres sin espacios ni tildes; la descripción se escribe en minúsculas y con guiones.
+- Utilizar el código oficial del caso de uso cuando corresponda.
+- Mantener las siglas y los identificadores en mayúsculas.
+- Escribir la descripción en minúsculas, sin espacios ni tildes y separada por guiones.
 - No incorporar nombres de integrantes, fechas ni sufijos como `final`, `final2` o `v2` al archivo vigente.
-- Utilizar PNG o SVG y comprobar que textos, relaciones y símbolos sean legibles.
-- Referenciar la imagen desde el Markdown del entregable correspondiente.
-- Mantener una sola imagen vigente por identificador. Las alternativas se comparan en la tarea de Notion antes de seleccionar la versión que se integrará.
-- Conservar la fuente editable en la herramienta compartida acordada y registrar su enlace en el Markdown correspondiente. Actualizar la fuente y su exportación dentro del mismo cambio.
-- Comprobar que los demás documentos que muestran esa imagen sigan siendo coherentes con su contenido.
+- Utilizar PNG o SVG y comprobar la legibilidad.
+- Mantener una imagen vigente por identificador.
+- Referenciar cada imagen desde el documento correspondiente.
+- Actualizar los enlaces al renombrar o mover archivos.
 
-Desde un documento ubicado directamente en `docs/`, el enlace a una imagen se escribe así:
+Desde un documento ubicado directamente en `docs/`, el enlace se escribe así:
 
 ```markdown
 ![Secuencia CU-01](imagenes/MIGAL-SEQ-CU-01-iniciar-sesion.png)
 ```
 
-El nombre identifica el artefacto; Git conserva su historial de versiones.
+Git conserva el historial de versiones de cada archivo.
 
-## 9. Coherencia y trazabilidad
+## 9. Fuentes editables de diagramas
 
-Antes de solicitar revisión, comprobar la cadena:
+Conservar la fuente editable de cada diagrama.
+
+Cuando se mantenga en el repositorio, guardarla en `docs/fuentes/`, organizada por tipo de diagrama. Cuando se mantenga en una herramienta compartida, registrar su enlace en el documento correspondiente.
+
+Actualizar la fuente y su imagen dentro del mismo cambio. Evitar conservar únicamente una exportación que el equipo no pueda modificar.
+
+### 9.1. Diagramas de secuencia
+
+Las fuentes se almacenan en:
+
+```text
+docs/fuentes/secuencia/
+```
+
+Utilizar archivos `.txt` con sintaxis compatible con SequenceDiagram.org.
+
+No incluir `@startuml`, `@enduml` ni delimitadores de bloques Markdown.
+
+El nombre base de la fuente debe coincidir con el de su imagen:
+
+```text
+MIGAL-SEQ-CU-01-iniciar-sesion.txt
+MIGAL-SEQ-CU-01-iniciar-sesion.png
+```
+
+Procedimiento:
+
+1. Editar o agregar la fuente.
+2. Guardar el archivo.
+3. Ejecutar `scripts/generar-secuencias.py` siguiendo las instrucciones del README.
+4. Revisar el PNG y su visualización en Markdown.
+5. Incluir la fuente y la imagen actualizada en el mismo pull request.
+
+Las imágenes generadas no se editan directamente.
+
+El generador actual procesa todos los `.txt` de la carpeta y se detiene si encuentra archivos vacíos. Antes de ejecutarlo, completar todas las fuentes presentes.
+
+Si se elimina o renombra una fuente, revisar y retirar las imágenes anteriores que ya no correspondan.
+
+En el documento de secuencias, enlazar también el código editable:
+
+```markdown
+[Código fuente](fuentes/secuencia/MIGAL-SEQ-CU-01-iniciar-sesion.txt)
+```
+
+### 9.2. Diagramas de actividades y otros modelos
+
+Mantener su fuente editable y exportación mediante la herramienta acordada para cada tipo de diagrama.
+
+El generador de secuencias no procesa diagramas de actividades, DER, clases ni otros modelos.
+
+## 10. Coherencia y trazabilidad
+
+Antes de solicitar revisión, comprobar la correspondencia entre:
 
 **Requerimientos → Casos de uso → Especificaciones → Secuencias y actividades → Clases → Modelo de datos → Arquitectura.**
 
@@ -164,29 +231,58 @@ Verificar especialmente:
 - Origen y efecto de las operaciones sobre el inventario.
 - Responsabilidades de los componentes y capas.
 
-Actualizar la matriz de trazabilidad cuando cambien las correspondencias entre artefactos. Si un entregable relacionado no requiere cambios, explicar el motivo en la PR cuando la relación no sea evidente.
+Actualizar la matriz de trazabilidad cuando cambien las correspondencias.
 
-## 10. Código y base de datos
+Si un artefacto relacionado no requiere modificaciones, explicar el motivo en el pull request cuando la relación no sea evidente.
 
-- Mantener cada implementación en la carpeta del componente correspondiente.
-- Documentar versiones, dependencias, configuración y ejecución en el README de cada componente.
+La generación automática de una imagen no reemplaza la revisión técnica del modelo.
+
+## 11. Código, dependencias y base de datos
+
+- Mantener cada implementación en la carpeta de su componente.
+- Documentar versiones, dependencias, configuración y ejecución en el README correspondiente.
 - Actualizar la documentación cuando cambie el comportamiento descrito.
-- Ejecutar las comprobaciones pertinentes antes de solicitar revisión y registrar sus resultados en la PR.
-- Incorporar los cambios de esquema en `database/migraciones/`, siguiendo la herramienta y convención acordadas por el equipo.
+- Ejecutar las comprobaciones pertinentes y registrar sus resultados en el pull request.
+- Incorporar los cambios de esquema en `database/migraciones/`, siguiendo la herramienta y convención acordadas.
 - Utilizar datos de prueba para desarrollo.
-- Mantener credenciales y configuración privada fuera del repositorio. Los ejemplos deben contener valores ficticios.
+- Mantener credenciales y configuración privada fuera del repositorio.
+- Utilizar valores ficticios en los archivos de ejemplo.
 
-La incorporación de un componente nuevo debe actualizar la estructura y los enlaces del README principal.
+El `requirements.txt` de la raíz contiene las dependencias de las herramientas generales de Python del repositorio.
 
-## 11. Versiones e informes
+Las dependencias del servicio Python se mantienen en su componente, según su configuración de ejecución.
 
-Cada hito se identifica mediante una etiqueta de Git, por ejemplo `pc1-v1.0`. El informe correspondiente debe indicar la etiqueta o el commit utilizado como base.
+Cuando cambien las dependencias generales:
 
-Una versión publicada se conserva. Si requiere cambios, se crea otra versión y se identifica el nuevo estado del repositorio. La preparación del informe se realiza después de integrar las modificaciones técnicas necesarias.
+1. Actualizar `requirements.txt`.
+2. Verificar la herramienta afectada.
+3. Actualizar las instrucciones del README si cambia la preparación o ejecución.
 
-Guardar los archivos en una carpeta identificada dentro de `entregas/`, por ejemplo `entregas/pc1/v1.0/`. Incluir un README con el hito, la versión, la fecha, los archivos incluidos y la etiqueta o commit utilizado.
+No subir `.venv/`, dependencias instaladas, archivos temporales, respaldos locales ni archivos operativos excluidos por `.gitignore`.
 
-## 12. Cierre de tareas y contribuciones
+## 12. Versiones e informes
+
+Cada hito se identifica mediante una etiqueta de Git, por ejemplo `pc1-v1.0`.
+
+El informe correspondiente debe indicar la etiqueta o el commit utilizado como base.
+
+Una versión publicada se conserva. Si requiere cambios, se crea otra versión y se identifica el nuevo estado del repositorio.
+
+Guardar los archivos en una carpeta dentro de `entregas/`, por ejemplo:
+
+```text
+entregas/pc1/v1.0/
+```
+
+Incluir un README que identifique:
+
+- Hito.
+- Versión.
+- Fecha.
+- Archivos incluidos.
+- Etiqueta o commit utilizado.
+
+## 13. Cierre de tareas y contribuciones
 
 Una tarea se marca como terminada en Notion cuando:
 
@@ -195,4 +291,6 @@ Una tarea se marca como terminada en Notion cuando:
 - Los artefactos relacionados están actualizados.
 - La evidencia está enlazada en Notion.
 
-Las contribuciones incluyen elaboración, implementación, revisión y colaboración. Cada integrante utiliza su propia cuenta. La participación se valora mediante el trabajo aceptado y su evidencia, no únicamente mediante el número de commits.
+Las contribuciones incluyen elaboración, implementación, revisión y colaboración.
+
+Cada integrante utiliza su propia cuenta de GitHub. La participación se valora mediante el trabajo aceptado y su evidencia, no únicamente mediante el número de commits.

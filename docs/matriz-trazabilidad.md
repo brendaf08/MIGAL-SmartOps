@@ -1,7 +1,5 @@
 # Matriz de trazabilidad
 
-> Matriz inicial de orientación basada en la auditoría de esta conversación. **No es evidencia de aprobación ni de cobertura completa de todos los RF.** Expandir a una fila por requerimiento cuando el equipo valide la base. Las tareas, responsables y estados de corrección se mantienen en Notion.
-
 | Requerimientos | CU | Realización principal | Punto que debe verificarse |
 | --- | --- | --- | --- |
 | RF-USR-01–04 | CU-01/02 | Usuario; UsuarioService | Estado activo y revocación |

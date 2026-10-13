@@ -1,0 +1,22 @@
+title CU-01: Iniciar sesión
+
+actor "Usuario Interno" as Usuario
+participant "Sistema" as Sistema
+database "PostgreSQL" as BD
+
+Usuario->Sistema: ingresa a plataforma web
+Sistema-->Usuario: solicita nombre y contraseña
+Usuario->Sistema: ingresa credenciales
+Sistema->BD: consulta y valida credenciales
+
+alt credenciales inválidas
+    BD-->Sistema: usuario no existe o contraseña incorrecta
+    Sistema-->Usuario: muestra error y limpia contraseña
+else usuario inactivo o sin permisos
+    BD-->Sistema: credenciales correctas pero usuario inactivo/sin rol
+    Sistema-->Usuario: muestra mensaje de acceso denegado
+else credenciales válidas
+    BD-->Sistema: credenciales y rol válidos
+    Sistema->Sistema: identifica rol
+    Sistema-->Usuario: redirige a panel principal
+end

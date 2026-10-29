@@ -94,6 +94,14 @@
 | RF-VEN-08 | El registro de una venta no deberá generar cuentas por cobrar, estados de cuenta, operaciones contables ni comprobantes fiscales ante SUNAT. |
 | RF-VEN-09 | El sistema deberá permitir registrar una venta directamente o generarla a partir de una cotización previamente aceptada. |
 | RF-VEN-10 | Cuando una venta se origine a partir de una cotización aceptada, el sistema deberá recuperar los productos, cantidades, precios, descuentos y datos referenciales previamente registrados, evitando su digitación nuevamente. |
+| RF-VEN-11 | El sistema deberá permitir registrar una venta o solicitud de venta cuando el stock disponible sea insuficiente para atender la cantidad solicitada. |
+| RF-VEN-12 | El sistema deberá permitir seleccionar entre atender parcialmente la venta, registrarla como pendiente por abastecimiento o conservarla como solicitud pendiente del cliente. |
+| RF-VEN-13 | El sistema deberá registrar por separado la cantidad solicitada, la cantidad atendida y la cantidad pendiente de cada producto. |
+| RF-VEN-14 | Cuando una venta sea atendida parcialmente, el sistema deberá generar movimientos de salida únicamente por la cantidad atendida. |
+| RF-VEN-15 | Cuando una venta sea registrada como pendiente, el sistema no deberá generar movimientos de salida en el Kardex. |
+| RF-VEN-16 | El sistema no deberá permitir que una venta o atención parcial genere stock negativo. |
+| RF-VEN-17 | El sistema deberá permitir completar posteriormente las cantidades pendientes cuando exista disponibilidad suficiente. |
+| RF-VEN-18 | El sistema deberá conservar la trazabilidad entre la venta original, sus atenciones parciales y los movimientos Kardex generados. |
 
 ### Abastecimiento y órdenes de compra
 
@@ -159,3 +167,5 @@
 | RNF-12 | Recuperabilidad | La base de datos deberá contar con mecanismos periódicos de respaldo. |
 | RNF-13 | Navegadores | La plataforma deberá ser compatible con navegadores web modernos utilizados en los equipos disponibles en la ferretería. |
 | RNF-14 | Mantenibilidad | Los módulos principales deberán encontrarse desacoplados mediante interfaces claramente definidas. |
+| RNF-15 | Integridad transaccional | La confirmación parcial o posterior de una venta deberá actualizar de forma atómica las cantidades atendidas, pendientes y los movimientos Kardex correspondientes. |
+| RNF-16 | Consistencia | El sistema deberá impedir que la cantidad atendida acumulada supere la cantidad solicitada o el stock disponible. |

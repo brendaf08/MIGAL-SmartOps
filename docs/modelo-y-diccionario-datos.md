@@ -5,6 +5,7 @@
 - [Diagrama entidad-relación](#diagrama-entidad-relacion)
 - [Entidades maestras y transaccionales](#entidades-maestras-y-transaccionales)
 - [Relaciones con atributos](#relaciones-con-atributos)
+- [Regla de consistencia en cantidades](#regla-consistencia-cantidades)
 - [Relaciones sin atributos](#relaciones-sin-atributos)
 - [Restricción de exclusividad documental](#exclusividad-documental)
 
@@ -58,6 +59,11 @@
 | `cliente_documento` | Opcional | DNI, RUC u otro documento referencial del cliente, sin finalidad fiscal. |
 | `descuento` | Opcional | Descuento general aplicado a la venta cuando corresponda. |
 | `total_venta` | Derivado | Monto total calculado a partir de los detalles de venta y del descuento aplicado, cuando corresponda. |
+| `estado` | Simple | Estado de la venta: PendienteStock, AtencionParcial, Confirmada, Completada o Cancelada. |
+| `tipo_atencion` | Simple | Forma de atención: Completa, Parcial, PendienteAbastecimiento o SolicitudPendiente. |
+| `cantidad_total_solicitada` | Derivado | Total de unidades solicitadas en la venta. |
+| `cantidad_total_atendida` | Derivado | Total de unidades entregadas y descontadas del inventario. |
+| `cantidad_total_pendiente` | Derivado | Total de unidades aún no atendidas. |
 
 ### Cotizacion
 
@@ -143,11 +149,21 @@
 | Relación | Entidades que une | Atributos propios | Cardinalidad |
 | --- | --- | --- | --- |
 | Inventario | Producto + Almacen | `cantidad_disponible` (Derivado) | Muchos a Muchos. Un producto puede mantener existencias en múltiples almacenes y cada almacén puede contener múltiples productos. La cantidad disponible se obtiene a partir de los movimientos registrados en el Kardex. |
-| Detalle_Venta | Venta + Producto | `cantidad_vendida` (Simple)<br> `precio_unitario` (Simple) | Muchos a Muchos. Una venta contiene uno o varios productos y un mismo producto puede formar parte de múltiples ventas. |
+| Detalle_Venta | Venta + Producto | `cantidad_solicitada` (Simple)<br> `cantidad_atendida` (Simple)<br> `cantidad_pendiente` (Derivado)<br> `precio_unitario` (Simple) | Muchos a Muchos. Un detalle conserva la cantidad solicitada, la cantidad efectivamente atendida y la cantidad pendiente. |
 | Detalle_Cotizacion | Cotizacion + Producto | `cantidad_cotizada` (Simple)<br> `precio_unitario` (Simple) | Muchos a Muchos. Una cotización contiene uno o varios productos y un mismo producto puede aparecer en múltiples cotizaciones. |
 | Detalle_Compra | Orden_Compra + Producto | `cantidad_comprada` (Simple)<br> `costo_unitario` (Simple) | Muchos a Muchos. Una Orden de Compra puede contener varios productos y un mismo producto puede aparecer en múltiples órdenes de compra. |
 | Detalle_Recepcion | Orden_Recepcion + Producto | `cantidad_recibida` (Simple) | Muchos a Muchos. Una recepción puede incluir múltiples productos y un mismo producto puede ser recibido en múltiples recepciones. |
 | Catalogo_Proveedor | Proveedor + Producto | `precio_compra` (Simple) | Muchos a Muchos. Un proveedor puede suministrar varios productos y un mismo producto puede encontrarse asociado a múltiples proveedores. |
+
+<a id="regla-consistencia-cantidades"></a>
+
+## Regla de consistencia en cantidades
+
+La cantidad pendiente se calcula como:
+
+`cantidad_pendiente` = `cantidad_solicitada` - `cantidad_atendida`
+
+La `cantidad_atendida` nunca puede ser mayor que la `cantidad_solicitada` ni que el `stock_disponible` al momento de la confirmación.
 
 <a id="relaciones-sin-atributos"></a>
 
@@ -174,6 +190,8 @@
 | Origina_Venta | Documento_Digital + Venta | 0..1 : 0..1. Un Documento_Digital puede utilizarse para originar directamente como máximo una venta y una venta puede registrarse manualmente o a partir de un único documento procesado. |
 | Apoya_Recepcion | Documento_Digital + Orden_Recepcion | 0..1 : 0..1. Un Documento_Digital puede utilizarse como apoyo para precargar una recepción y una recepción puede registrarse manualmente o utilizar como máximo un documento procesado. |
 | Se_Convierte_En | Cotizacion + Venta | 0..1 : 0..1. Una cotización aceptada puede convertirse como máximo en una venta; una venta puede haberse generado desde una cotización o haberse registrado directamente. |
+| Genera_Salida_Atendida | Venta + Movimiento_Kardex | Una venta genera movimientos de salida únicamente por las cantidades atendidas. Las cantidades pendientes no generan movimientos. |
+| Completa | Venta + Movimiento_Kardex | Una atención posterior completa una parte o la totalidad de la cantidad pendiente y queda vinculada con la venta original. |
 
 <a id="exclusividad-documental"></a>
 

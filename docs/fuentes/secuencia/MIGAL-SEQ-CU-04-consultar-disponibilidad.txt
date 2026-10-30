@@ -1,22 +1,27 @@
-title CU-01: Iniciar sesión
+title CU-04: Consultar disponibilidad
 
-actor "Usuario Interno" as Usuario
-participant "Sistema" as Sistema
-database "PostgreSQL" as BD
+actor "Almacenero/Vendedor" as Actor
+boundary InterfazConsultas
+control InventarioController
+participant KardexService
+participant InventarioRepository
+database BD
 
-Usuario->Sistema: ingresa a plataforma web
-Sistema-->Usuario: solicita nombre y contraseña
-Usuario->Sistema: ingresa credenciales
-Sistema->BD: consulta y valida credenciales
+Actor -> InterfazConsultas: ingresar búsqueda (SKU o nombre)
+InterfazConsultas -> InventarioController: getStockPorUbicacion(termino)
+InventarioController -> KardexService: consultarStockPorUbicacion()
 
-alt credenciales inválidas
-    BD-->Sistema: usuario no existe o contraseña incorrecta
-    Sistema-->Usuario: muestra error y limpia contraseña
-else usuario inactivo o sin permisos
-    BD-->Sistema: credenciales correctas pero usuario inactivo/sin rol
-    Sistema-->Usuario: muestra mensaje de acceso denegado
-else credenciales válidas
-    BD-->Sistema: credenciales y rol válidos
-    Sistema->Sistema: identifica rol
-    Sistema-->Usuario: redirige a panel principal
+KardexService -> InventarioRepository: buscar existencias
+InventarioRepository -> BD: select por ubicación
+BD --> InventarioRepository: resultados (Lista de Inventario)
+InventarioRepository --> KardexService: datos
+
+alt Producto encontrado
+    KardexService --> InventarioController: List<Inventario>
+    InventarioController --> InterfazConsultas: disponibilidad segmentada
+    InterfazConsultas --> Actor: mostrar stock real
+else Producto no encontrado / ambiguo
+    KardexService --> InventarioController: vacío o sugerencias (Fuzzy)
+    InventarioController --> InterfazConsultas: opciones
+    InterfazConsultas --> Actor: mostrar alternativas
 end

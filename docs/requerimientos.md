@@ -93,6 +93,21 @@
 | RF-CLI-07 | El sistema deberá conservar la trazabilidad de las ventas y cotizaciones asociadas a cada cliente. |
 | RF-CLI-08 | El sistema deberá permitir actualizar el estado del cliente sin eliminar el historial de ventas o cotizaciones asociado. |
 
+### Gestión de proveedores
+
+| Código | Requerimiento funcional |
+| --- | --- |
+| RF-PROV-01 | El sistema deberá permitir registrar proveedores como entidades independientes. |
+| RF-PROV-02 | El proveedor deberá registrar como mínimo identificador, RUC, razón social, contacto y estado. |
+| RF-PROV-03 | El sistema deberá permitir consultar, actualizar y desactivar proveedores. |
+| RF-PROV-04 | El sistema deberá permitir asociar proveedores con los productos que suministran. |
+| RF-PROV-05 | El sistema deberá permitir seleccionar un proveedor existente y activo al registrar una Orden de Compra. |
+| RF-PROV-06 | El sistema deberá impedir registrar una Orden de Compra con un proveedor inexistente o inactivo. |
+| RF-PROV-07 | Un proveedor podrá estar asociado a múltiples Órdenes de Compra. |
+| RF-PROV-08 | Cada Orden de Compra deberá corresponder a un único proveedor. |
+| RF-PROV-09 | El sistema deberá conservar la trazabilidad histórica de las Órdenes de Compra asociadas a un proveedor. |
+| RF-PROV-10 | La desactivación de un proveedor no deberá eliminar sus Órdenes de Compra ni las recepciones relacionadas. |
+
 ### Registro de ventas
 
 | Código | Requerimiento funcional |
@@ -120,7 +135,7 @@
 
 | Código | Requerimiento funcional |
 | --- | --- |
-| RF-COM-01 | El sistema deberá permitir registrar una Orden de Compra previamente acordada con un proveedor. |
+| RF-COM-01 | El sistema deberá permitir registrar una Orden de Compra asociada a un proveedor previamente registrado y activo. |
 | RF-COM-02 | La Orden de Compra deberá registrar como mínimo proveedor, fecha, productos, cantidades, precios de compra y estado. |
 | RF-COM-03 | El sistema deberá mantener un directorio básico de proveedores. |
 | RF-COM-04 | El sistema deberá permitir asociar proveedores con los productos que suministran. |

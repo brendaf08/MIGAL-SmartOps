@@ -80,12 +80,40 @@
 | RF-PRO-05 | El sistema deberá permitir consultar la disponibilidad de un producto en la tienda principal y en cada uno de los dos almacenes. |
 | RF-PRO-06 | El sistema deberá permitir establecer un nivel mínimo de stock para cada producto. |
 
+### Gestión de clientes
+
+| Código | Requerimiento funcional |
+| --- | --- |
+| RF-CLI-01 | El sistema deberá permitir registrar clientes con nombre o razón social, documento referencial y datos de contacto opcionales. |
+| RF-CLI-02 | El sistema deberá permitir consultar y seleccionar un cliente existente al registrar una venta o cotización. |
+| RF-CLI-03 | El sistema deberá permitir asociar opcionalmente un cliente a una venta. |
+| RF-CLI-04 | El sistema deberá permitir asociar opcionalmente un cliente a una cotización. |
+| RF-CLI-05 | Un cliente podrá estar asociado a múltiples ventas y múltiples cotizaciones. |
+| RF-CLI-06 | Una venta o cotización podrá registrarse sin cliente asociado cuando la operación no requiera identificarlo. |
+| RF-CLI-07 | El sistema deberá conservar la trazabilidad de las ventas y cotizaciones asociadas a cada cliente. |
+| RF-CLI-08 | El sistema deberá permitir actualizar el estado del cliente sin eliminar el historial de ventas o cotizaciones asociado. |
+
+### Gestión de proveedores
+
+| Código | Requerimiento funcional |
+| --- | --- |
+| RF-PROV-01 | El sistema deberá permitir registrar proveedores como entidades independientes. |
+| RF-PROV-02 | El proveedor deberá registrar como mínimo identificador, RUC, razón social, contacto y estado. |
+| RF-PROV-03 | El sistema deberá permitir consultar, actualizar y desactivar proveedores. |
+| RF-PROV-04 | El sistema deberá permitir asociar proveedores con los productos que suministran. |
+| RF-PROV-05 | El sistema deberá permitir seleccionar un proveedor existente y activo al registrar una Orden de Compra. |
+| RF-PROV-06 | El sistema deberá impedir registrar una Orden de Compra con un proveedor inexistente o inactivo. |
+| RF-PROV-07 | Un proveedor podrá estar asociado a múltiples Órdenes de Compra. |
+| RF-PROV-08 | Cada Orden de Compra deberá corresponder a un único proveedor. |
+| RF-PROV-09 | El sistema deberá conservar la trazabilidad histórica de las Órdenes de Compra asociadas a un proveedor. |
+| RF-PROV-10 | La desactivación de un proveedor no deberá eliminar sus Órdenes de Compra ni las recepciones relacionadas. |
+
 ### Registro de ventas
 
 | Código | Requerimiento funcional |
 | --- | --- |
-| RF-VEN-01 | El sistema deberá permitir registrar una venta indicando como mínimo productos, cantidades, precios y monto total, pudiendo registrar los datos referenciales del cliente cuando correspondan. |
-| RF-VEN-02 | El sistema deberá permitir registrar los datos básicos del cliente asociados a la venta cuando estos se encuentren disponibles. |
+| RF-VEN-01 | El sistema deberá permitir registrar una venta indicando como mínimo productos, cantidades, precios y monto total, pudiendo asociar opcionalmente un cliente durante la operación cuando corresponda. |
+| RF-VEN-02 | El sistema deberá permitir asociar opcionalmente un cliente a la venta y conservar la relación para fines operativos y de trazabilidad, sin generar comprobantes fiscales. |
 | RF-VEN-03 | El sistema deberá consultar y validar el stock disponible antes de confirmar la venta. |
 | RF-VEN-04 | Al confirmarse la venta, el sistema deberá generar los movimientos correspondientes de salida en el Kardex. |
 | RF-VEN-05 | El sistema deberá mantener la relación entre la venta y los productos incluidos en ella. |
@@ -94,12 +122,20 @@
 | RF-VEN-08 | El registro de una venta no deberá generar cuentas por cobrar, estados de cuenta, operaciones contables ni comprobantes fiscales ante SUNAT. |
 | RF-VEN-09 | El sistema deberá permitir registrar una venta directamente o generarla a partir de una cotización previamente aceptada. |
 | RF-VEN-10 | Cuando una venta se origine a partir de una cotización aceptada, el sistema deberá recuperar los productos, cantidades, precios, descuentos y datos referenciales previamente registrados, evitando su digitación nuevamente. |
+| RF-VEN-11 | El sistema deberá permitir registrar una venta o solicitud de venta cuando el stock disponible sea insuficiente para atender la cantidad solicitada. |
+| RF-VEN-12 | El sistema deberá permitir seleccionar entre atender parcialmente la venta, registrarla como pendiente por abastecimiento o conservarla como solicitud pendiente del cliente. |
+| RF-VEN-13 | El sistema deberá registrar por separado la cantidad solicitada, la cantidad atendida y la cantidad pendiente de cada producto. |
+| RF-VEN-14 | Cuando una venta sea atendida parcialmente, el sistema deberá generar movimientos de salida únicamente por la cantidad atendida. |
+| RF-VEN-15 | Cuando una venta sea registrada como pendiente, el sistema no deberá generar movimientos de salida en el Kardex. |
+| RF-VEN-16 | El sistema no deberá permitir que una venta o atención parcial genere stock negativo. |
+| RF-VEN-17 | El sistema deberá permitir completar posteriormente las cantidades pendientes cuando exista disponibilidad suficiente. |
+| RF-VEN-18 | El sistema deberá conservar la trazabilidad entre la venta original, sus atenciones parciales y los movimientos Kardex generados. |
 
 ### Abastecimiento y órdenes de compra
 
 | Código | Requerimiento funcional |
 | --- | --- |
-| RF-COM-01 | El sistema deberá permitir registrar una Orden de Compra previamente acordada con un proveedor. |
+| RF-COM-01 | El sistema deberá permitir registrar una Orden de Compra asociada a un proveedor previamente registrado y activo. |
 | RF-COM-02 | La Orden de Compra deberá registrar como mínimo proveedor, fecha, productos, cantidades, precios de compra y estado. |
 | RF-COM-03 | El sistema deberá mantener un directorio básico de proveedores. |
 | RF-COM-04 | El sistema deberá permitir asociar proveedores con los productos que suministran. |
@@ -132,7 +168,7 @@
 | Código | Requerimiento funcional |
 | --- | --- |
 | RF-COT-01 | El sistema deberá permitir al Vendedor registrar una cotización dirigida a un cliente antes de concretar una venta. |
-| RF-COT-02 | La cotización deberá permitir registrar, como mínimo, los productos, cantidades, precios unitarios, descuentos aplicables, condiciones comerciales, fecha de emisión y fecha de vencimiento. |
+| RF-COT-02 | La cotización deberá permitir registrar, como mínimo, los productos, cantidades, precios unitarios, descuentos aplicables, condiciones comerciales, fecha de emisión y fecha de vencimiento. La cotización podrá asociarse opcionalmente con un cliente. |
 | RF-COT-03 | El sistema deberá calcular el monto total de la cotización a partir de los productos, cantidades, precios y descuentos registrados. |
 | RF-COT-04 | El sistema deberá permitir que los productos y cantidades de una cotización puedan ser ingresados manualmente o precargados a partir de información previamente procesada mediante OCR y Fuzzy Matching. |
 | RF-COT-05 | El sistema deberá gestionar el ciclo de vida de la cotización mediante los estados Emitida, Aceptada, Rechazada y Vencida. |
@@ -159,3 +195,5 @@
 | RNF-12 | Recuperabilidad | La base de datos deberá contar con mecanismos periódicos de respaldo. |
 | RNF-13 | Navegadores | La plataforma deberá ser compatible con navegadores web modernos utilizados en los equipos disponibles en la ferretería. |
 | RNF-14 | Mantenibilidad | Los módulos principales deberán encontrarse desacoplados mediante interfaces claramente definidas. |
+| RNF-15 | Integridad transaccional | La confirmación parcial o posterior de una venta deberá actualizar de forma atómica las cantidades atendidas, pendientes y los movimientos Kardex correspondientes. |
+| RNF-16 | Consistencia | El sistema deberá impedir que la cantidad atendida acumulada supere la cantidad solicitada o el stock disponible. |

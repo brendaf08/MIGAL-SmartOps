@@ -45,11 +45,12 @@ Es el núcleo de la aplicación. Contiene el 100 % de la lógica del negocio, la
 | --- | --- | --- |
 | `UsuarioService` | Validación de credenciales y administración de usuarios y roles. | `validarCredenciales(user, pass): Boolean`<br>`verificarDuplicidadUsername(username): Boolean`<br>`guardarUsuario(usuario): Usuario`<br>`listarUsuarios(): List<Usuario>`<br>`actualizarRol(idUsuario, rol): Usuario` |
 | `ProductoService` | Mantener la integridad y consistencia del catálogo maestro. | `verificarExistenciaSku(sku): Boolean`<br>`registrarProducto(producto): Producto`<br>`actualizarProducto(idProducto, datos): Producto`<br>`obtenerFichaTecnica(sku): Producto` |
-| `KardexService` | Motor transaccional del inventario y encargado de asegurar la coherencia del stock entre ubicaciones. | `consultarDisponibilidad(producto): Integer`<br>`consultarStockPorUbicacion(sku): List<Inventario>`<br>`consultarHistorialKardex(sku, idAlmacen): List<MovimientoKardex>`<br>`validarStockSuficiente(producto, cantidad): Boolean`<br>`registrarMovimiento(movimiento): Boolean`<br>`ejecutarTrasladoPartidaDoble(idOrigen, idDestino, sku, cantidad): Boolean` |
-| `VentaService` | Procesamiento transaccional de ventas, independientemente de si se originan directamente o desde una cotización aceptada. | `procesarVenta(venta, detalles): Venta` |
+| `KardexService` | Motor transaccional del inventario y encargado de asegurar la coherencia del stock entre ubicaciones. | `consultarDisponibilidad(producto): Integer`<br>`consultarStockPorUbicacion(sku): List<Inventario>`<br>`consultarHistorialKardex(sku, idAlmacen): List<MovimientoKardex>`<br>`validarStockSuficiente(producto, cantidad): Boolean`<br>`registrarMovimiento(movimiento): Boolean`<br>`ejecutarTrasladoPartidaDoble(idOrigen, idDestino, sku, cantidad): Boolean`<br>`registrarSalidaPorCantidadAtendida(venta, detalles): Boolean`<br>
+`validarStockParaAtencion(producto, cantidad): Boolean` |
+| `VentaService` | Procesamiento transaccional de ventas, independientemente de si se originan directamente o desde una cotización aceptada. Considera ventas completas, parciales y pendientes, evitando stock negativo y generando salidas Kardex únicamente por cantidades atendidas. | `validarDisponibilidadParcial(detalles)`<br>`registrarAtencionParcial(venta, cantidades)`<br>`registrarVentaPendiente(datos)`<br>`completarVentaPendiente(idVenta, cantidades)`<br>`calcularCantidadesPendientes(detalles)`<br>`procesarVenta(venta, detalles): Venta` |
 | `CotizacionService` | Gestión del ciclo de vida de cotizaciones y de su eventual conversión en venta. | `crearCotizacion(datos): Cotizacion`<br>`actualizarEstado(idCotizacion, estado): Cotizacion`<br>`verificarVigencia(cotizacion): Boolean`<br>`convertirAVenta(idCotizacion): Venta` |
 | `DespachoService` | Validación y emisión de documentos asociados a la entrega física de ventas registradas. | `obtenerVentasPendientes(): List<Venta>`<br>`validarGuiaExistente(idVenta): Boolean`<br>`crearGuiaDespacho(venta): GuiaDespacho` |
-| `AbastecimientoService` | Gestión de proveedores, órdenes de compra, recepciones parciales o completas y apoyo documental durante la recepción. | `crearOrdenCompra(orden): OrdenCompra`<br>`registrarRecepcionFisica(idOrden, recepcion): Boolean`<br>`validarCantidadesRecibidas(cantSolicitada, cantReal): EstadoCompra`<br>`registrarProveedor(proveedor): Proveedor`<br>`listarProveedores(): List<Proveedor>`<br>`asociarCatalogoProveedor(idProveedor, idProducto, precio): Boolean`<br>`procesarDocumentoRecepcion(documento): List<DetalleExtraido>`<br>`precargarRecepcionDesdeDocumento(documento): OrdenRecepcion` |
+| `AbastecimientoService` | Gestión de proveedores, órdenes de compra, recepciones parciales o completas y apoyo documental durante la recepción. | `crearOrdenCompra(orden): OrdenCompra`<br>`registrarRecepcionFisica(idOrden, recepcion): Boolean`<br>`validarCantidadesRecibidas(cantSolicitada, cantReal): EstadoCompra`<br>`registrarProveedor(proveedor): Proveedor`<br>`actualizarProveedor(idProveedor, datos): Proveedor` <br>`desactivarProveedor(idProveedor): Proveedor`<br>`listarProveedores(): List<Proveedor>`<br>`asociarCatalogoProveedor(idProveedor, idProducto, precio): Boolean`<br>`procesarDocumentoRecepcion(documento): List<DetalleExtraido>`<br>`precargarRecepcionDesdeDocumento(documento): OrdenRecepcion` |
 | `OcrIAIntegratorService` | Comunicación con el microservicio Python y normalización de información extraída mediante OCR y Fuzzy Matching. | `procesarDocumento(documento): List<DetalleExtraido>`<br>`enviarDocumentoMicroservicio(documento)`<br>`ejecutarFuzzyMatching(termino)`<br>`asociarProducto(detalle, producto)` |
 | `AgenteConsultivoService` | Interpretación de consultas en lenguaje natural y coordinación del Tool Calling autorizado. | `procesarConsultaLenguajeNatural(query): String` |
 
@@ -73,6 +74,8 @@ Actúan como interfaces (Data Access Objects). Su única responsabilidad es trad
 | `DocumentoDigitalRepository` | Persistencia y consulta de documentos cargados para procesamiento OCR. |
 | `DetalleExtraidoRepository` | Persistencia de los elementos obtenidos mediante OCR, incluyendo aquellos todavía pendientes de asociación con un producto. |
 | `ProveedorRepository` | Persistencia y consulta del directorio de proveedores. |
+| `ClienteRepository` | Persistencia, consulta, actualización y desactivación de clientes. |
+| `ProveedorRepository` | Persistencia, consulta, actualización, activación y desactivación de proveedores. |
 
 <a id="models"></a>
 
@@ -83,15 +86,16 @@ Son las clases de entidad (JPA Entities). Representan la estructura de informaci
 | Clase | Responsabilidad principal | Elementos principales |
 | --- | --- | --- |
 | `Usuario` | Representar a los colaboradores autenticados del sistema. | `idUsuario`<br>`nombres`<br>`apellidos`<br>`username`<br>`passwordHash`<br>`rol` |
+| `Cliente` | Representar a la persona o entidad que solicita una cotización o realiza una compra. | `idCliente`<br>`nombreRazonSocial`<br>`documentoReferencial`<br>`telefonoContacto`<br>`estado`<br>`activar()`<br>`desactivar()` |
 | `Almacen` | Representar cada ubicación física donde se mantienen existencias. | `idAlmacen`<br>`nombre` |
 | `Producto` | Representar los artículos del catálogo maestro. | `idProducto`<br>`sku`<br>`nombreOficial`<br>`descripcion`<br>`unidadMedida`<br>`precioReferencial`<br>`stockMinimo`<br>`estadoActivo` |
-| `Venta` | Representar una operación comercial confirmada que produce salida de inventario. | `idVenta`<br>`fechaVenta`<br>`clienteNombre`<br>`clienteDocumento`<br>`totalVenta`<br>`descuento`<br>`usuario`<br>`calcularTotalVenta()` |
-| `Cotizacion` | Representar una propuesta comercial dirigida a un cliente antes de concretar una venta. | `idCotizacion`<br>`fechaEmision`<br>`fechaVencimiento`<br>`clienteNombre`<br>`clienteDocumento`<br>`condicionesComerciales`<br>`descuento`<br>`estado`<br>`totalCotizacion`<br>`usuario`<br>`calcularTotal()` |
+| `Venta` | Representar una operación comercial completa, parcial o pendiente conservando las cantidades además del estado de atención y opcionalmente asociada a un cliente. | `idVenta`<br>`fechaVenta`<br>`cliente: Cliente?` <br>`totalVenta`<br>`descuento`<br>`estado`<br>`usuario` <br>`tipoAtencion`<br>`cantidadTotalSolicitada`<br>`cantidadTotalAtendida`<br>`cantidadTotalPendiente`<br>`calcularTotalVenta()`<br>`calcularTotalVenta()`<br>`confirmarAtencion()`<br>`calcularPendiente()`<br>`completarAtencion()`|
+| `Cotizacion` | Representar una propuesta comercial dirigida a un cliente antes de concretar una venta. | `idCotizacion`<br>`fechaEmision`<br>`fechaVencimiento`<br>`cliente: Cliente?` <br>`condicionesComerciales`<br>`descuento`<br>`estado`<br>`totalCotizacion`<br>`usuario`<br>`calcularTotal()` |
 | `GuiaDespacho` | Representar el documento utilizado para controlar la entrega física correspondiente a una venta. | `idGuia`<br>`fechaDespacho`<br>`direccionEntrega`<br>`estado` |
 | `MovimientoKardex` | Representar cada entrada o salida que afecta físicamente las existencias. | `idMovimiento`<br>`fechaHora`<br>`tipoOperacion`<br>`cantidad`<br>`motivo`<br>`usuario` |
-| `OrdenCompra` | Representar una compra previamente acordada con un proveedor. | `idOrden`<br>`fechaEmision`<br>`estado`<br>`usuario` |
+| `OrdenCompra` | Representar una compra previamente acordada con un proveedor. | `idOrden`<br>`proveedor: Proveedor`<br>`fechaEmision`<br>`estado`<br>`usuario`<br>`validarProveedorActivo()`|
 | `OrdenRecepcion` | Representar cada recepción física correspondiente a una Orden de Compra. | `idRecepcion`<br>`fechaRecepcion`<br>`estado`<br>`usuario` |
-| `Proveedor` | Representar los proveedores registrados y utilizados durante el abastecimiento. | `idProveedor`<br>`ruc`<br>`razonSocial`<br>`contacto`<br>`condiciones` |
+| `Proveedor` | Representar un proveedor independiente del sistema y conservar sus datos de identificación y estado. | `idProveedor`<br>`ruc`<br>`razonSocial`<br>`contacto`<br>`condiciones`<br>`estado`<br>`activar()`<br>`desactivar()` |
 | `DocumentoDigital` | Representar los archivos operativos cargados para procesamiento OCR. | `idDocumento`<br>`rutaArchivo`<br>`fechaSubida`<br>`estadoProcesamiento`<br>`tipoDocumento`<br>`usuario` |
 | `DetalleExtraido` | Representar cada elemento textual o cantidad identificada dentro de un DocumentoDigital, aun cuando todavía no posea producto asociado. | `idDetalleExtraido`<br>`textoCrudo`<br>`cantidadLeida` |
 
@@ -102,7 +106,7 @@ Son las clases de entidad (JPA Entities). Representan la estructura de informaci
 | Clase asociativa | Clases relacionadas | Responsabilidad |
 | --- | --- | --- |
 | `Inventario` | Producto + Almacen | Representar las existencias disponibles de cada producto en cada ubicación. Contiene cantidadDisponible. |
-| `DetalleVenta` | Venta + Producto | Representar los productos incluidos en una venta, conservando cantidadVendida y precioUnitario. |
+| `DetalleVenta` | Venta + Producto | Representar los productos solicitados en una venta y controlar el avance de su atención. |
 | `DetalleCotizacion` | Cotizacion + Producto | Representar los productos incluidos en una cotización, conservando cantidadCotizada y precioUnitario. |
 | `DetalleCompra` | OrdenCompra + Producto | Representar los productos solicitados en una Orden de Compra mediante cantidadComprada y costoUnitario. |
 | `DetalleRecepcion` | OrdenRecepcion + Producto | Representar las cantidades efectivamente recibidas de cada producto mediante cantidadRecibida. |
@@ -122,3 +126,5 @@ Son las clases de entidad (JPA Entities). Representan la estructura de informaci
 | `EstadoDocumento` | `Pendiente`<br>`Procesado_OCR`<br>`Validado` | Representar el estado del procesamiento de un DocumentoDigital. |
 | `TipoDocumento` | `SolicitudCliente`<br>`PedidoCliente`<br>`DocumentoRecepcion` | Identificar el contexto operativo del documento cargado al módulo OCR. |
 | `EstadoCotizacion` | `Emitida`<br>`Aceptada`<br>`Rechazada`<br>`Vencida` | Representar el ciclo de vida comercial de una cotización. |
+| `EstadoVenta` | `PendienteStock`<br>`AtencionParcial`<br>`Confirmada`<br>`Completada`<br>`Cancelada` | Representar el estado de atención de una venta según la disponibilidad de inventario. |
+| `TipoAtencion` | `Completa`<br>`Parcial`<br>`PendienteAbastecimiento`<br>`SolicitudPendiente` | Identificar cómo se atiende una venta cuando existe stock insuficiente. |

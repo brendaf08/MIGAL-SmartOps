@@ -29,6 +29,16 @@
 | `password_hash` | Simple | Contraseña almacenada mediante representación hash. |
 | `rol` | Simple | Nivel de acceso del usuario: Administrador, Vendedor, Almacenero o Reponedor. |
 
+### Cliente
+
+| Atributo | Tipo de atributo | Descripción |
+| --- | --- | --- |
+| `id_cliente` | Único (PK) | Identificador interno del cliente. |
+| `nombre_razon_social` | Simple | Nombre completo del cliente o razón social cuando corresponda. |
+| `documento_referencial` | Opcional | DNI, RUC u otro documento utilizado como referencia operativa, sin finalidad fiscal. |
+| `telefono_contacto` | Opcional | Teléfono u otro medio de contacto del cliente. |
+| `estado` | Simple | Estado del cliente, por ejemplo Activo o Inactivo. |
+
 ### Almacen
 
 | Atributo | Tipo de atributo | Descripción |
@@ -54,9 +64,8 @@
 | Atributo | Tipo de atributo | Descripción |
 | --- | --- | --- |
 | `id_venta` | Único (PK) | Identificador interno de la transacción de venta. |
+| `id_cliente` | Opcional (FK) | Referencia al cliente asociado a la venta. Puede ser nula cuando la operación no requiera identificarlo. |
 | `fecha_venta` | Simple | Fecha y hora en que se registra la venta. |
-| `cliente_nombre` | Opcional | Nombre referencial del cliente cuando se encuentre disponible. |
-| `cliente_documento` | Opcional | DNI, RUC u otro documento referencial del cliente, sin finalidad fiscal. |
 | `descuento` | Opcional | Descuento general aplicado a la venta cuando corresponda. |
 | `total_venta` | Derivado | Monto total calculado a partir de los detalles de venta y del descuento aplicado, cuando corresponda. |
 | `estado` | Simple | Estado de la venta: PendienteStock, AtencionParcial, Confirmada, Completada o Cancelada. |
@@ -70,10 +79,9 @@
 | Atributo | Tipo de atributo | Descripción |
 | --- | --- | --- |
 | `id_cotizacion` | Único (PK) | Identificador interno de la cotización realizada al cliente. |
+| `id_cliente` | Opcional (FK) | Referencia al cliente asociado a la cotización. Puede ser nula cuando la cotización no requiera identificarlo. |
 | `fecha_emision` | Simple | Fecha en que se emite la cotización. |
 | `fecha_vencimiento` | Simple | Fecha límite hasta la cual la cotización mantiene su vigencia. |
-| `cliente_nombre` | Opcional | Nombre referencial del cliente al que se dirige la cotización. |
-| `cliente_documento` | Opcional | DNI, RUC u otro documento referencial del cliente. |
 | `condiciones_comerciales` | Opcional | Condiciones comerciales o términos aplicables a la propuesta. |
 | `descuento` | Opcional | Descuento general aplicado a la cotización cuando corresponda. |
 | `estado` | Simple | Estado de la cotización: Emitida, Aceptada, Rechazada o Vencida. |
@@ -154,6 +162,8 @@
 | Detalle_Compra | Orden_Compra + Producto | `cantidad_comprada` (Simple)<br> `costo_unitario` (Simple) | Muchos a Muchos. Una Orden de Compra puede contener varios productos y un mismo producto puede aparecer en múltiples órdenes de compra. |
 | Detalle_Recepcion | Orden_Recepcion + Producto | `cantidad_recibida` (Simple) | Muchos a Muchos. Una recepción puede incluir múltiples productos y un mismo producto puede ser recibido en múltiples recepciones. |
 | Catalogo_Proveedor | Proveedor + Producto | `precio_compra` (Simple) | Muchos a Muchos. Un proveedor puede suministrar varios productos y un mismo producto puede encontrarse asociado a múltiples proveedores. |
+| Cliente_Venta | Cliente + Venta | `id_cliente` (FK opcional) | Un cliente puede estar asociado a muchas ventas. Una venta puede asociarse con cero o un cliente. |
+| Cliente_Cotizacion | Cliente + Cotizacion | `id_cliente` (FK opcional) | Un cliente puede estar asociado a muchas cotizaciones. Una cotización puede asociarse con cero o un cliente. |
 
 <a id="regla-consistencia-cantidades"></a>
 
@@ -192,6 +202,8 @@ La `cantidad_atendida` nunca puede ser mayor que la `cantidad_solicitada` ni que
 | Se_Convierte_En | Cotizacion + Venta | 0..1 : 0..1. Una cotización aceptada puede convertirse como máximo en una venta; una venta puede haberse generado desde una cotización o haberse registrado directamente. |
 | Genera_Salida_Atendida | Venta + Movimiento_Kardex | Una venta genera movimientos de salida únicamente por las cantidades atendidas. Las cantidades pendientes no generan movimientos. |
 | Completa | Venta + Movimiento_Kardex | Una atención posterior completa una parte o la totalidad de la cantidad pendiente y queda vinculada con la venta original. |
+| Realiza_Venta | Cliente + Venta | 0..1 : 0..* | Un cliente puede tener muchas ventas; una venta puede estar asociada opcionalmente a un único cliente. |
+| Solicita_Cotizacion | Cliente + Cotizacion | 0..1 : 0..* | Un cliente puede tener muchas cotizaciones; una cotización puede estar asociada opcionalmente a un único cliente. |
 
 <a id="exclusividad-documental"></a>
 

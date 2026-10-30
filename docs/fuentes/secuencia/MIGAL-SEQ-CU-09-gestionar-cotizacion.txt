@@ -1,0 +1,55 @@
+title CU-09: Gestionar cotización
+
+actor Vendedor
+boundary InterfazCotizacion
+control CotizacionController
+participant CotizacionService
+participant ClienteRepository
+participant KardexService
+participant CotizacionRepository
+database BD
+
+Vendedor -> InterfazCotizacion: confirmar emisión
+InterfazCotizacion -> CotizacionController: postNuevaCotizacion(datos, idCliente_opc)
+
+opt Cliente identificado
+    CotizacionController -> ClienteRepository: buscar y validar cliente(idCliente)
+    ClienteRepository -> BD: select cliente
+    BD --> ClienteRepository: cliente activo/inactivo
+    ClienteRepository --> CotizacionController: resultado de validación
+end
+
+CotizacionController -> CotizacionService: crearCotizacion(datos, idCliente_opc)
+CotizacionService -> CotizacionService: calcularTotal()
+CotizacionService -> CotizacionRepository: guardar(cotizacion)
+CotizacionRepository -> BD: insert(Estado: Emitida)
+CotizacionService --> CotizacionController: éxito
+CotizacionController --> InterfazCotizacion: cotización emitida
+
+opt Evolución de la cotización
+    alt Aceptar y convertir a venta
+        Vendedor -> InterfazCotizacion: registrar aceptación
+        InterfazCotizacion -> CotizacionController: postConvertirAVenta(idCotizacion)
+        CotizacionController -> CotizacionService: actualizarEstado(Aceptada)
+        CotizacionService -> CotizacionRepository: update estado = Aceptada
+        CotizacionRepository -> BD: update
+
+        CotizacionService -> KardexService: validarStockSuficiente()
+        KardexService --> CotizacionService: stock disponible o insuficiente
+
+        CotizacionService --> CotizacionController: preparar datos para CU10
+        CotizacionController --> InterfazCotizacion: derivar a registro de venta
+
+    else Rechazar
+        Vendedor -> InterfazCotizacion: registrar rechazo
+        InterfazCotizacion -> CotizacionController: putActualizarEstado(Rechazada)
+        CotizacionController -> CotizacionService: actualizarEstado(Rechazada)
+        CotizacionService -> CotizacionRepository: update estado = Rechazada
+        CotizacionRepository -> BD: update
+
+    else Vencimiento automático
+        CotizacionService -> CotizacionService: verificarVigencia()
+        CotizacionService -> CotizacionRepository: update estado = Vencida
+        CotizacionRepository -> BD: update
+    end
+end

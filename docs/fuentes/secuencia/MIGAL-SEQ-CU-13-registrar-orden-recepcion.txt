@@ -1,0 +1,60 @@
+title CU-13: Registrar orden de recepción
+
+actor Almacenero
+boundary InterfazRecepcion
+control AbastecimientoController
+participant AbastecimientoService
+participant OrdenCompraRepository
+participant ProveedorRepository
+participant OrdenRecepcionRepository
+participant KardexService
+participant InventarioRepository
+participant MovimientoKardexRepository
+database BD
+
+Almacenero -> InterfazRecepcion: seleccionar Orden de Compra
+InterfazRecepcion -> AbastecimientoController: getOrdenCompra(idOrden)
+AbastecimientoController -> OrdenCompraRepository: buscar(idOrden)
+OrdenCompraRepository -> BD: select orden y proveedor
+BD --> OrdenCompraRepository: datos de orden y proveedor
+OrdenCompraRepository --> AbastecimientoController: productos esperados y proveedor
+AbastecimientoController --> InterfazRecepcion: mostrar productos y proveedor
+
+opt Cargar documento OCR
+    Almacenero -> InterfazRecepcion: cargar documento(ref CU08)
+    InterfazRecepcion -> AbastecimientoController: procesar OCR
+    AbastecimientoController --> InterfazRecepcion: datos precargados normalizados
+end
+
+Almacenero -> InterfazRecepcion: confirmar recepción y cantidades reales
+InterfazRecepcion -> AbastecimientoController: postOrdenRecepcion(datos)
+AbastecimientoController -> AbastecimientoService: registrarRecepcionFisica(idOrden, recepcion)
+
+AbastecimientoService -> OrdenCompraRepository: validar orden y proveedor asociado
+OrdenCompraRepository -> BD: select
+BD --> OrdenCompraRepository: orden válida y proveedor
+OrdenCompraRepository --> AbastecimientoService: validación exitosa
+
+AbastecimientoService -> AbastecimientoService: validarCantidadesRecibidas()
+
+alt Recepción parcial
+    AbastecimientoService -> OrdenCompraRepository: update estado = Parcial
+    OrdenCompraRepository -> BD: update
+else Recepción completada
+    AbastecimientoService -> OrdenCompraRepository: update estado = Completada
+    OrdenCompraRepository -> BD: update
+end
+
+AbastecimientoService -> OrdenRecepcionRepository: guardar recepción y detalles reales
+OrdenRecepcionRepository -> BD: insert recepción vinculada a idOrden
+BD --> OrdenRecepcionRepository: ok
+
+AbastecimientoService -> KardexService: incrementar inventario
+KardexService -> InventarioRepository: actualizar(stock + cantidadRecibida)
+InventarioRepository -> BD: update
+KardexService -> MovimientoKardexRepository: registrar(Entrada, motivo: Recepción)
+MovimientoKardexRepository -> BD: insert
+KardexService --> AbastecimientoService: inventario y Kardex actualizados
+
+AbastecimientoService --> AbastecimientoController: éxito
+AbastecimientoController --> InterfazRecepcion: confirmación mostrada

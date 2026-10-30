@@ -74,6 +74,7 @@ Actúan como interfaces (Data Access Objects). Su única responsabilidad es trad
 | `DocumentoDigitalRepository` | Persistencia y consulta de documentos cargados para procesamiento OCR. |
 | `DetalleExtraidoRepository` | Persistencia de los elementos obtenidos mediante OCR, incluyendo aquellos todavía pendientes de asociación con un producto. |
 | `ProveedorRepository` | Persistencia y consulta del directorio de proveedores. |
+| `ClienteRepository` | Persistencia, consulta, actualización y desactivación de clientes. |
 
 <a id="models"></a>
 
@@ -84,10 +85,11 @@ Son las clases de entidad (JPA Entities). Representan la estructura de informaci
 | Clase | Responsabilidad principal | Elementos principales |
 | --- | --- | --- |
 | `Usuario` | Representar a los colaboradores autenticados del sistema. | `idUsuario`<br>`nombres`<br>`apellidos`<br>`username`<br>`passwordHash`<br>`rol` |
+| `Cliente` | Representar a la persona o entidad que solicita una cotización o realiza una compra. | `idCliente`<br>`nombreRazonSocial`<br>`documentoReferencial`<br>`telefonoContacto`<br>`estado`<br>`activar()`<br>`desactivar()` |
 | `Almacen` | Representar cada ubicación física donde se mantienen existencias. | `idAlmacen`<br>`nombre` |
 | `Producto` | Representar los artículos del catálogo maestro. | `idProducto`<br>`sku`<br>`nombreOficial`<br>`descripcion`<br>`unidadMedida`<br>`precioReferencial`<br>`stockMinimo`<br>`estadoActivo` |
-| `Venta` | Representar una operación comercial completa, parcial o pendiente. Conserva las cantidades solicitadas, atendidas y pendientes, además del estado de atención. | `idVenta`<br>`fechaVenta`<br>`clienteNombre`<br>`clienteDocumento`<br>`totalVenta`<br>`descuento`<br>`usuario` <br> `estado` <br>`tipoAtencion`<br>`cantidadTotalSolicitada`<br>`cantidadTotalAtendida`<br>`cantidadTotalPendiente`<br>`calcularTotalVenta()`<br>`confirmarAtencion()`<br>`calcularPendiente()`<br>`completarAtencion()`|
-| `Cotizacion` | Representar una propuesta comercial dirigida a un cliente antes de concretar una venta. | `idCotizacion`<br>`fechaEmision`<br>`fechaVencimiento`<br>`clienteNombre`<br>`clienteDocumento`<br>`condicionesComerciales`<br>`descuento`<br>`estado`<br>`totalCotizacion`<br>`usuario`<br>`calcularTotal()` |
+| `Venta` | Representar una operación comercial completa, parcial o pendiente conservando las cantidades además del estado de atención y opcionalmente asociada a un cliente. | `idVenta`<br>`fechaVenta`<br>`cliente: Cliente?` <br>`totalVenta`<br>`descuento`<br>`estado`<br>`usuario` <br>`tipoAtencion`<br>`cantidadTotalSolicitada`<br>`cantidadTotalAtendida`<br>`cantidadTotalPendiente`<br>`calcularTotalVenta()`<br>`calcularTotalVenta()`<br>`confirmarAtencion()`<br>`calcularPendiente()`<br>`completarAtencion()`|
+| `Cotizacion` | Representar una propuesta comercial dirigida a un cliente antes de concretar una venta. | `idCotizacion`<br>`fechaEmision`<br>`fechaVencimiento`<br>`cliente: Cliente?` <br>`condicionesComerciales`<br>`descuento`<br>`estado`<br>`totalCotizacion`<br>`usuario`<br>`calcularTotal()` |
 | `GuiaDespacho` | Representar el documento utilizado para controlar la entrega física correspondiente a una venta. | `idGuia`<br>`fechaDespacho`<br>`direccionEntrega`<br>`estado` |
 | `MovimientoKardex` | Representar cada entrada o salida que afecta físicamente las existencias. | `idMovimiento`<br>`fechaHora`<br>`tipoOperacion`<br>`cantidad`<br>`motivo`<br>`usuario` |
 | `OrdenCompra` | Representar una compra previamente acordada con un proveedor. | `idOrden`<br>`fechaEmision`<br>`estado`<br>`usuario` |

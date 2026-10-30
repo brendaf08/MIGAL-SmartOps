@@ -101,6 +101,7 @@
 | Atributo | Tipo de atributo | Descripción |
 | --- | --- | --- |
 | `id_orden` | Único (PK) | Identificador interno de la Orden de Compra. |
+| `id_proveedor` | Obligatorio (FK) | Referencia al proveedor activo asociado a la Orden de Compra. |
 | `fecha_emision` | Simple | Fecha de creación de la Orden de Compra. |
 | `estado` | Simple | Estado de cumplimiento de la Orden de Compra respecto a las recepciones realizadas: Pendiente, Parcial o Completada. |
 
@@ -130,6 +131,7 @@
 | `ruc` | Único | Registro Único de Contribuyente del proveedor. |
 | `razon_social` | Simple | Razón social o nombre comercial del proveedor. |
 | `contacto` | Simple | Información de contacto del proveedor, como teléfono o correo electrónico. |
+| `estado` | Simple | Estado del proveedor: Activo o Inactivo. |
 | `condiciones` | Opcional | Condiciones comerciales generales asociadas al proveedor, como plazos de entrega o condiciones de pago. |
 
 ### Documento_Digital
@@ -164,6 +166,7 @@
 | Catalogo_Proveedor | Proveedor + Producto | `precio_compra` (Simple) | Muchos a Muchos. Un proveedor puede suministrar varios productos y un mismo producto puede encontrarse asociado a múltiples proveedores. |
 | Cliente_Venta | Cliente + Venta | `id_cliente` (FK opcional) | Un cliente puede estar asociado a muchas ventas. Una venta puede asociarse con cero o un cliente. |
 | Cliente_Cotizacion | Cliente + Cotizacion | `id_cliente` (FK opcional) | Un cliente puede estar asociado a muchas cotizaciones. Una cotización puede asociarse con cero o un cliente. |
+| Catalogo_Proveedor | Proveedor + Producto | `precio_compra` (Simple) | Un proveedor puede suministrar múltiples productos y un producto puede ser suministrado por múltiples proveedores. |
 
 <a id="regla-consistencia-cantidades"></a>
 
@@ -204,6 +207,7 @@ La `cantidad_atendida` nunca puede ser mayor que la `cantidad_solicitada` ni que
 | Completa | Venta + Movimiento_Kardex | Una atención posterior completa una parte o la totalidad de la cantidad pendiente y queda vinculada con la venta original. |
 | Realiza_Venta | Cliente + Venta | 0..1 : 0..* | Un cliente puede tener muchas ventas; una venta puede estar asociada opcionalmente a un único cliente. |
 | Solicita_Cotizacion | Cliente + Cotizacion | 0..1 : 0..* | Un cliente puede tener muchas cotizaciones; una cotización puede estar asociada opcionalmente a un único cliente. |
+| Tiene_Ordenes | Proveedor + Orden_Compra | 1 : 0..*. Un proveedor puede tener múltiples Órdenes de Compra; cada Orden de Compra corresponde a un único proveedor. |
 
 <a id="exclusividad-documental"></a>
 

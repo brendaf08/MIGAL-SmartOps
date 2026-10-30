@@ -12,10 +12,13 @@
 | RF-KAR-13; RF-DES-01–06 | CU-06 | GuiaDespacho | Dirección, estados y duplicidad |
 | RF-OCR-01–08; RF-FUZ-01–07 | CU-08/04 | DocumentoDigital; DetalleExtraido | Atributos, validación y ubicación de Fuzzy |
 | RF-COT-01–09 | CU-09/10 | Cotizacion; Venta | Guardas y conversión única |
-| RF-COM-01–05/12 | CU-11/12 | Proveedor; OrdenCompra | Ramas invertidas y proveedor inactivo |
+| RF-COM-01–05/12 | CU-11/12 | Proveedor; OrdenCompra; CatalogoProveedor | Ramas invertidas y proveedor inactivo |
 | RF-IA-01–09; RF-KAR-09 | CU-14 | AgenteConsultivoService | Motor, herramientas y críticos |
 | RF-KAR-10 | Realización por completar | Backend / configuración por definir | Regla de reorden |
 | RNF-01–16 | Transversal | Arquitectura y servicios | Concurrencia, medición y respaldos |
+| RF-PROV-01–04 | CU-11/CU-12 | Proveedor, repositorios y servicios | Gestión y asociación de proveedores con productos. | 
+| RF-PROV-05–10 | CU-11/CU-12/CU-13 | Proveedor, OrdenCompra y OrdenRecepcion | Validación, cardinalidad, historial y trazabilidad. | 
+| RF-COM-01–11 | CU-12/CU-13 | OrdenCompra, DetalleCompra y Proveedor | Compras y recepciones vinculadas al proveedor sin afectar inventario directamente. |
 
 ## Uso
 

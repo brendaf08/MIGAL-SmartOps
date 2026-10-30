@@ -1,0 +1,32 @@
+title CU-07: Consultar Kardex
+
+actor Almacenero
+boundary InterfazKardex
+control InventarioController
+participant KardexService
+participant MovimientoKardexRepository
+database BD
+
+Almacenero -> InterfazKardex: ingresar parámetros
+InterfazKardex -> InventarioController: getHistorialKardex(sku, idAlmacen, fechas)
+
+alt Parámetros completos
+    InventarioController -> KardexService: consultarHistorialKardex()
+    KardexService -> MovimientoKardexRepository: buscarMovimientos()
+    MovimientoKardexRepository -> BD: select
+    BD --> MovimientoKardexRepository: resultados
+    MovimientoKardexRepository --> KardexService: List<MovimientoKardex>
+    
+    alt Con registros
+        KardexService --> InventarioController: historial
+        InventarioController --> InterfazKardex: datos tabulados
+        InterfazKardex --> Almacenero: mostrar tabla cronológica
+    else Sin registros
+        KardexService --> InventarioController: lista vacía
+        InventarioController --> InterfazKardex: mensaje vacío
+        InterfazKardex --> Almacenero: mostrar "sin movimientos"
+    end
+else Parámetros incompletos
+    InventarioController --> InterfazKardex: error validación
+    InterfazKardex --> Almacenero: resaltar campos
+end

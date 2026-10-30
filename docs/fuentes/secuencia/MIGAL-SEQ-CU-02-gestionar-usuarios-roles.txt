@@ -1,0 +1,52 @@
+title CU-02: Gestionar usuarios y roles
+
+actor Administrador
+boundary InterfazUsuarios
+control UsuarioController
+participant UsuarioService
+participant UsuarioRepository
+database BD
+
+Administrador -> InterfazUsuarios: ingresar módulo
+InterfazUsuarios -> UsuarioController: getUsuarios()
+UsuarioController -> UsuarioService: listarUsuarios()
+UsuarioService -> UsuarioRepository: consultar()
+UsuarioRepository -> BD: select
+BD --> UsuarioRepository: lista de usuarios
+UsuarioRepository --> UsuarioService: List<Usuario>
+UsuarioService --> UsuarioController: datos
+UsuarioController --> InterfazUsuarios: mostrar listado
+InterfazUsuarios --> Administrador: personal registrado
+
+Administrador -> InterfazUsuarios: seleccionar acción
+alt Registrar Nuevo
+    Administrador -> InterfazUsuarios: ingresar datos
+    InterfazUsuarios -> UsuarioController: postNuevoUsuario(datos)
+    UsuarioController -> UsuarioService: verificarDuplicidadUsername()
+    UsuarioService -> UsuarioRepository: buscar(username)
+    UsuarioRepository -> BD: select
+    BD --> UsuarioRepository: resultado
+    UsuarioRepository --> UsuarioService: booleano
+    alt No duplicado
+        UsuarioService -> UsuarioRepository: guardarUsuario(usuario)
+        UsuarioRepository -> BD: insert
+        UsuarioController --> InterfazUsuarios: éxito
+    else Duplicado
+        UsuarioController --> InterfazUsuarios: alerta duplicado
+    end
+else Modificar/Asignar Rol
+    Administrador -> InterfazUsuarios: cambiar rol
+    InterfazUsuarios -> UsuarioController: putActualizarRol(id, rol)
+    UsuarioController -> UsuarioService: actualizarRol(id, rol)
+    UsuarioService -> UsuarioRepository: update
+    UsuarioRepository -> BD: update
+    UsuarioController --> InterfazUsuarios: éxito
+else Revocar Acceso
+    Administrador -> InterfazUsuarios: revocar
+    InterfazUsuarios -> UsuarioController: putActualizarEstado(id, false)
+    UsuarioController -> UsuarioService: cambiarEstadoActivo(id, false)
+    UsuarioService -> UsuarioRepository: update(estadoActivo=false)
+    UsuarioRepository -> BD: update
+    UsuarioController --> InterfazUsuarios: éxito
+end
+InterfazUsuarios --> Administrador: mostrar resultado

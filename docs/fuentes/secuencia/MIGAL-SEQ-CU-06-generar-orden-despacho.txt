@@ -1,0 +1,46 @@
+title CU-06: Generar orden de despacho
+
+actor Almacenero
+boundary InterfazDespacho
+control DespachoController
+participant DespachoService
+participant GuiaDespachoRepository
+participant VentaRepository
+database BD
+
+Almacenero -> InterfazDespacho: ingresar a despachos
+InterfazDespacho -> DespachoController: getVentasPendientes()
+DespachoController -> DespachoService: obtenerVentasPendientes()
+DespachoService -> VentaRepository: buscarVentas(pendientes)
+VentaRepository -> BD: select
+BD --> VentaRepository: resultados
+VentaRepository --> DespachoService: lista de ventas
+DespachoService --> DespachoController: lista
+DespachoController --> InterfazDespacho: mostrar ventas pendientes
+InterfazDespacho --> Almacenero: listado
+
+Almacenero -> InterfazDespacho: seleccionar venta a despachar
+InterfazDespacho -> DespachoController: postGenerarGuia(idVenta)
+DespachoController -> DespachoService: validarGuiaExistente(idVenta)
+
+DespachoService -> GuiaDespachoRepository: buscar por venta
+GuiaDespachoRepository -> BD: select
+BD --> GuiaDespachoRepository: resultado
+GuiaDespachoRepository --> DespachoService: booleano
+
+alt Guía no existe
+    DespachoService -> VentaRepository: buscarVentaConDetalles(idVenta)
+    VentaRepository -> BD: select productos y dirección
+    BD --> VentaRepository: datos completos
+    VentaRepository --> DespachoService: Venta
+    
+    DespachoService -> DespachoService: crearGuiaDespacho(venta)
+    DespachoService -> GuiaDespachoRepository: guardar(guia)
+    GuiaDespachoRepository -> BD: insert
+    DespachoService --> DespachoController: guía generada
+    DespachoController --> InterfazDespacho: mostrar documento
+    InterfazDespacho --> Almacenero: imprimir
+else Guía ya existe
+    DespachoService --> DespachoController: advertencia
+    DespachoController --> InterfazDespacho: solicitar validación adicional
+end

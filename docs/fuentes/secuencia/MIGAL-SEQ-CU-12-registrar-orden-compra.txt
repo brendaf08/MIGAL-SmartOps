@@ -1,0 +1,49 @@
+title CU-12: Registrar orden de compra
+
+actor Reponedor
+boundary InterfazOrdenCompra
+control AbastecimientoController
+participant AbastecimientoService
+participant ProveedorRepository
+participant ProductoRepository
+participant OrdenCompraRepository
+database BD
+
+Reponedor -> InterfazOrdenCompra: seleccionar proveedor y productos
+InterfazOrdenCompra -> AbastecimientoController: postOrdenCompra(datos)
+AbastecimientoController -> AbastecimientoService: crearOrdenCompra(orden)
+
+AbastecimientoService -> ProveedorRepository: validar proveedor(idProveedor)
+ProveedorRepository -> BD: select proveedor
+BD --> ProveedorRepository: proveedor existente y estado
+ProveedorRepository --> AbastecimientoService: activo/inactivo
+
+alt Proveedor inexistente o inactivo
+    AbastecimientoService --> AbastecimientoController: error de proveedor
+    AbastecimientoController --> InterfazOrdenCompra: bloquear y redirigir a CU11
+
+else Proveedor activo
+    AbastecimientoService -> ProductoRepository: validar productos
+    ProductoRepository -> BD: select productos
+    BD --> ProductoRepository: productos válidos
+    ProductoRepository --> AbastecimientoService: validación productos
+
+    AbastecimientoService -> ProveedorRepository: validar asociaciones proveedor-producto
+    ProveedorRepository -> BD: select CatalogoProveedor
+    BD --> ProveedorRepository: asociaciones
+    ProveedorRepository --> AbastecimientoService: asociaciones válidas
+
+    alt Producto no asociado
+        AbastecimientoService --> AbastecimientoController: advertencia de asociación
+        AbastecimientoController --> InterfazOrdenCompra: solicitar confirmación
+        Reponedor -> InterfazOrdenCompra: autorizar continuación
+        InterfazOrdenCompra -> AbastecimientoController: confirmar
+    end
+
+    AbastecimientoService -> OrdenCompraRepository: guardar orden y detalles
+    OrdenCompraRepository -> BD: insert(estado = Pendiente, idProveedor)
+    BD --> OrdenCompraRepository: idOrden
+    OrdenCompraRepository --> AbastecimientoService: orden guardada
+    AbastecimientoService --> AbastecimientoController: éxito
+    AbastecimientoController --> InterfazOrdenCompra: orden creada
+end

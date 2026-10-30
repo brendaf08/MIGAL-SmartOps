@@ -1,0 +1,44 @@
+title CU-03: Gestionar catálogo de productos
+
+actor "Almacenero/Admin" as Actor
+boundary InterfazProductos
+control ProductoController
+participant ProductoService
+participant ProductoRepository
+database BD
+
+Actor -> InterfazProductos: seleccionar acción
+alt Consultar Detalles
+    Actor -> InterfazProductos: buscar producto
+    InterfazProductos -> ProductoController: getFichaTecnica(sku)
+    ProductoController -> ProductoService: obtenerFichaTecnica(sku)
+    ProductoService -> ProductoRepository: buscar(sku)
+    ProductoRepository -> BD: select
+    BD --> ProductoRepository: datos del producto
+    ProductoRepository --> ProductoService: Producto
+    ProductoService --> ProductoController: Producto
+    ProductoController --> InterfazProductos: mostrar ficha técnica
+else Registrar Nuevo
+    Actor -> InterfazProductos: ingresar datos y SKU
+    InterfazProductos -> ProductoController: postNuevoProducto(datos)
+    ProductoController -> ProductoService: verificarExistenciaSku(sku)
+    ProductoService -> ProductoRepository: buscar(sku)
+    ProductoRepository -> BD: select
+    BD --> ProductoRepository: resultado
+    ProductoRepository --> ProductoService: existe/no_existe
+    alt SKU no existe
+        ProductoService -> ProductoRepository: registrarProducto()
+        ProductoRepository -> BD: insert
+        ProductoController --> InterfazProductos: éxito
+    else SKU existe
+        ProductoController --> InterfazProductos: error duplicidad
+    end
+else Modificar Producto
+    Actor -> InterfazProductos: actualizar campos
+    InterfazProductos -> ProductoController: putActualizarProducto(id, datos)
+    ProductoController -> ProductoService: actualizarProducto(id, datos)
+    ProductoService -> ProductoRepository: update
+    ProductoRepository -> BD: update
+    ProductoController --> InterfazProductos: éxito
+end
+InterfazProductos --> Actor: mostrar resultado

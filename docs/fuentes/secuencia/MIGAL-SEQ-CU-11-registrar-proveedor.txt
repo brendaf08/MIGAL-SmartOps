@@ -1,0 +1,41 @@
+title CU-11: Registrar proveedor
+
+actor Reponedor
+boundary InterfazProveedores
+control AbastecimientoController
+participant AbastecimientoService
+participant ProveedorRepository
+participant ProductoRepository
+database BD
+
+Reponedor -> InterfazProveedores: ingresar RUC, datos y asociaciones SKU
+InterfazProveedores -> AbastecimientoController: postNuevoProveedor(datos, catalogo)
+AbastecimientoController -> AbastecimientoService: registrarProveedor(proveedor, catalogo)
+
+AbastecimientoService -> ProveedorRepository: verificar RUC
+ProveedorRepository -> BD: select proveedor
+BD --> ProveedorRepository: existe/no existe
+ProveedorRepository --> AbastecimientoService: resultado
+
+alt RUC no existe
+    AbastecimientoService -> ProductoRepository: verificar SKUs a asociar
+    ProductoRepository -> BD: select productos
+    BD --> ProductoRepository: resultados
+    ProductoRepository --> AbastecimientoService: validación SKUs
+
+    alt SKU no encontrado
+        AbastecimientoService --> AbastecimientoController: advertencia SKU faltante
+        AbastecimientoController --> InterfazProveedores: permitir omitir o redirigir a CU03
+    else SKUs válidos o asociación omitida
+        AbastecimientoService -> ProveedorRepository: guardar proveedor
+        ProveedorRepository -> BD: insert proveedor
+        AbastecimientoService -> ProveedorRepository: guardar CatalogoProveedor
+        ProveedorRepository -> BD: insert asociaciones
+        AbastecimientoService --> AbastecimientoController: éxito
+        AbastecimientoController --> InterfazProveedores: confirmación
+    end
+
+else RUC ya existe
+    AbastecimientoService --> AbastecimientoController: error de duplicidad
+    AbastecimientoController --> InterfazProveedores: mostrar alerta y bloquear
+end

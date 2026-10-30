@@ -1,0 +1,125 @@
+title CU-10: Registrar venta
+
+actor Vendedor
+boundary InterfazVenta
+control VentaController
+participant VentaService
+participant ClienteRepository
+participant KardexService
+participant VentaRepository
+participant CotizacionRepository
+participant InventarioRepository
+participant MovimientoKardexRepository
+database BD
+
+Vendedor -> InterfazVenta: iniciar registro de venta
+opt Cliente identificado
+    InterfazVenta -> ClienteRepository: seleccionar cliente(idCliente)
+    ClienteRepository -> BD: select cliente
+    BD --> ClienteRepository: cliente activo
+    ClienteRepository --> InterfazVenta: cliente seleccionado
+end
+
+alt Origen de datos
+    InterfazVenta -> VentaController: cargar datos manuales
+else Desde CU08 OCR
+    InterfazVenta -> VentaController: cargar detalles normalizados
+else Desde CU09 Cotización
+    InterfazVenta -> VentaController: cargar idCotizacion
+end
+
+Vendedor -> InterfazVenta: confirmar venta
+InterfazVenta -> VentaController: postNuevaVenta(datos, idCliente_opc, idCotizacion_opc)
+
+opt Venta desde cotización
+    VentaController -> CotizacionRepository: consultar cotización aceptada
+    CotizacionRepository -> BD: select cotización
+    BD --> CotizacionRepository: datos de cotización
+    CotizacionRepository --> VentaController: productos y condiciones
+end
+
+VentaController -> KardexService: consultarDisponibilidad(detalles)
+KardexService -> InventarioRepository: consultar stock
+InventarioRepository -> BD: select
+BD --> InventarioRepository: stock actual
+InventarioRepository --> KardexService: stock por producto
+KardexService --> VentaController: cantidades disponibles
+
+alt Stock suficiente
+    VentaController -> VentaService: procesarVentaCompleta(datos)
+    VentaService -> VentaRepository: guardar venta(Estado: Completada)
+    VentaRepository -> BD: insert venta y detalles
+
+    opt Venta desde cotización
+        VentaService -> CotizacionRepository: marcar como convertida
+        CotizacionRepository -> BD: update
+    end
+
+    VentaService -> KardexService: registrarSalida(cantidades atendidas)
+    KardexService -> InventarioRepository: actualizar(stock - cantidad)
+    InventarioRepository -> BD: update
+    KardexService -> MovimientoKardexRepository: registrar(Salida, motivo: Venta)
+    MovimientoKardexRepository -> BD: insert
+
+    VentaService --> VentaController: éxito
+    VentaController --> InterfazVenta: venta confirmada
+
+else Stock insuficiente
+    VentaController --> InterfazVenta: mostrar cantidades disponibles y faltantes
+    Vendedor -> InterfazVenta: seleccionar modalidad de atención
+
+    alt Atención parcial
+        InterfazVenta -> VentaController: registrarAtencionParcial(datos)
+        VentaController -> VentaService: procesarAtencionParcial(datos)
+        VentaService -> VentaRepository: guardar venta(Estado: AtencionParcial)
+        VentaRepository -> BD: insert venta y detalles
+
+        VentaService -> KardexService: registrarSalida(cantidad atendida)
+        KardexService -> InventarioRepository: actualizar(stock - cantidad atendida)
+        InventarioRepository -> BD: update
+        KardexService -> MovimientoKardexRepository: registrar(Salida parcial)
+        MovimientoKardexRepository -> BD: insert
+
+        VentaService --> VentaController: atención parcial registrada
+        VentaController --> InterfazVenta: mostrar atendidas y pendientes
+
+    else Pendiente por abastecimiento
+        InterfazVenta -> VentaController: registrarVentaPendiente(datos)
+        VentaController -> VentaService: registrarVentaPendiente(datos)
+        VentaService -> VentaRepository: guardar venta(Estado: PendienteStock)
+        VentaRepository -> BD: insert venta y detalles pendientes
+        VentaService --> VentaController: venta pendiente registrada
+        VentaController --> InterfazVenta: mostrar venta pendiente
+
+    else Solicitud pendiente del cliente
+        InterfazVenta -> VentaController: registrarSolicitudPendiente(datos)
+        VentaController -> VentaService: registrarSolicitudPendiente(datos)
+        VentaService -> VentaRepository: guardar solicitud pendiente
+        VentaRepository -> BD: insert solicitud
+        VentaService --> VentaController: solicitud registrada
+        VentaController --> InterfazVenta: mostrar solicitud pendiente
+    end
+end
+
+opt Completar venta pendiente
+    Vendedor -> InterfazVenta: seleccionar venta pendiente
+    InterfazVenta -> VentaController: completarVenta(idVenta, cantidades)
+    VentaController -> VentaService: completarVentaPendiente(idVenta, cantidades)
+    VentaService -> KardexService: consultarDisponibilidad(cantidades)
+    KardexService --> VentaService: disponibilidad actual
+
+    alt Stock disponible
+        VentaService -> VentaRepository: actualizar atendidas, pendientes y estado
+        VentaRepository -> BD: update venta y detalles
+        VentaService -> KardexService: registrarSalida(nueva cantidad atendida)
+        KardexService -> InventarioRepository: actualizar inventario
+        InventarioRepository -> BD: update
+        KardexService -> MovimientoKardexRepository: registrar(Salida por atención)
+        MovimientoKardexRepository -> BD: insert
+        VentaService --> VentaController: actualización exitosa
+        VentaController --> InterfazVenta: mostrar estado actualizado
+    else Stock insuficiente
+        VentaService --> VentaController: informar disponibilidad insuficiente
+        VentaController --> InterfazVenta: mantener cantidades pendientes
+    end
+end

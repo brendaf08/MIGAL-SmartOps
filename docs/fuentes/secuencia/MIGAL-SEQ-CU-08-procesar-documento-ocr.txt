@@ -1,0 +1,44 @@
+title CU-08: Procesar documento con OCR
+
+actor "Vendedor/Almacenero" as Actor
+boundary InterfazOCR
+control OcrDigitalController
+participant OcrIAIntegratorService
+participant "Microservicio OCR Python" as PythonOCR
+participant DocumentoDigitalRepository
+participant DetalleExtraidoRepository
+participant ProductoRepository
+database BD
+
+Actor -> InterfazOCR: cargar documento y especificar tipoDocumento
+InterfazOCR -> OcrDigitalController: uploadDocumento(archivo, tipoDocumento)
+OcrDigitalController -> DocumentoDigitalRepository: registrar(DocumentoDigital)
+DocumentoDigitalRepository -> BD: insert
+BD --> DocumentoDigitalRepository: idDocumento
+
+OcrDigitalController -> OcrIAIntegratorService: procesarDocumento(idDocumento)
+OcrIAIntegratorService -> PythonOCR: enviar(doc, tipoDocumento)
+PythonOCR -> PythonOCR: procesar imagen/extraer texto
+PythonOCR --> OcrIAIntegratorService: texto y cantidades extraídas
+
+alt Documento legible
+    OcrIAIntegratorService -> ProductoRepository: consultar catálogo para Fuzzy
+    ProductoRepository -> BD: select
+    BD --> ProductoRepository: datos
+    OcrIAIntegratorService -> OcrIAIntegratorService: ejecutarFuzzyMatching()
+    
+    OcrIAIntegratorService -> DetalleExtraidoRepository: guardar detalles y similitud
+    DetalleExtraidoRepository -> BD: insert
+    
+    OcrIAIntegratorService --> OcrDigitalController: candidatos y similitud
+    OcrDigitalController --> InterfazOCR: mostrar sugerencias
+    Actor -> InterfazOCR: validar / seleccionar producto
+    InterfazOCR -> OcrDigitalController: asociarProducto()
+    OcrDigitalController -> OcrIAIntegratorService: registrar asociación normalizada
+    OcrIAIntegratorService -> DetalleExtraidoRepository: update (fk_producto)
+    DetalleExtraidoRepository -> BD: update
+    OcrDigitalController --> InterfazOCR: disponible para operación (Venta/Compra/Recepcion)
+else Documento ilegible
+    OcrIAIntegratorService --> OcrDigitalController: error
+    OcrDigitalController --> InterfazOCR: solicitar nuevo archivo o carga manual
+end

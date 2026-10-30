@@ -1,0 +1,35 @@
+title CU-14: Consultar agente de IA
+
+actor Usuario
+boundary InterfazAsistente
+control ChatIAController
+participant AgenteConsultivoService
+participant Tool_Backend
+participant KardexService
+participant InventarioRepository
+database BD
+
+Usuario -> InterfazAsistente: enviar consulta
+InterfazAsistente -> ChatIAController: postPreguntaAgente(mensaje)
+ChatIAController -> AgenteConsultivoService: procesarConsultaLenguajeNatural(query)
+
+AgenteConsultivoService -> Tool_Backend: verificar permisos del usuario
+Tool_Backend --> AgenteConsultivoService: permisos válidos
+
+alt Información disponible y permitida
+    AgenteConsultivoService -> Tool_Backend: solicitar datos (ej. stock)
+    Tool_Backend -> KardexService: consultarStock()
+    KardexService -> InventarioRepository: buscar existencias
+    InventarioRepository -> BD: select
+    BD --> InventarioRepository: datos
+    InventarioRepository --> KardexService: List<Inventario>
+    KardexService --> Tool_Backend: resultados estructurados
+    Tool_Backend --> AgenteConsultivoService: información cruda
+    
+    AgenteConsultivoService -> AgenteConsultivoService: construir respuesta NLP
+    AgenteConsultivoService --> ChatIAController: respuesta IA
+    ChatIAController --> InterfazAsistente: mostrar texto
+else Restricción o falta de información
+    AgenteConsultivoService --> ChatIAController: mensaje de error / limitación
+    ChatIAController --> InterfazAsistente: mostrar mensaje
+end

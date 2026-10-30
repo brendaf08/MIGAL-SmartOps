@@ -1,0 +1,38 @@
+title CU-05: Registrar movimiento
+
+actor Almacenero
+boundary InterfazInventario
+control InventarioController
+participant KardexService
+participant InventarioRepository
+participant MovimientoKardexRepository
+database BD
+
+Almacenero -> InterfazInventario: ingresar tipo y datos de movimiento
+InterfazInventario -> InventarioController: postMovimientoManual/Traslado
+InventarioController -> KardexService: validarStockSuficiente()
+
+KardexService -> InventarioRepository: consultar stock
+InventarioRepository -> BD: select
+BD --> InventarioRepository: stock actual
+InventarioRepository --> KardexService: entero
+
+alt Stock suficiente (o es una entrada)
+    alt Es Traslado
+        KardexService -> KardexService: ejecutarTrasladoPartidaDoble()
+        KardexService -> InventarioRepository: update(- origen), update(+ destino)
+        KardexService -> MovimientoKardexRepository: registrar(Salida), registrar(Entrada)
+    else Es Ajuste/Merma
+        KardexService -> InventarioRepository: update(+/- cantidad)
+        KardexService -> MovimientoKardexRepository: registrarMovimiento(movimiento)
+    end
+    InventarioRepository -> BD: update
+    MovimientoKardexRepository -> BD: insert
+    KardexService --> InventarioController: éxito
+    InventarioController --> InterfazInventario: confirmación
+    InterfazInventario --> Almacenero: mostrar actualización
+else Stock insuficiente
+    KardexService --> InventarioController: error
+    InventarioController --> InterfazInventario: mensaje de error
+    InterfazInventario --> Almacenero: notificar bloqueo
+end

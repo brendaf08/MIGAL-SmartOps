@@ -80,12 +80,25 @@
 | RF-PRO-05 | El sistema deberá permitir consultar la disponibilidad de un producto en la tienda principal y en cada uno de los dos almacenes. |
 | RF-PRO-06 | El sistema deberá permitir establecer un nivel mínimo de stock para cada producto. |
 
+### Gestión de clientes
+
+| Código | Requerimiento funcional |
+| --- | --- |
+| RF-CLI-01 | El sistema deberá permitir registrar clientes con nombre o razón social, documento referencial y datos de contacto opcionales. |
+| RF-CLI-02 | El sistema deberá permitir consultar y seleccionar un cliente existente al registrar una venta o cotización. |
+| RF-CLI-03 | El sistema deberá permitir asociar opcionalmente un cliente a una venta. |
+| RF-CLI-04 | El sistema deberá permitir asociar opcionalmente un cliente a una cotización. |
+| RF-CLI-05 | Un cliente podrá estar asociado a múltiples ventas y múltiples cotizaciones. |
+| RF-CLI-06 | Una venta o cotización podrá registrarse sin cliente asociado cuando la operación no requiera identificarlo. |
+| RF-CLI-07 | El sistema deberá conservar la trazabilidad de las ventas y cotizaciones asociadas a cada cliente. |
+| RF-CLI-08 | El sistema deberá permitir actualizar el estado del cliente sin eliminar el historial de ventas o cotizaciones asociado. |
+
 ### Registro de ventas
 
 | Código | Requerimiento funcional |
 | --- | --- |
-| RF-VEN-01 | El sistema deberá permitir registrar una venta indicando como mínimo productos, cantidades, precios y monto total, pudiendo registrar los datos referenciales del cliente cuando correspondan. |
-| RF-VEN-02 | El sistema deberá permitir registrar los datos básicos del cliente asociados a la venta cuando estos se encuentren disponibles. |
+| RF-VEN-01 | El sistema deberá permitir registrar una venta indicando como mínimo productos, cantidades, precios y monto total, pudiendo asociar opcionalmente un cliente durante la operación cuando corresponda. |
+| RF-VEN-02 | El sistema deberá permitir asociar opcionalmente un cliente a la venta y conservar la relación para fines operativos y de trazabilidad, sin generar comprobantes fiscales. |
 | RF-VEN-03 | El sistema deberá consultar y validar el stock disponible antes de confirmar la venta. |
 | RF-VEN-04 | Al confirmarse la venta, el sistema deberá generar los movimientos correspondientes de salida en el Kardex. |
 | RF-VEN-05 | El sistema deberá mantener la relación entre la venta y los productos incluidos en ella. |
@@ -140,7 +153,7 @@
 | Código | Requerimiento funcional |
 | --- | --- |
 | RF-COT-01 | El sistema deberá permitir al Vendedor registrar una cotización dirigida a un cliente antes de concretar una venta. |
-| RF-COT-02 | La cotización deberá permitir registrar, como mínimo, los productos, cantidades, precios unitarios, descuentos aplicables, condiciones comerciales, fecha de emisión y fecha de vencimiento. |
+| RF-COT-02 | La cotización deberá permitir registrar, como mínimo, los productos, cantidades, precios unitarios, descuentos aplicables, condiciones comerciales, fecha de emisión y fecha de vencimiento. La cotización podrá asociarse opcionalmente con un cliente. |
 | RF-COT-03 | El sistema deberá calcular el monto total de la cotización a partir de los productos, cantidades, precios y descuentos registrados. |
 | RF-COT-04 | El sistema deberá permitir que los productos y cantidades de una cotización puedan ser ingresados manualmente o precargados a partir de información previamente procesada mediante OCR y Fuzzy Matching. |
 | RF-COT-05 | El sistema deberá gestionar el ciclo de vida de la cotización mediante los estados Emitida, Aceptada, Rechazada y Vencida. |

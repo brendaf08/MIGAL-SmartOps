@@ -1,0 +1,197 @@
+@startuml MIGAL-PAQ-01-componentes-y-capas
+' Diagrama de paquetes de MIGAL SmartOps: componentes y capas del backend.
+' Los elementos de cada paquete corresponden a docs/modelo-y-diccionario-clases.md.
+
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam packageStyle folder
+skinparam nodesep 50
+skinparam ranksep 70
+skinparam ArrowColor #333333
+skinparam PackageBorderColor #333333
+skinparam FolderBorderColor #333333
+skinparam FolderBackgroundColor #FFFFFF
+skinparam StereotypeFontSize 11
+
+title MIGAL SmartOps - Diagrama de paquetes por componentes y capas
+
+package "frontend" <<React SPA>> as frontend #EEF4FB {
+  folder fe_vistas [
+    <b>vistas</b>
+    ----
+    Vistas por rol
+    (Administrador, Vendedor,
+    Almacenero, Reponedor)
+  ]
+  folder fe_componentes [
+    <b>componentes</b>
+    ----
+    Carga de documentos (drag-and-drop)
+    Interfaz conversacional del agente
+  ]
+  folder fe_api [
+    <b>servicios-api</b>
+    ----
+    Cliente HTTP/REST
+  ]
+}
+
+package "backend" <<Java / Spring Boot>> as backend #F3F8EE {
+  folder controller [
+    <b>controller</b>
+    <i><<Capa de presentación>></i>
+    ----
+    AuthController
+    UsuarioController
+    ProductoController
+    ClienteController
+    InventarioController
+    CotizacionController
+    VentaController
+    DespachoController
+    AbastecimientoController
+    OcrDigitalController
+    ChatIAController
+  ]
+
+  folder service [
+    <b>service</b>
+    <i><<Capa de negocio>></i>
+    ----
+    UsuarioService
+    ProductoService
+    ClienteService
+    InventarioService
+    KardexService
+    CotizacionService
+    VentaService
+    DespachoService
+    AbastecimientoService
+    OcrIAIntegratorService
+    AgenteConsultivoService
+  ]
+
+  folder repository [
+    <b>repository</b>
+    <i><<Capa de acceso a datos>></i>
+    ----
+    UsuarioRepository
+    ProductoRepository
+    ClienteRepository
+    InventarioRepository
+    ReservaStockRepository
+    MovimientoKardexRepository
+    CotizacionRepository
+    VentaRepository
+    GuiaDespachoRepository
+    ProveedorRepository
+    OrdenCompraRepository
+    OrdenRecepcionRepository
+    DocumentoDigitalRepository
+    DetalleExtraidoRepository
+  ]
+
+  package "model" <<Capa de dominio>> as model {
+    folder entidad [
+      <b>entidad</b>
+      ----
+      Usuario
+      Cliente
+      Almacen
+      Producto
+      Cotizacion
+      Venta
+      GuiaDespacho
+      MovimientoKardex
+      Proveedor
+      OrdenCompra
+      OrdenRecepcion
+      DocumentoDigital
+      DetalleExtraido
+    ]
+    folder asociativa [
+      <b>asociativa</b>
+      ----
+      Inventario
+      ReservaStock
+      DetalleVenta
+      DetalleCotizacion
+      DetalleCompra
+      DetalleRecepcion
+      CatalogoProveedor
+    ]
+    folder enumeracion [
+      <b>enumeracion</b>
+      ----
+      RolUsuario
+      CategoriaProducto
+      TipoOperacion
+      OrigenMovimiento
+      EstadoReserva
+      EstadoGuia
+      EstadoCompra
+      EstadoRecepcion
+      EstadoDocumento
+      TipoDocumento
+      EstadoCotizacion
+      EstadoVenta
+    ]
+  }
+}
+
+package "servicio-python" <<Microservicio Python>> as python #FBF3EA {
+  folder py_ocr [
+    <b>ocr</b>
+    ----
+    Extracción de texto
+  ]
+  folder py_fuzzy [
+    <b>normalizacion</b>
+    ----
+    Fuzzy Matching de SKU
+  ]
+}
+
+package "database" <<PostgreSQL>> as database #F4F0FA {
+  folder migraciones [
+    <b>migraciones</b>
+    ----
+    Scripts de versión del esquema
+  ]
+  folder esquema [
+    <b>esquema</b>
+    ----
+    Tablas, claves y restricciones
+  ]
+}
+
+' Dependencias internas del frontend
+fe_vistas .right.> fe_componentes : <<use>>
+fe_vistas ..> fe_api : <<use>>
+fe_componentes ..> fe_api : <<use>>
+
+' Dependencias entre componentes
+fe_api ..> controller : <<use>>\nHTTP/REST (JSON)
+service ..> python : <<use>>\nHTTP/REST
+repository ..> esquema : <<access>>\nJPA / JDBC
+migraciones ..> esquema : <<import>>
+py_ocr ..> py_fuzzy : <<use>>
+
+' Dependencias entre capas del backend
+controller ..> service : <<use>>
+controller ..> model : <<use>>
+service ..> repository : <<use>>
+service ..> model : <<use>>
+repository ..> model : <<import>>
+asociativa .right.> entidad : <<import>>
+entidad .right.> enumeracion : <<import>>
+
+legend bottom left
+  <<use>>: utiliza servicios del paquete destino.
+  <<import>>: incorpora los elementos públicos del paquete destino.
+  <<access>>: accede a los datos persistidos.
+  Todos los componentes se despliegan en contenedores Docker.
+endlegend
+
+@enduml

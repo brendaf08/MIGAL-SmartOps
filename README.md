@@ -29,11 +29,12 @@ La documentación de `docs/` contiene las definiciones técnicas acordadas del s
 | [Flujo de datos](docs/flujo-de-datos.md) | Procesos, flujos y almacenes de datos. |
 | [Diagramas de secuencia](docs/diagramas-secuencia.md) | Interacciones correspondientes a cada caso de uso. |
 | [Diagramas de actividades](docs/diagramas-actividades.md) | Flujos de ejecución correspondientes a cada caso de uso. |
+| [Diagramas de paquetes](docs/diagramas-paquetes.md) | Organización del sistema en componentes, capas y módulos funcionales. |
 | [Matriz de trazabilidad](docs/matriz-trazabilidad.md) | Correspondencias entre requerimientos y artefactos. |
 
 Todas las imágenes de los diagramas se almacenan en `docs/imagenes/`. Los documentos las muestran mediante enlaces relativos.
 
-El código editable de los diagramas de secuencia se mantiene en `docs/fuentes/secuencia/`.
+El código editable de los diagramas de secuencia se mantiene en `docs/fuentes/secuencia/` y el de los diagramas de paquetes en `docs/fuentes/paquetes/`.
 
 ## Estructura del repositorio
 
@@ -56,8 +57,10 @@ MIGAL-SmartOps/
 │   ├── flujo-de-datos.md
 │   ├── diagramas-secuencia.md
 │   ├── diagramas-actividades.md
+│   ├── diagramas-paquetes.md
 │   ├── matriz-trazabilidad.md
 │   ├── fuentes/
+│   │   ├── paquetes/
 │   │   └── secuencia/
 │   └── imagenes/
 ├── scripts/
@@ -77,6 +80,7 @@ MIGAL-SmartOps/
 | --- | --- |
 | `docs/` | Documentación técnica del sistema. |
 | `docs/fuentes/` | Fuentes editables de los diagramas mantenidos en el repositorio. |
+| `docs/fuentes/paquetes/` | Código de los diagramas de paquetes en sintaxis de PlantUML. |
 | `docs/fuentes/secuencia/` | Código de los diagramas de secuencia en sintaxis de SequenceDiagram.org. |
 | `docs/imagenes/` | Imágenes utilizadas en la documentación. |
 | `scripts/` | Herramientas de automatización del repositorio. |

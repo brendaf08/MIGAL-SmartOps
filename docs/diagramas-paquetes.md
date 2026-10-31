@@ -36,22 +36,22 @@ Las dependencias siguen una sola dirección: la presentación utiliza el negocio
 
 ## PAQ-02: Módulos funcionales
 
-El diagrama agrupa las clases del backend según los módulos funcionales del sistema y relaciona cada módulo con los casos de uso que realiza.
+El diagrama agrupa las clases del backend según los módulos funcionales del sistema y muestra las dependencias entre ellos.
 
 ![Diagrama de paquetes PAQ-02: Módulos funcionales](imagenes/MIGAL-PAQ-02-modulos-funcionales.png)
 
 [Código fuente](fuentes/paquetes/MIGAL-PAQ-02-modulos-funcionales.puml)
 
-| Módulo | Casos de uso | Depende de |
-| --- | --- | --- |
-| `seguridad` | [CU-01](especificaciones-casos-de-uso.md#cu-01), [CU-02](especificaciones-casos-de-uso.md#cu-02) | Sin dependencias. Todos los demás módulos lo utilizan para autenticación, permisos y registro del usuario responsable. |
-| `catalogo` | [CU-03](especificaciones-casos-de-uso.md#cu-03) | Solo `seguridad`. |
-| `inventario` | [CU-04](especificaciones-casos-de-uso.md#cu-04), [CU-05](especificaciones-casos-de-uso.md#cu-05), [CU-07](especificaciones-casos-de-uso.md#cu-07) | `catalogo`. |
-| `documentos-ocr` | [CU-08](especificaciones-casos-de-uso.md#cu-08) | `catalogo`, `servicio-python`. |
-| `comercial` | [CU-09](especificaciones-casos-de-uso.md#cu-09), [CU-10](especificaciones-casos-de-uso.md#cu-10) | `catalogo`, `inventario`, `documentos-ocr`. |
-| `despacho` | [CU-06](especificaciones-casos-de-uso.md#cu-06) | `comercial`, `inventario`. |
-| `abastecimiento` | [CU-11](especificaciones-casos-de-uso.md#cu-11), [CU-12](especificaciones-casos-de-uso.md#cu-12), [CU-13](especificaciones-casos-de-uso.md#cu-13) | `catalogo`, `inventario`, `documentos-ocr`. |
-| `agente-ia` | [CU-14](especificaciones-casos-de-uso.md#cu-14) | `inventario`, `catalogo`. |
+| Módulo | Depende de |
+| --- | --- |
+| `seguridad` | Sin dependencias. Todos los demás módulos lo utilizan para autenticación, permisos y registro del usuario responsable. |
+| `catalogo` | Solo `seguridad`. |
+| `inventario` | `catalogo`. |
+| `documentos-ocr` | `catalogo`, `servicio-python`. |
+| `comercial` | `catalogo`, `inventario`, `documentos-ocr`. |
+| `despacho` | `comercial`, `inventario`. |
+| `abastecimiento` | `catalogo`, `inventario`, `documentos-ocr`. |
+| `agente-ia` | `inventario`, `catalogo`. |
 
 `catalogo` e `inventario` constituyen la base de las operaciones: los módulos comerciales, de despacho y de abastecimiento modifican o consultan existencias únicamente a través de `inventario`, que concentra los movimientos de Kardex y las reservas de stock.
 

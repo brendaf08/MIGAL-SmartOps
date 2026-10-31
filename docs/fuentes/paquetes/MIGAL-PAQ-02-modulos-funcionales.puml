@@ -1,7 +1,6 @@
 @startuml MIGAL-PAQ-02-modulos-funcionales
 ' Diagrama de paquetes de MIGAL SmartOps: módulos funcionales.
-' Los elementos de cada módulo corresponden a docs/modelo-y-diccionario-clases.md
-' y los casos de uso a docs/casos-de-uso.md.
+' Los elementos de cada módulo corresponden a docs/modelo-y-diccionario-clases.md.
 
 skinparam shadowing false
 skinparam defaultFontName Arial
@@ -20,7 +19,6 @@ package "modulos" <<MIGAL SmartOps>> as modulos #F3F8EE {
 
   folder agente_ia [
     <b>agente-ia</b>
-    <i>CU-14</i>
     ----
     ChatIAController
     AgenteConsultivoService
@@ -28,7 +26,6 @@ package "modulos" <<MIGAL SmartOps>> as modulos #F3F8EE {
 
   folder comercial [
     <b>comercial</b>
-    <i>CU-09, CU-10</i>
     ----
     ClienteController
     CotizacionController
@@ -43,7 +40,6 @@ package "modulos" <<MIGAL SmartOps>> as modulos #F3F8EE {
 
   folder despacho [
     <b>despacho</b>
-    <i>CU-06</i>
     ----
     DespachoController
     DespachoService
@@ -52,7 +48,6 @@ package "modulos" <<MIGAL SmartOps>> as modulos #F3F8EE {
 
   folder abastecimiento [
     <b>abastecimiento</b>
-    <i>CU-11, CU-12, CU-13</i>
     ----
     AbastecimientoController
     AbastecimientoService
@@ -63,7 +58,6 @@ package "modulos" <<MIGAL SmartOps>> as modulos #F3F8EE {
 
   folder documentos_ocr [
     <b>documentos-ocr</b>
-    <i>CU-08</i>
     ----
     OcrDigitalController
     OcrIAIntegratorService
@@ -73,7 +67,6 @@ package "modulos" <<MIGAL SmartOps>> as modulos #F3F8EE {
 
   folder inventario [
     <b>inventario</b>
-    <i>CU-04, CU-05, CU-07</i>
     ----
     InventarioController
     InventarioService
@@ -85,7 +78,6 @@ package "modulos" <<MIGAL SmartOps>> as modulos #F3F8EE {
 
   folder catalogo [
     <b>catalogo</b>
-    <i>CU-03</i>
     ----
     ProductoController
     ProductoService
@@ -95,7 +87,6 @@ package "modulos" <<MIGAL SmartOps>> as modulos #F3F8EE {
 
 folder seguridad #EEF4FB [
   <b>seguridad</b>
-  <i>CU-01, CU-02</i>
   ----
   AuthController
   UsuarioController

@@ -139,6 +139,7 @@ MIGAL-TIPO-IDENTIFICADOR-descripcion.extension
 | `SEQ` | Secuencia | `MIGAL-SEQ-CU-01-iniciar-sesion.png` |
 | `ACT` | Actividades | `MIGAL-ACT-CU-01-iniciar-sesion.png` |
 | `DFD` | Flujo de datos | `MIGAL-DFD-N0-contexto.png` |
+| `PAQ` | Paquetes | `MIGAL-PAQ-01-componentes-y-capas.png` |
 
 Reglas:
 
@@ -207,7 +208,33 @@ En el documento de secuencias, enlazar también el código editable:
 [Código fuente](fuentes/secuencia/MIGAL-SEQ-CU-01-iniciar-sesion.txt)
 ```
 
-### 9.2. Diagramas de actividades y otros modelos
+### 9.2. Diagramas de paquetes
+
+Las fuentes se almacenan en:
+
+```text
+docs/fuentes/paquetes/
+```
+
+Utilizar archivos `.puml` con sintaxis de PlantUML, delimitados por `@startuml` y `@enduml`.
+
+El nombre base de la fuente debe coincidir con el de su imagen:
+
+```text
+MIGAL-PAQ-01-componentes-y-capas.puml
+MIGAL-PAQ-01-componentes-y-capas.png
+```
+
+Procedimiento:
+
+1. Editar o agregar la fuente.
+2. Exportar el PNG con la extensión PlantUML de VS Code o el servidor de PlantUML y guardarlo en `docs/imagenes/`.
+3. Revisar el PNG y su visualización en `docs/diagramas-paquetes.md`.
+4. Incluir la fuente, la imagen y el documento actualizados en el mismo pull request.
+
+Los elementos de cada paquete deben corresponder a las clases del modelo de clases vigente.
+
+### 9.3. Diagramas de actividades y otros modelos
 
 Mantener su fuente editable y exportación mediante la herramienta acordada para cada tipo de diagrama.
 

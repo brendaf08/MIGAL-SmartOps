@@ -1,0 +1,142 @@
+@startuml MIGAL-PAQ-02-modulos-funcionales
+' Diagrama de paquetes de MIGAL SmartOps: módulos funcionales.
+' Los elementos de cada módulo corresponden a docs/modelo-y-diccionario-clases.md
+' y los casos de uso a docs/casos-de-uso.md.
+
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam packageStyle folder
+skinparam nodesep 60
+skinparam ranksep 70
+skinparam ArrowColor #333333
+skinparam PackageBorderColor #333333
+skinparam FolderBorderColor #333333
+skinparam FolderBackgroundColor #FFFFFF
+
+title MIGAL SmartOps - Diagrama de paquetes por módulos funcionales
+
+package "modulos" <<MIGAL SmartOps>> as modulos #F3F8EE {
+
+  folder agente_ia [
+    <b>agente-ia</b>
+    <i>CU-14</i>
+    ----
+    ChatIAController
+    AgenteConsultivoService
+  ]
+
+  folder comercial [
+    <b>comercial</b>
+    <i>CU-09, CU-10</i>
+    ----
+    ClienteController
+    CotizacionController
+    VentaController
+    ClienteService
+    CotizacionService
+    VentaService
+    Cliente
+    Cotizacion, DetalleCotizacion
+    Venta, DetalleVenta
+  ]
+
+  folder despacho [
+    <b>despacho</b>
+    <i>CU-06</i>
+    ----
+    DespachoController
+    DespachoService
+    GuiaDespacho
+  ]
+
+  folder abastecimiento [
+    <b>abastecimiento</b>
+    <i>CU-11, CU-12, CU-13</i>
+    ----
+    AbastecimientoController
+    AbastecimientoService
+    Proveedor, CatalogoProveedor
+    OrdenCompra, DetalleCompra
+    OrdenRecepcion, DetalleRecepcion
+  ]
+
+  folder documentos_ocr [
+    <b>documentos-ocr</b>
+    <i>CU-08</i>
+    ----
+    OcrDigitalController
+    OcrIAIntegratorService
+    DocumentoDigital
+    DetalleExtraido
+  ]
+
+  folder inventario [
+    <b>inventario</b>
+    <i>CU-04, CU-05, CU-07</i>
+    ----
+    InventarioController
+    InventarioService
+    KardexService
+    Almacen
+    Inventario, ReservaStock
+    MovimientoKardex
+  ]
+
+  folder catalogo [
+    <b>catalogo</b>
+    <i>CU-03</i>
+    ----
+    ProductoController
+    ProductoService
+    Producto
+  ]
+}
+
+folder seguridad #EEF4FB [
+  <b>seguridad</b>
+  <i>CU-01, CU-02</i>
+  ----
+  AuthController
+  UsuarioController
+  UsuarioService
+  Usuario, RolUsuario
+]
+
+folder servicio_python #FBF3EA [
+  <b>servicio-python</b>
+  <i><<Microservicio Python>></i>
+  ----
+  OCR
+  Fuzzy Matching de SKU
+]
+
+' Dependencias entre módulos
+agente_ia ..> inventario : <<use>>\nconsulta de stock\ny ubicación
+agente_ia ..> catalogo : <<use>>
+
+comercial ..> inventario : <<use>>\ndisponibilidad\ny reservas
+comercial ..> catalogo : <<import>>
+comercial ..> documentos_ocr : <<use>>\nprecarga de\ncotizaciones
+
+despacho ..> comercial : <<use>>\nventas por despachar
+despacho ..> inventario : <<use>>\nsalida de Kardex
+
+abastecimiento ..> inventario : <<use>>\nentrada de Kardex
+abastecimiento ..> catalogo : <<import>>
+abastecimiento ..> documentos_ocr : <<use>>\nprecarga de\nrecepciones
+
+documentos_ocr ..> catalogo : <<import>>
+documentos_ocr ..> servicio_python : <<use>>\nHTTP/REST
+
+inventario ..> catalogo : <<import>>
+
+modulos ..> seguridad : <<use>>\nautenticación, permisos\ny usuario responsable
+
+legend bottom left
+  <<use>>: utiliza servicios del módulo destino.
+  <<import>>: incorpora elementos del módulo destino (p. ej., Producto).
+  La dependencia de "modulos" hacia "seguridad" aplica a todos los módulos contenidos.
+endlegend
+
+@enduml

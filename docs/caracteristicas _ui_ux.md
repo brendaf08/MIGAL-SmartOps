@@ -86,7 +86,7 @@ El estado de foco debe utilizar un contorno visible, por ejemplo:
 
 No se debe eliminar el foco mediante `outline: none` sin proporcionar una alternativa equivalente.
 
-## 5. Criterios WCAG AA para M2 y M4
+## 5. Criterios WCAG AA
 
 ### 5.1 Percepción
 

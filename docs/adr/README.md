@@ -6,6 +6,7 @@ Esta carpeta contiene los registros de decisiones de arquitectura (ADR, Architec
 
 | ADR | Decisión |
 | --- | --- |
+| [ADR-001](adr-001-stack-frontend.md) | Stack tecnológico del frontend. |
 
 ## Registrar una decisión
 

@@ -31,6 +31,7 @@ La documentación de `docs/` contiene las definiciones técnicas acordadas del s
 | [Diagramas de actividades](docs/diagramas-actividades.md) | Flujos de ejecución correspondientes a cada caso de uso. |
 | [Diagramas de paquetes](docs/diagramas-paquetes.md) | Organización del sistema en componentes, capas y módulos funcionales. |
 | [Matriz de trazabilidad](docs/matriz-trazabilidad.md) | Correspondencias entre requerimientos y artefactos. |
+| [Decisiones de arquitectura](docs/adr/README.md) | Registros de decisiones técnicas, sus alternativas y consecuencias. |
 
 Todas las imágenes de los diagramas se almacenan en `docs/imagenes/`. Los documentos las muestran mediante enlaces relativos.
 
@@ -59,6 +60,7 @@ MIGAL-SmartOps/
 │   ├── diagramas-actividades.md
 │   ├── diagramas-paquetes.md
 │   ├── matriz-trazabilidad.md
+│   ├── adr/
 │   ├── fuentes/
 │   │   ├── paquetes/
 │   │   └── secuencia/
@@ -79,6 +81,7 @@ MIGAL-SmartOps/
 | Carpeta o archivo | Finalidad |
 | --- | --- |
 | `docs/` | Documentación técnica del sistema. |
+| `docs/adr/` | Registros de decisiones de arquitectura y su plantilla. |
 | `docs/fuentes/` | Fuentes editables de los diagramas mantenidos en el repositorio. |
 | `docs/fuentes/paquetes/` | Código de los diagramas de paquetes en sintaxis de PlantUML. |
 | `docs/fuentes/secuencia/` | Código de los diagramas de secuencia en sintaxis de SequenceDiagram.org. |

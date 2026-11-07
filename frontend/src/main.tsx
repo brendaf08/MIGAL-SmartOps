@@ -1,4 +1,6 @@
 import '@mantine/core/styles.css';
+import '@mantine/notifications/styles.css';
+import '@mantine/dropzone/styles.css';
 import '@/theme/tokens.css';
 import '@/theme/global.css';
 import '@/theme/fonts';

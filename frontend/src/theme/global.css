@@ -1,0 +1,61 @@
+/*
+ * Estilos globales de MIGAL SmartOps. Se importa después de los estilos de Mantine y de tokens.css.
+ * Solo consume variables de tokens.css; no declara valores literales de color.
+ */
+
+/*
+ * Los paquetes @fontsource-variable registran las familias "Bricolage Grotesque Variable" e
+ * "Instrument Sans Variable". Se anteponen a los nombres definidos en tokens.css, que se conserva sin cambios.
+ */
+:root {
+  --font-sans:
+    'Instrument Sans Variable', 'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-heading:
+    'Bricolage Grotesque Variable', 'Bricolage Grotesque', 'Instrument Sans Variable', system-ui,
+    sans-serif;
+}
+
+:root {
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 20px;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

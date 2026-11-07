@@ -1,0 +1,38 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap');
+@import "tailwindcss";
+
+/* Paleta MIGAL · verde profesional (contraste WCAG AA verificado sobre blanco) */
+@theme {
+  --color-primario: #15803D;        /* botones, enlaces, foco */
+  --color-primario-oscuro: #166534; /* hover de botones, títulos de marca */
+  --color-primario-suave: #DCFCE7;  /* fondos de selección */
+  --color-lateral: #0B3B24;         /* menú lateral */
+  --color-secundario: #64748B;      /* descripciones y texto secundario (slate-500) */
+  --color-tenue: #94A3B8;           /* solo metadatos no esenciales (slate-400) */
+  --color-fondo: #F8FAF9;           /* lienzo: gris muy sutil */
+  --color-superficie: #FFFFFF;      /* tarjetas, modales */
+  --color-borde: #EEF2EF;           /* bordes extremadamente sutiles */
+  --color-borde-campo: #858F9C;     /* borde de inputs: contraste 3:1 (WCAG 1.4.11) */
+  --color-texto: #0F1A14;           /* títulos casi negro, nunca #000 */
+  --color-exito: #15803D;
+  --color-info: #1D4ED8;
+  --color-alerta: #B45309;
+  --color-error: #B91C1C;
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-display: "Plus Jakarta Sans", "Inter", system-ui, sans-serif;
+}
+
+html { font-size: 16px; }
+body { @apply bg-fondo text-texto font-sans antialiased; }
+h1, h2, h3 { @apply font-display; }
+
+/* Iconos lucide con trazo constante de 1.5 */
+svg.lucide { stroke-width: 1.5px; }
+
+/* Barra de desplazamiento discreta en el menú lateral */
+.menu-lateral { scrollbar-width: thin; scrollbar-color: rgb(255 255 255 / 0.2) transparent; }
+
+@media print {
+  .no-imprimir { display: none !important; }
+  body { background: white; }
+}

@@ -1,0 +1,57 @@
+# Revisa los Pull Requests que tocan frontend/:
+# 1) que cambien solo UNA carpeta de módulo (frontend/src/modules/<modulo>/)
+#    y, opcionalmente, sus capturas en docs/imagenes/ (MIGAL-WF-… y MIGAL-AF-…)
+# 2) que el frontend compile (npm run build)
+# Los PR que no tocan frontend/ (documentación, backend, etc.) no se revisan aquí.
+name: Verificar frontend
+
+on:
+  pull_request:
+    branches: [main]
+    # labeled/unlabeled: al poner o quitar la etiqueta frontend-base se vuelve a verificar
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+    paths:
+      - 'frontend/**'
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Solo se cambia la carpeta propia
+        # Los cambios de base (frontend/src/shared, App.tsx, etc.) los hace el responsable
+        # del frontend con la etiqueta "frontend-base" en el PR.
+        if: ${{ !contains(github.event.pull_request.labels.*.name, 'frontend-base') }}
+        run: |
+          git diff --name-only origin/${{ github.base_ref }}...HEAD > cambios.txt
+          echo "Archivos cambiados:"; cat cambios.txt
+          fuera=$(grep -vE '^(frontend/src/modules/[a-z]+/|docs/imagenes/MIGAL-(WF|AF)-P[0-9]{2}-[a-z0-9-]+\.png$)' cambios.txt || true)
+          if [ -n "$fuera" ]; then
+            echo "::error::Este PR cambia archivos fuera de tu módulo. Solo puedes tocar frontend/src/modules/<tu-modulo>/ y tus capturas docs/imagenes/MIGAL-WF-… / MIGAL-AF-…:"
+            echo "$fuera"
+            exit 1
+          fi
+          modulos=$(grep -oE '^frontend/src/modules/[a-z]+' cambios.txt | sort -u | wc -l)
+          if [ "$modulos" -gt 1 ]; then
+            echo "::error::Este PR cambia más de un módulo. Cada uno solo toca su propia carpeta:"
+            grep -oE '^frontend/src/modules/[a-z]+' cambios.txt | sort -u
+            exit 1
+          fi
+          echo "OK: solo cambia su carpeta."
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar
+        working-directory: frontend
+        run: npm ci
+
+      - name: Compilar
+        working-directory: frontend
+        run: npm run build

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="es" data-theme="light">
+<head>
+<link rel="stylesheet" href="../tokens.css"><link rel="stylesheet" href="../bundle.css">
+<script src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script src="../bundle.js"></script>
+<meta charset="utf-8">
+<title>PantallaAcceso - vista previa</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400..700&family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Barlow+Semi+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  body { padding: 16px; }
+  .pv-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  .pv-col { display: flex; flex-direction: column; gap: 12px; }
+  .pv-grid { display: grid; gap: 16px; }
+  .pv-cap { font-size: 12px; line-height: 16px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-muted); margin: 0 0 8px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+var M = window.Migal, h = React.createElement;
+function Cap(t) { return h('p', { className: 'pv-cap' }, t); }
+document.body.style.padding = '0';
+var LOGO_L = h('img', { src: '../progresol-logo.png', alt: 'Progresol', width: 72, height: 72 });
+function Demo() {
+  return h('div', { style: { minHeight: 580, display: 'grid', placeItems: 'center', padding: 24 } },
+    h('div', { style: { width: 420, maxWidth: '100%' } },
+      h('div', { style: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, marginBottom: 24, textAlign: 'center' } }, LOGO_L, h('h1', { className: 't-h1', style: { margin: 0 } }, 'MIGAL SmartOps'), h('p', { className: 't-body-lg', style: { margin: 0, color: 'var(--ink-muted)' } }, 'Ferretería Progresol Migal')),
+      h(M.Card, { padded: true },
+        h('form', { onSubmit: function (e) { e.preventDefault(); } },
+          h(M.Stack, { gap: 4 },
+            h(M.Alert, { tone: 'danger', title: 'Credenciales incorrectas' }, 'Verificar el usuario y la contraseña. Tras cinco intentos fallidos la cuenta se bloquea temporalmente.'),
+            h(M.TextInput, { label: 'Usuario', size: 'lg', leftIcon: 'user', autoComplete: 'username', required: true, defaultValue: 'rquispe' }),
+            h(M.TextInput, { label: 'Contraseña', size: 'lg', leftIcon: 'lock', type: 'password', autoComplete: 'current-password', required: true, rightSection: h(M.IconButton, { icon: 'eye', label: 'Mostrar contraseña', size: 'sm' }) }),
+            h(M.Button, { type: 'submit', size: 'lg', fullWidth: true }, 'Iniciar sesión'))))));
+}
+ReactDOM.createRoot(document.getElementById('root')).render(h(Demo));
+</script>
+</body>
+</html>

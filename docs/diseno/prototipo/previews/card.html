@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="es" data-theme="light">
+<head>
+<link rel="stylesheet" href="../tokens.css"><link rel="stylesheet" href="../bundle.css">
+<script src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script src="../bundle.js"></script>
+<meta charset="utf-8">
+<title>Card - vista previa</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400..700&family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Barlow+Semi+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  body { padding: 16px; }
+  .pv-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  .pv-col { display: flex; flex-direction: column; gap: 12px; }
+  .pv-grid { display: grid; gap: 16px; }
+  .pv-cap { font-size: 12px; line-height: 16px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-muted); margin: 0 0 8px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+var M = window.Migal, h = React.createElement;
+function Cap(t) { return h('p', { className: 'pv-cap' }, t); }
+ReactDOM.createRoot(document.getElementById('root')).render(h('div', { className: 'pv-grid', style: { gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' } },
+  h(M.Card, { title: 'Datos del cliente', titleId: 'c1', description: 'Opcional en cotizaciones y ventas.', actions: h(M.IconButton, { icon: 'edit', label: 'Editar cliente', size: 'sm' }), footer: h(M.Button, { size: 'sm', variant: 'outline' }, 'Cambiar cliente') },
+    h('div', { className: 'pv-col', style: { gap: 4 } }, h('span', { className: 't-label' }, 'Constructora Los Andes S.A.C.'), h('span', { className: 't-sku' }, 'RUC 20456789012'), h('span', { className: 't-body-sm', style: { color: 'var(--ink-muted)' } }, 'Av. Los Constructores 120, Arequipa'))),
+  h(M.Card, { flat: true }, h('p', { className: 't-body', style: { margin: 0 } }, 'Tarjeta plana sin sombra, para agrupar contenido dentro de otra tarjeta o de un panel.'))));
+</script>
+</body>
+</html>

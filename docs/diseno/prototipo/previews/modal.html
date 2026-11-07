@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="es" data-theme="light">
+<head>
+<link rel="stylesheet" href="../tokens.css"><link rel="stylesheet" href="../bundle.css">
+<script src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script src="../bundle.js"></script>
+<meta charset="utf-8">
+<title>Modal - vista previa</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400..700&family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Barlow+Semi+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  body { padding: 16px; }
+  .pv-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  .pv-col { display: flex; flex-direction: column; gap: 12px; }
+  .pv-grid { display: grid; gap: 16px; }
+  .pv-cap { font-size: 12px; line-height: 16px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-muted); margin: 0 0 8px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+var M = window.Migal, h = React.createElement;
+function Cap(t) { return h('p', { className: 'pv-cap' }, t); }
+ReactDOM.createRoot(document.getElementById('root')).render(h(M.Modal, { open: true, inline: true, title: 'Registrar movimiento manual', description: 'Ajuste o merma sobre el stock físico de un producto.', onClose: function () {}, footer: h(React.Fragment, null, h(M.Button, { variant: 'outline' }, 'Cancelar'), h(M.Button, { leftIcon: 'check' }, 'Registrar movimiento')) },
+  h('div', { className: 'pv-col' },
+    h(M.Select, { label: 'Tipo de movimiento', required: true, defaultValue: 'merma', options: [{ value: 'merma', label: 'Merma (salida)' }, { value: 'ajuste', label: 'Ajuste de inventario' }] }),
+    h('div', { className: 'pv-grid', style: { gridTemplateColumns: '1fr 1fr' } }, h(M.Select, { label: 'Almacén', required: true, defaultValue: 'A1', options: [{ value: 'A1', label: 'Almacén 1' }] }), h(M.NumberInput, { label: 'Cantidad', defaultValue: 4, min: 1, unit: 'bolsas' })),
+    h(M.Textarea, { label: 'Motivo', required: true, description: 'Obligatorio para registrar el movimiento.' }))));
+</script>
+</body>
+</html>

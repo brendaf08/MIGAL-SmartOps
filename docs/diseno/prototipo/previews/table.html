@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="es" data-theme="light">
+<head>
+<link rel="stylesheet" href="../tokens.css"><link rel="stylesheet" href="../bundle.css">
+<script src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script src="../bundle.js"></script>
+<meta charset="utf-8">
+<title>Table - vista previa</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400..700&family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Barlow+Semi+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  body { padding: 16px; }
+  .pv-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  .pv-col { display: flex; flex-direction: column; gap: 12px; }
+  .pv-grid { display: grid; gap: 16px; }
+  .pv-cap { font-size: 12px; line-height: 16px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-muted); margin: 0 0 8px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+var M = window.Migal, h = React.createElement;
+function Cap(t) { return h('p', { className: 'pv-cap' }, t); }
+function Demo() {
+  var s = React.useState({ key: 'sku', dir: 'asc' });
+  var rows = [
+    { sku: 'CEM-SOL-001', nombre: 'Cemento Sol tipo I, bolsa 42.5 kg', fisico: 1240, reservado: 300, minimo: 200, precio: 28.9 },
+    { sku: 'FIE-012-009', nombre: 'Fierro corrugado 1/2 in x 9 m', fisico: 90, reservado: 90, minimo: 100, precio: 42.5 },
+    { sku: 'LAD-KK-018', nombre: 'Ladrillo King Kong 18 huecos', fisico: 5200, reservado: 5000, minimo: 800, precio: 1.15 },
+    { sku: 'AGR-ARE-002', nombre: 'Arena gruesa, metro cúbico', fisico: 36, reservado: 4, minimo: 10, precio: 85 }
+  ].sort(function (a, b) { var d = s[0].dir === 'asc' ? 1 : -1; return (a[s[0].key] > b[s[0].key] ? 1 : -1) * d; });
+  var cols = [
+    { key: 'sku', header: 'SKU', mono: true, sortable: true },
+    { key: 'nombre', header: 'Producto', sortable: true },
+    { key: 'fisico', header: 'Físico', numeric: true, sortable: true, render: function (r) { return M.formatNumber(r.fisico); } },
+    { key: 'libre', header: 'Libre', numeric: true, render: function (r) { return M.formatNumber(r.fisico - r.reservado); } },
+    { key: 'precio', header: 'Precio ref.', numeric: true, render: function (r) { return M.formatCurrency(r.precio); } },
+    { key: 'estado', header: 'Estado', render: function (r) { return h(M.StatusBadge, { entity: 'stock', value: M.stockLevel(r.fisico - r.reservado, r.minimo) }); } }
+  ];
+  return h('div', { className: 'pv-col' },
+    Cap('Con datos (ordenable por SKU, producto y físico)'),
+    h(M.Table, { caption: 'Inventario por producto', columns: cols, rows: rows, rowKey: 'sku', sort: s[0], onSort: function (k, d) { s[1]({ key: k, dir: d }); }, onRowClick: function () {}, selectedKey: 'FIE-012-009', footer: { nombre: 'Total de 4 productos', fisico: '6,566', libre: '1,172' } }),
+    Cap('Cargando'), h(M.Table, { columns: cols, rows: [], loading: true, density: 'sm' }),
+    Cap('Sin resultados'), h(M.Table, { columns: cols, rows: [], empty: h(M.EmptyState, { icon: 'search', title: 'Sin resultados', description: 'No hay productos que coincidan con la búsqueda. Revisar el SKU o ampliar los filtros.' }) }));
+}
+ReactDOM.createRoot(document.getElementById('root')).render(h(Demo));
+</script>
+</body>
+</html>

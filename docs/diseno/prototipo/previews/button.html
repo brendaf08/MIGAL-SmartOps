@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="es" data-theme="light">
+<head>
+<link rel="stylesheet" href="../tokens.css"><link rel="stylesheet" href="../bundle.css">
+<script src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script src="../bundle.js"></script>
+<meta charset="utf-8">
+<title>Button - vista previa</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400..700&family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Barlow+Semi+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  body { padding: 16px; }
+  .pv-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  .pv-col { display: flex; flex-direction: column; gap: 12px; }
+  .pv-grid { display: grid; gap: 16px; }
+  .pv-cap { font-size: 12px; line-height: 16px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-muted); margin: 0 0 8px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+var M = window.Migal, h = React.createElement;
+function Cap(t) { return h('p', { className: 'pv-cap' }, t); }
+ReactDOM.createRoot(document.getElementById('root')).render(h('div', { className: 'pv-col' },
+  h('div', { className: 'pv-row' }, ['primary', 'secondary', 'outline', 'subtle', 'danger'].map(function (v) { return h(M.Button, { key: v, variant: v }, { primary: 'Registrar venta', secondary: 'Guardar borrador', outline: 'Cancelar', subtle: 'Ver detalle', danger: 'Cancelar venta' }[v]); })),
+  h('div', { className: 'pv-row' }, h(M.Button, { leftIcon: 'plus' }, 'Nuevo producto'), h(M.Button, { variant: 'outline', rightIcon: 'download' }, 'Exportar'), h(M.Button, { loading: true }, 'Guardando'), h(M.Button, { disabled: true }, 'Confirmar recepción')),
+  h('div', { className: 'pv-row' }, h(M.Button, { size: 'sm', variant: 'outline', leftIcon: 'filter' }, 'Filtrar'), h(M.Button, { size: 'md' }, 'Tamaño md'), h(M.Button, { size: 'lg', leftIcon: 'check' }, 'Confirmar recepción')),
+  h('div', { style: { background: 'var(--nav-bg)', padding: 12, borderRadius: 'var(--radius-lg)', display: 'flex', gap: 12 } }, h(M.Button, { variant: 'accent', leftIcon: 'sparkles' }, 'Consultar al agente'), h(M.Button, { variant: 'inverse' }, 'Ver ayuda'))));
+</script>
+</body>
+</html>

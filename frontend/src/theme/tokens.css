@@ -1,0 +1,174 @@
+/* Tokens de MIGAL SmartOps. Generado a partir de tokens.json del sistema de diseño; no editar a mano. */
+:root, [data-theme="light"] {
+  --brand-0: #EEF3FF;
+  --brand-1: #DCE6FF;
+  --brand-2: #B9CCFF;
+  --brand-3: #8FAAF7;
+  --brand-4: #6286EA;
+  --brand-5: #3A62D6;
+  --brand-6: #1B47BE;
+  --brand-7: #00339F;
+  --brand-8: #002A83;
+  --brand-9: #001E5E;
+  --gray-0: #E8EDF7;
+  --gray-1: #DCE4F2;
+  --gray-2: #C9D3E6;
+  --gray-3: #AEB9D1;
+  --gray-4: #8793B0;
+  --gray-5: #667391;
+  --gray-6: #4B5873;
+  --gray-7: #353F57;
+  --gray-8: #222A3E;
+  --gray-9: #131A2B;
+  --accent: #17FF44;
+  --on-accent: var(--brand-9);
+  --page: #E8EDF7;
+  --surface: #FAFBFE;
+  --surface-raised: #FFFFFF;
+  --surface-sunken: #DCE4F2;
+  --surface-hover: #F0F4FB;
+  --field-bg: #EEF2FA;
+  --ink: #0E1B3D;
+  --ink-muted: #46526F;
+  --ink-subtle: #566380;
+  --line: #0e1b3d1a;
+  --line-strong: #66738F;
+  --brand: var(--brand-7);
+  --brand-hover: var(--brand-8);
+  --brand-pressed: var(--brand-9);
+  --on-brand: #FFFFFF;
+  --brand-soft: #DDE7FB;
+  --brand-soft-ink: var(--brand-7);
+  --nav-bg: var(--brand-8);
+  --nav-ink: #FFFFFF;
+  --nav-ink-muted: #C6D4FA;
+  --nav-active: #ffffff1f;
+  --focus: #00339F;
+  --focus-on-nav: #17FF44;
+  --overlay: #0E1B3D8C;
+  --disabled-bg: #D6DEEE;
+  --disabled-ink: #7381A0;
+  --success: #0E7A3B;
+  --success-soft: #E3F6EA;
+  --success-ink: #0A5C2B;
+  --warning: #B45309;
+  --warning-soft: #FFF1D6;
+  --warning-ink: #7A3A00;
+  --danger: #C1272D;
+  --danger-soft: #FDE8E8;
+  --danger-ink: #9B1C22;
+  --info: #0B6BA8;
+  --info-soft: #E2F3FC;
+  --info-ink: #0A5282;
+  --on-danger: #FFFFFF;
+  --danger-hover: #9B1C22;
+  --shadow-xs: 0 1px 2px #0e1b3d14;
+  --shadow-sm: 0 2px 6px #0e1b3d14;
+  --shadow-md: 0 6px 16px #0e1b3d1f;
+  --shadow-lg: 0 16px 40px #0e1b3d2e;
+  --shadow-focus: 0 0 0 2px #fafbfe, 0 0 0 4px #00339f;
+}
+[data-theme="dark"] {
+  --page: #2B303A;
+  --surface: #353B47;
+  --surface-raised: #3E4553;
+  --surface-sunken: #262B34;
+  --surface-hover: #3C4452;
+  --field-bg: #2E343F;
+  --ink: #E9ECF3;
+  --ink-muted: #BEC4D1;
+  --ink-subtle: #B3BACA;
+  --line: #ffffff1f;
+  --line-strong: #9AA3B8;
+  --brand: var(--brand-2);
+  --brand-hover: #D9E3FF;
+  --brand-pressed: #EEF3FF;
+  --on-brand: var(--brand-9);
+  --brand-soft: #3A4770;
+  --brand-soft-ink: #D9E3FF;
+  --nav-bg: #252A33;
+  --nav-ink: #E9ECF3;
+  --nav-ink-muted: #B7BDCB;
+  --nav-active: #ffffff14;
+  --focus: var(--brand-2);
+  --focus-on-nav: var(--focus);
+  --overlay: #00000080;
+  --disabled-bg: #3A404C;
+  --disabled-ink: #7C8497;
+  --success: #3DDC84;
+  --success-soft: #2E4A3F;
+  --success-ink: #8FE8B3;
+  --warning: #F5B83D;
+  --warning-soft: #52472C;
+  --warning-ink: #FFD98A;
+  --danger: #FF8A8F;
+  --danger-soft: #573639;
+  --danger-ink: #FFB3B6;
+  --info: #6CC3F5;
+  --info-soft: #2E4659;
+  --info-ink: #A8DCFA;
+  --on-danger: #3B0A0D;
+  --danger-hover: #FFB3B6;
+  --shadow-xs: 0 1px 2px #0000004d;
+  --shadow-sm: 0 2px 6px #00000059;
+  --shadow-md: 0 6px 16px #00000066;
+  --shadow-lg: 0 16px 40px #00000073;
+  --shadow-focus: 0 0 0 2px #2b303a, 0 0 0 4px #b9ccff;
+}
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+  --control-sm: 32px;
+  --control-md: 40px;
+  --control-lg: 48px;
+  --icon-sm: 16px;
+  --icon-md: 20px;
+  --icon-lg: 24px;
+  --sidebar-width: 264px;
+  --sidebar-collapsed: 72px;
+  --header-height: 64px;
+  --content-max: 1440px;
+  --bp-tablet: 48em;
+  --bp-desktop: 64em;
+  --bp-wide: 80em;
+  --z-sticky: 100;
+  --z-nav: 200;
+  --z-dropdown: 300;
+  --z-modal: 400;
+  --z-toast: 500;
+  --font-sans: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-heading: "Bricolage Grotesque", "Instrument Sans", system-ui, sans-serif;
+  --font-display: "Barlow Semi Condensed", "Arial Narrow", "Instrument Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+.t-h1 { font-family: var(--font-heading); font-size: 28px; line-height: 36px; font-weight: 700; letter-spacing: -0.02em; }
+.t-h2 { font-family: var(--font-heading); font-size: 22px; line-height: 30px; font-weight: 700; letter-spacing: -0.015em; }
+.t-h3 { font-family: var(--font-heading); font-size: 18px; line-height: 26px; font-weight: 600; }
+.t-h4 { font-family: var(--font-heading); font-size: 16px; line-height: 24px; font-weight: 600; }
+.t-body-lg { font-family: var(--font-sans); font-size: 16px; line-height: 24px; font-weight: 400; }
+.t-body { font-family: var(--font-sans); font-size: 14px; line-height: 20px; font-weight: 400; }
+.t-body-sm { font-family: var(--font-sans); font-size: 13px; line-height: 18px; font-weight: 400; }
+.t-caption { font-family: var(--font-sans); font-size: 12px; line-height: 16px; font-weight: 500; }
+.t-label { font-family: var(--font-sans); font-size: 14px; line-height: 20px; font-weight: 600; }
+.t-overline { font-family: var(--font-display); font-size: 13px; line-height: 16px; font-weight: 600; letter-spacing: 0.02em; }
+.t-th { font-family: var(--font-display); font-size: 13px; line-height: 16px; font-weight: 600; letter-spacing: 0.02em; }
+.t-button-sm { font-family: var(--font-sans); font-size: 13px; line-height: 16px; font-weight: 600; }
+.t-button-md { font-family: var(--font-sans); font-size: 14px; line-height: 20px; font-weight: 600; }
+.t-button-lg { font-family: var(--font-sans); font-size: 16px; line-height: 24px; font-weight: 600; }
+.t-stat { font-family: var(--font-display); font-size: 36px; line-height: 40px; font-weight: 600; letter-spacing: -0.005em; }
+.t-numeral { font-family: var(--font-display); font-size: 28px; line-height: 32px; font-weight: 600; letter-spacing: -0.005em; }
+.t-data { font-family: var(--font-display); font-size: 15px; line-height: 20px; font-weight: 500; }
+.t-sku { font-family: var(--font-mono); font-size: 13px; line-height: 18px; font-weight: 500; }

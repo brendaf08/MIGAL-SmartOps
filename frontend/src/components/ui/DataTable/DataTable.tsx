@@ -41,8 +41,8 @@ export interface DataTableProps<T> {
   selectedKey?: string | number;
   sort?: Sort;
   onSort?: (sort: Sort) => void;
-  /** Totales: contenido por clave de columna. */
-  footer?: Record<string, ReactNode>;
+  /** Totales: una fila (o varias, como subtotal, descuento y total) con el contenido por clave de columna. */
+  footer?: Record<string, ReactNode> | Record<string, ReactNode>[];
   /** Teléfono: una ficha por fila. Desactivar solo en tablas de comparación. */
   stack?: boolean;
 }
@@ -155,13 +155,15 @@ export function DataTable<T>({
         </Table.Tbody>
         {footer && (
           <Table.Tfoot>
-            <Table.Tr>
-              {columns.map((col) => (
-                <Table.Td key={col.key} {...cellProps(col)}>
-                  {footer[col.key]}
-                </Table.Td>
-              ))}
-            </Table.Tr>
+            {[footer].flat().map((row, i) => (
+              <Table.Tr key={i}>
+                {columns.map((col) => (
+                  <Table.Td key={col.key} {...cellProps(col)}>
+                    {row[col.key]}
+                  </Table.Td>
+                ))}
+              </Table.Tr>
+            ))}
           </Table.Tfoot>
         )}
       </Table>

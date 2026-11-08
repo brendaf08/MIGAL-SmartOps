@@ -1,0 +1,15 @@
+.locations {
+  margin: 0;
+
+  & div {
+    display: flex;
+    justify-content: space-between;
+    padding: var(--space-2) 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  & dd {
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+  }
+}

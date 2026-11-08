@@ -29,7 +29,7 @@ export function MatchConfidence({
         <Badge color={color} leftSection={<Icon name={icon} size={16} />}>
           {text}
         </Badge>
-        <Text fw={600} ff="var(--font-display)">
+        <Text fw={600} style={{ fontVariantNumeric: 'tabular-nums' }}>
           {percent} %
         </Text>
       </Group>

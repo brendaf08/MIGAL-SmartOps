@@ -21,7 +21,7 @@ export function MovementBadge({ tipo, cantidad }: MovementBadgeProps) {
         {tipo}
       </Badge>
       {cantidad !== undefined && (
-        <Text fw={600} ff="var(--font-display)" style={{ fontVariantNumeric: 'tabular-nums' }}>
+        <Text fw={600} style={{ fontVariantNumeric: 'tabular-nums' }}>
           {entrada ? '+' : '−'}
           {formatNumber(Math.abs(cantidad))}
         </Text>

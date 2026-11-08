@@ -41,6 +41,15 @@ h4 {
   text-wrap: balance;
 }
 
+/*
+ * Papeles tipográficos: Instrument Sans en todos los encabezados (Mantine los resuelve con
+ * --mantine-font-family-headings) y Bricolage Grotesque solo en el título de página (h1).
+ */
+h1,
+.mantine-Title-root[data-order='1'] {
+  font-family: var(--font-heading);
+}
+
 p {
   text-wrap: pretty;
 }

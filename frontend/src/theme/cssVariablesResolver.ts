@@ -21,7 +21,7 @@ const mapaDeColores = {
 export const cssVariablesResolver: CSSVariablesResolver = () => ({
   variables: {
     '--mantine-font-family': 'var(--font-sans)',
-    '--mantine-font-family-headings': 'var(--font-heading)',
+    '--mantine-font-family-headings': 'var(--font-sans)',
     '--mantine-font-family-monospace': 'var(--font-mono)',
     '--mantine-focus-ring-color': 'var(--focus)',
   },

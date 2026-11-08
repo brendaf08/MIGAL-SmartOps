@@ -66,8 +66,9 @@ export const theme = createTheme({
   /** Fuente de cifras grandes y sello de documento (nunca en datos de tabla ni etiquetas): usar var(--font-display) en los CSS Modules. */
   other: { fontFamilyDisplay: '"Barlow Semi Condensed", "Arial Narrow", "Instrument Sans", system-ui, sans-serif' },
   fontFamilyMonospace: '"IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace',
+  /** Bricolage Grotesque solo en el título de página (h1): lo aplica global.css con var(--font-heading). Los demás encabezados usan Instrument Sans. */
   headings: {
-    fontFamily: '"Bricolage Grotesque", "Instrument Sans", system-ui, sans-serif',
+    fontFamily: '"Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif',
     fontWeight: '700',
     sizes: {
       h1: { fontSize: '28px', lineHeight: '36px', fontWeight: '700' },

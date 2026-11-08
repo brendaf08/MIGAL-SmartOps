@@ -1,22 +1,21 @@
-import { Badge, Button, FileButton, Group, NumberInput, Select, Stack, Text } from '@mantine/core';
+import { Badge, Button, FileButton, Group, NumberInput, Stack, Text } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { Constancia } from '@/components/domain/Constancia/Constancia';
-import { MatchConfidence } from '@/components/domain/MatchConfidence/MatchConfidence';
 import { StatusBadge } from '@/components/domain/StatusBadge/StatusBadge';
 import { PageHeader } from '@/components/layout/PageHeader/PageHeader';
 import { ActionBar } from '@/components/ui/ActionBar/ActionBar';
 import { Alert } from '@/components/ui/Alert/Alert';
 import { Card } from '@/components/ui/Card/Card';
-import { DataTable, type Column } from '@/components/ui/DataTable/DataTable';
+import type { Column } from '@/components/ui/DataTable/DataTable';
 import { Dropzone } from '@/components/ui/Dropzone/Dropzone';
 import { FileItem } from '@/components/ui/Dropzone/FileItem';
 import { Icon } from '@/components/ui/Icon/Icon';
 import { ConfirmDialog } from '@/components/ui/Modal/ConfirmDialog';
-import { PRODUCTOS } from '@/features/inventario/fixtures';
 import { formatNumber } from '@/lib/format';
+import { LineasOcrTabla } from '@/features/documentos-ocr/LineasOcrTabla';
 import { confirmarRecepcion, procesarDocumento, type ResultadoRecepcion } from './api';
 import {
   diferenciaLinea,
@@ -26,8 +25,6 @@ import {
   type DiferenciaLinea,
 } from './resumen';
 import type { DocumentoProcesado, LineaRecepcion } from './types';
-
-const OPCIONES = PRODUCTOS.map((p) => ({ value: p.sku, label: `${p.sku}, ${p.nombre}` }));
 
 /** La diferencia se comunica con forma y texto, no solo con color. */
 function Diferencia({ valor }: { valor: DiferenciaLinea }) {
@@ -145,35 +142,6 @@ export function RecepcionOCRPage() {
   }
 
   const columns: Column<LineaRecepcion>[] = [
-    { key: 'texto', header: 'Texto extraído', primary: true, mono: true },
-    {
-      key: 'sku',
-      header: 'Producto del catálogo',
-      block: true,
-      render: (l) => (
-        <Select
-          aria-label={`Producto para ${l.texto}`}
-          placeholder="Seleccionar producto"
-          searchable
-          miw={150}
-          comboboxProps={{ width: 360, position: 'bottom-start' }}
-          data={OPCIONES}
-          value={l.sku || null}
-          onChange={(sku) => update(l.id, { sku: sku ?? '' })}
-          error={l.sku ? undefined : 'Asociar un producto.'}
-        />
-      ),
-    },
-    {
-      key: 'score',
-      header: 'Coincidencia',
-      block: true,
-      render: (l) => (
-        <div style={{ minWidth: 180 }}>
-          <MatchConfidence score={l.score} compact />
-        </div>
-      ),
-    },
     { key: 'pedido', header: 'Pedido', numeric: true },
     {
       key: 'recibido',
@@ -296,7 +264,12 @@ export function RecepcionOCRPage() {
               }
               padded={false}
             >
-              <DataTable caption="Líneas extraídas" columns={columns} rows={lineas} rowKey="id" />
+              <LineasOcrTabla
+                caption="Líneas extraídas"
+                lineas={lineas}
+                onSkuChange={(id, sku) => update(id, { sku })}
+                columnas={columns}
+              />
             </Card>
           </>
         )}

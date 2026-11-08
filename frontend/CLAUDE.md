@@ -12,7 +12,8 @@ MIGAL SmartOps es la plataforma web de gestión operativa e inventario de la Fer
 2. [docs/diseno/componentes/](../docs/diseno/componentes/README.md): especificación de cada componente y pantalla.
 3. [docs/diseno/tokens.json](../docs/diseno/tokens.json) y `src/theme/`: valores normativos.
 4. [docs/diseno/prototipo/](../docs/diseno/prototipo/README.md): comportamiento y aspecto de referencia; consultarlo, no importarlo.
-5. [docs/requerimientos.md](../docs/requerimientos.md), [docs/especificaciones-casos-de-uso.md](../docs/especificaciones-casos-de-uso.md) y [docs/diagramas-paquetes.md](../docs/diagramas-paquetes.md): comportamiento funcional y módulos.
+5. [docs/diseno/plan-de-implementacion.md](../docs/diseno/plan-de-implementacion.md): fases pendientes, criterios de aceptación y procedimiento por fase.
+6. [docs/requerimientos.md](../docs/requerimientos.md), [docs/especificaciones-casos-de-uso.md](../docs/especificaciones-casos-de-uso.md) y [docs/diagramas-paquetes.md](../docs/diagramas-paquetes.md): comportamiento funcional y módulos.
 
 Ante una contradicción entre el diseño y los requerimientos, prevalecen los requerimientos; registrar la diferencia en el pull request.
 

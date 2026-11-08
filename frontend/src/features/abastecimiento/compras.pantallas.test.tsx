@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it } from 'vitest';
 import { axe } from 'vitest-axe';
@@ -36,5 +36,78 @@ describe('Órdenes de compra, listado (P25)', () => {
       ).not.toBeInTheDocument(),
     );
     expect(screen.queryByText('OC-0086')).not.toBeInTheDocument();
+  });
+});
+
+describe('Órdenes de compra, nueva orden (P26)', () => {
+  it('bloquea la acción con el motivo visible mientras falta el proveedor y las líneas', async () => {
+    renderApp('/compras/nueva', 'Reponedor');
+
+    const accion = await screen.findByRole('button', { name: 'Guardar orden de compra' });
+    expect(accion).toBeDisabled();
+    expect(screen.getByText('Seleccionar un proveedor para crear la orden.')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('combobox', { name: /Proveedor/ }));
+    await userEvent.click(
+      await screen.findByRole('option', { name: 'Aceros del Sur S.A.', hidden: true }),
+    );
+    expect(
+      screen.getByText('Agregar al menos un producto para crear la orden.'),
+    ).toBeInTheDocument();
+    expect(accion).toBeDisabled();
+  });
+
+  it('no permite elegir un proveedor inactivo y ofrece el registro de proveedor', async () => {
+    renderApp('/compras/nueva', 'Reponedor');
+
+    await userEvent.click(await screen.findByRole('combobox', { name: /Proveedor/ }));
+    const inactivo = await screen.findByRole('option', {
+      name: 'Cementos Arequipa E.I.R.L. (Inactivo)',
+      hidden: true,
+    });
+    expect(
+      inactivo.getAttribute('data-combobox-disabled') ?? inactivo.getAttribute('aria-disabled'),
+    ).not.toBeNull();
+    expect(screen.getByRole('link', { name: 'Registrar proveedor' })).toHaveAttribute(
+      'href',
+      '/proveedores/nuevo',
+    );
+  });
+
+  it('valida la fecha, la cantidad y el precio junto a los campos', async () => {
+    renderApp('/compras/nueva', 'Reponedor');
+
+    await userEvent.click(await screen.findByRole('combobox', { name: /Proveedor/ }));
+    await userEvent.click(
+      await screen.findByRole('option', { name: 'Aceros del Sur S.A.', hidden: true }),
+    );
+    fireEvent.change(screen.getByLabelText(/Fecha de la orden/), {
+      target: { value: '2020-01-01' },
+    });
+    await userEvent.click(screen.getByRole('button', { name: 'Agregar producto' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar orden de compra' }));
+
+    expect(await screen.findByText('La fecha no puede ser anterior a hoy.')).toBeInTheDocument();
+    expect(screen.getByText(/Revisar cada línea/)).toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('preagrega la línea del producto recibido en la URL', async () => {
+    renderApp('/compras/nueva?sku=CEM-001', 'Reponedor');
+
+    const producto = await screen.findByRole('combobox', { name: 'Producto de la línea 1' });
+    expect(producto).toHaveValue('CEM-001, Cemento Sol tipo I, bolsa 42.5 kg');
+    expect(screen.getByLabelText('Cantidad de la línea 1')).toBeInTheDocument();
+  });
+
+  it('no tiene violaciones de accesibilidad', async () => {
+    const { container } = renderApp('/compras/nueva', 'Reponedor');
+    await screen.findByRole('heading', { level: 1, name: 'Nueva orden de compra' });
+
+    expect(
+      await axe(container, {
+        rules: { 'color-contrast': { enabled: false }, region: { enabled: false } },
+      }),
+    ).toHaveNoViolations();
   });
 });

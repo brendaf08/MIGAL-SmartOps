@@ -106,9 +106,8 @@ export const crearOrdenCompra = (datos: NuevaOrdenCompra) =>
 
 /** Último precio de compra registrado para un SKU; 0 si nunca se ha comprado. */
 export const precioReferencia = (sku: string) =>
-  ORDENES_COMPRA.find((o) => o.lineas.some((l) => l.sku === sku))?.lineas.find(
-    (l) => l.sku === sku,
-  )?.precio ?? 0;
+  ORDENES_COMPRA.find((o) => o.lineas.some((l) => l.sku === sku))?.lineas.find((l) => l.sku === sku)
+    ?.precio ?? 0;
 
 /** Existencias libres de un producto: tienda y almacenes menos lo reservado. */
 const existenciaLibre = (p: ProductoDisponibilidad) =>

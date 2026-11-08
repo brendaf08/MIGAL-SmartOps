@@ -1,4 +1,13 @@
-import { Button, Group, Select, Stack, Text, TextInput, useMatches } from '@mantine/core';
+import {
+  Button,
+  Group,
+  Select,
+  SimpleGrid,
+  Stack,
+  Text,
+  TextInput,
+  useMatches,
+} from '@mantine/core';
 import { useDebouncedValue } from '@mantine/hooks';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
@@ -123,52 +132,57 @@ export function KardexPage() {
   };
   const limpiar = () => cambiar(SIN_FILTROS_KARDEX);
 
-  const campos = (
-    <>
-      <SearchInput
-        aria-label="Buscar por SKU o producto"
-        placeholder="SKU o producto"
-        value={filtros.q}
-        onChange={(q) => cambiar({ q })}
-      />
-      <Select
-        label="Tipo"
-        placeholder="Todos"
-        clearable
-        data={['Entrada', 'Salida']}
-        value={filtros.tipo || null}
-        onChange={(v) => cambiar({ tipo: (v ?? '') as FiltrosKardex['tipo'] })}
-      />
-      <Select
-        label="Origen"
-        placeholder="Todos"
-        clearable
-        data={ORIGENES}
-        value={filtros.origen || null}
-        onChange={(v) => cambiar({ origen: (v ?? '') as FiltrosKardex['origen'] })}
-      />
-      <Select
-        label="Ubicación"
-        placeholder="Todas"
-        clearable
-        data={[...UBICACIONES]}
-        value={filtros.ubicacion || null}
-        onChange={(v) => cambiar({ ubicacion: (v ?? '') as FiltrosKardex['ubicacion'] })}
-      />
-      <TextInput
-        type="date"
-        label="Desde"
-        value={filtros.desde}
-        onChange={(e) => cambiar({ desde: e.currentTarget.value })}
-      />
-      <TextInput
-        type="date"
-        label="Hasta"
-        value={filtros.hasta}
-        onChange={(e) => cambiar({ hasta: e.currentTarget.value })}
-      />
-    </>
-  );
+  /* Campos de filtro como arreglo: en escritorio forman una cuadrícula y en teléfono se apilan en la hoja. */
+  const campos = [
+    <SearchInput
+      key="q"
+      aria-label="Buscar por SKU o producto"
+      placeholder="SKU o producto"
+      value={filtros.q}
+      onChange={(q) => cambiar({ q })}
+    />,
+    <Select
+      key="tipo"
+      label="Tipo"
+      placeholder="Todos"
+      clearable
+      data={['Entrada', 'Salida']}
+      value={filtros.tipo || null}
+      onChange={(v) => cambiar({ tipo: (v ?? '') as FiltrosKardex['tipo'] })}
+    />,
+    <Select
+      key="origen"
+      label="Origen"
+      placeholder="Todos"
+      clearable
+      data={ORIGENES}
+      value={filtros.origen || null}
+      onChange={(v) => cambiar({ origen: (v ?? '') as FiltrosKardex['origen'] })}
+    />,
+    <Select
+      key="ubicacion"
+      label="Ubicación"
+      placeholder="Todas"
+      clearable
+      data={[...UBICACIONES]}
+      value={filtros.ubicacion || null}
+      onChange={(v) => cambiar({ ubicacion: (v ?? '') as FiltrosKardex['ubicacion'] })}
+    />,
+    <TextInput
+      key="desde"
+      type="date"
+      label="Desde"
+      value={filtros.desde}
+      onChange={(e) => cambiar({ desde: e.currentTarget.value })}
+    />,
+    <TextInput
+      key="hasta"
+      type="date"
+      label="Hasta"
+      value={filtros.hasta}
+      onChange={(e) => cambiar({ hasta: e.currentTarget.value })}
+    />,
+  ];
 
   return (
     <>
@@ -192,9 +206,9 @@ export function KardexPage() {
           </Button>
         </Group>
       ) : (
-        <Group align="flex-end" wrap="wrap" gap="sm" mb="sm">
+        <SimpleGrid cols={{ base: 1, sm: 3, lg: 6 }} mb="sm">
           {campos}
-        </Group>
+        </SimpleGrid>
       )}
       {etiquetas.length > 0 && (
         <Group gap="xs" mb="md" wrap="wrap" role="group" aria-label="Filtros aplicados">

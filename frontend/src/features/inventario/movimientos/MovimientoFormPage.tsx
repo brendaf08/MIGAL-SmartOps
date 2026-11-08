@@ -7,6 +7,7 @@ import {
   Stack,
   Text,
   Textarea,
+  useMatches,
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
@@ -63,6 +64,11 @@ export function MovimientoFormPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useSession();
+  /** En teléfono las tres opciones se apilan: sus etiquetas no caben en una fila. */
+  const orientacion = useMatches<'vertical' | 'horizontal'>({
+    base: 'vertical',
+    sm: 'horizontal',
+  });
   const [confirmando, setConfirmando] = useState(false);
   /** La constancia solo existe como resultado de confirmar el movimiento en esta pantalla. */
   const [resultado, setResultado] = useState<ResultadoMovimiento | null>(null);
@@ -187,6 +193,7 @@ export function MovimientoFormPage() {
           <SegmentedControl
             aria-label="Tipo de movimiento"
             fullWidth
+            orientation={orientacion}
             data={SEGMENTOS}
             value={tipo}
             onChange={(v) => form.setFieldValue('tipo', v as TipoMovimiento)}

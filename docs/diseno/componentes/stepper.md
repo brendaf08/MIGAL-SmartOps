@@ -14,3 +14,8 @@ Indicador de avance de un proceso con pasos ordenados. Aplica a flujos con ciclo
 - Máximo cinco pasos; con más se agrupa o se usa una lista de estados.
 
 Equivalente en Mantine: `Stepper`.
+
+## Comportamiento responsive
+
+- Teléfono: disposición vertical, un paso por línea.
+- Tablet y escritorio: disposición horizontal con conectores.

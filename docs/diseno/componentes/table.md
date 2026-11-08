@@ -16,3 +16,10 @@ Tabla de datos semántica (`table`, `th scope`, `aria-sort`) con ordenamiento, s
 - El ordenamiento, filtrado y paginación avanzados dependen de una librería complementaria (ADR-001); la API de `Table` es la interfaz estable y la implementación puede apoyarse en TanStack Table.
 
 Equivalente en Mantine: `Table` de `@mantine/core` con TanStack Table para ordenamiento y paginación del lado del servidor.
+
+## Comportamiento responsive
+
+- Teléfono: cada fila se presenta como una ficha (`stack`, activo por omisión). El título de la ficha es la columna `primary`; las columnas marcadas con `phone: false` se omiten y las marcadas con `block: true` muestran su etiqueta sobre el control, a ancho completo. Los totales de `footer` conservan su doble línea.
+- Tablet: la tabla conserva todas las columnas con desplazamiento horizontal dentro de su contenedor.
+- Escritorio: tabla completa.
+- Desactivar `stack` solo en tablas de comparación cuyo contenido no tiene sentido como ficha.

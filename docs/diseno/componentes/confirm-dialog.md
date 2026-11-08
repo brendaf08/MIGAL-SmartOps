@@ -15,3 +15,7 @@ Diálogo de confirmación para acciones que modifican inventario o no se pueden 
 - Mientras se procesa, el botón muestra `loading` y el diálogo no se puede cerrar.
 
 Equivalente en Mantine: `modals.openConfirmModal` de `@mantine/modals` con contenido propio.
+
+## Comportamiento responsive
+
+- Teléfono: hoja inferior con los botones apilados a ancho completo; la acción segura (cancelar) conserva el foco inicial.

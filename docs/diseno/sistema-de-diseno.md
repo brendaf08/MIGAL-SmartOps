@@ -7,7 +7,7 @@ MIGAL SmartOps es la plataforma web de gestión operativa e inventario de la Fer
 ## Contexto de uso
 
 - Usuarios internos con cuatro roles: Administrador, Vendedor, Almacenero y Reponedor. La interfaz muestra solo los módulos que corresponden al rol; la autorización real la aplica el backend.
-- Equipos de uso: computadoras All-in-One de escritorio y tablets en la tienda y los dos almacenes (RNF-05). Los flujos de almacén (recepción, despacho, movimientos) se operan de pie y con toque; los flujos comerciales y administrativos, con teclado y ratón.
+- Equipos de uso: computadoras All-in-One de escritorio, tablets y teléfonos en la tienda y los dos almacenes (RNF-05 contempla escritorio y tablets; el teléfono se incorpora por decisión del equipo). Los flujos de almacén (recepción, despacho, movimientos) se operan de pie y con toque, y la captura de documentos con la cámara; los flujos comerciales y administrativos, con teclado y ratón.
 - Operaciones frecuentes: consultar disponibilidad, registrar cotizaciones y ventas, confirmar recepciones, confirmar salidas, procesar documentos con OCR y consultar al agente de IA.
 - Prioridades de experiencia: velocidad de consulta (objetivo de 3 s), prevención de errores en operaciones que afectan el inventario y claridad sobre qué es físico, qué está reservado y qué está libre.
 
@@ -85,7 +85,48 @@ El sistema toma su lenguaje visual del lugar donde se usa: el mostrador, el esta
 - Estados de control: reposo, cursor encima, presionado, foco, deshabilitado y carga (`loading` conserva el ancho y bloquea clics). Un control deshabilitado que no sea obvio se explica con un texto visible.
 - Movimiento: transiciones de 120 a 200 ms con curva de salida `cubic-bezier(0.23, 1, 0.32, 1)` (nunca de entrada) y solo sobre propiedades concretas. Los botones reducen su escala a 0.97 al presionarse; modales y notificaciones aparecen desde `scale(0.95)` o 8 px de desplazamiento con opacidad. Las acciones repetidas con alta frecuencia (atajos, búsqueda) no se animan. Con `prefers-reduced-motion` desaparecen los desplazamientos.
 - Objetivos táctiles: en dispositivos con puntero táctil (`pointer: coarse`) todo control alcanza 44 px de alto como mínimo, aunque su tamaño visual sea `sm` o `md`.
-- Responsive: expandido desde 1024 px (`bp-desktop`); entre 768 y 1023 px (tablet) la barra lateral se contrae a íconos de 72 px, el contenido reduce su relleno y las tablas se desplazan horizontalmente. Probar siempre en 1280 px (All-in-One) y 768 px (tablet).
+- Responsive: ver la sección Diseño responsive.
+
+## Diseño responsive
+
+Un solo código y un solo conjunto de componentes sirven a tres familias de dispositivos. No existe una versión móvil separada: cada componente recompone su disposición según el ancho disponible.
+
+| Dispositivo | Ancho | Referencias | Uso previsto |
+| --- | --- | --- | --- |
+| Teléfono | Menos de 768 px (`bp-tablet`) | 360, 390 y 430 px | Consulta rápida de disponibilidad, captura de documentos con la cámara, confirmación de recepciones y despachos y consulta al agente de IA. |
+| Tablet | 768 a 1023 px | 768 y 820 px, vertical y horizontal | Flujos de almacén y atención en mostrador, operados con toque. |
+| Escritorio | 1024 px o más (`bp-desktop`, `bp-wide`) | 1280 y 1920 px | Gestión comercial, abastecimiento y administración, con teclado y ratón. |
+
+Principios:
+
+- **Tarea primero.** En teléfono se prioriza la tarea del momento: lo secundario se omite (`phone: false` en columnas de tabla) o se traslada al detalle.
+- **Zona del pulgar.** Las acciones principales se ubican al pie o a ancho completo; las entradas de mensajes quedan fijas al pie.
+- **Sin desplazamiento horizontal de la página.** Solo las tablas de comparación (`stack` desactivado) se desplazan dentro de su contenedor.
+- **Objetivos táctiles.** 44 px como mínimo en teléfono y en cualquier pantalla táctil; campos con 16 px de fuente para evitar el acercamiento automático de iOS.
+- **Cámara como entrada.** `Dropzone` con `camera` abre la cámara trasera para fotografiar notas, pedidos y guías de proveedores.
+- **Áreas seguras y altura dinámica.** Declarar `viewport-fit=cover` y usar `env(safe-area-inset-*)` y unidades `dvh` en superficies que ocupan toda la pantalla (panel, hoja inferior).
+- **Zoom y orientación.** La interfaz admite el zoom del navegador al 200 % sin desplazamiento horizontal y funciona en vertical y horizontal.
+- **Sin dependencia del cursor.** Ninguna función requiere pasar el cursor por encima; el texto de ayuda de los íconos también está disponible por etiqueta accesible.
+
+Comportamiento por componente:
+
+| Componente | Teléfono | Tablet | Escritorio |
+| --- | --- | --- | --- |
+| `AppShell` | Panel deslizable con botón de menú y cabecera de 56 px | Barra lateral de íconos de 72 px | Barra lateral de 264 px |
+| `PageHeader` | Título de 24 px y acciones apiladas a ancho completo | Acciones junto al título | Acciones junto al título |
+| `Table` | Fichas: una por fila, columnas secundarias omitidas | Desplazamiento horizontal | Tabla completa |
+| `Pagination` | Flechas y "Página X de N" | Números de página | Números y resumen |
+| `Tabs` | Desplazables con ajuste | Pestañas completas | Pestañas completas |
+| `Stepper` | Vertical | Horizontal | Horizontal |
+| `Columns` | Una columna | Dos columnas o una | Según el diseño |
+| `Modal` y `ConfirmDialog` | Hoja inferior con acciones apiladas | Diálogo centrado | Diálogo centrado |
+| `Dropzone` | Botón "Tomar foto" y zona compacta | Foto o arrastre | Arrastre y selección |
+| `StockSummary` | Libre en la fila superior y dos cifras debajo | Tres cifras en fila | Tres cifras en fila |
+| `ChatComposer` | Fijo al pie, con área segura | Fijo en el panel | Fijo en el panel |
+
+Matriz de verificación: 360 x 740, 390 x 844, 430 x 932, 768 x 1024, 1024 x 768 (tablet horizontal), 1280 x 720 y 1920 x 1080, en tema claro y oscuro, más el zoom del navegador al 200 %. Cada pantalla de referencia tiene su variante de teléfono o tablet en el prototipo.
+
+Implementación en Mantine: los puntos de quiebre `xs`, `sm`, `md` y `lg` equivalen a `bp-phone`, `bp-tablet`, `bp-desktop` y `bp-wide`. Emplear `AppShell` con `navbar.breakpoint` en `sm` y `collapsed` para el panel deslizable, `SimpleGrid` con `cols` responsive para `Columns`, y la propiedad `visibleFrom` o `hiddenFrom` para omitir columnas en teléfono.
 
 ## Iconografía
 
@@ -159,6 +200,7 @@ Propuesta derivada de los actores de los casos de uso. La visibilidad es una ayu
 
 - El Administrador accede a todos los módulos: los requerimientos no lo establecen de forma expresa.
 - El nivel de alerta de stock se calcula sobre el stock libre; confirmar si debe calcularse sobre el stock físico.
+- RNF-05 contempla computadoras de escritorio y tablets. La compatibilidad con teléfonos se incorpora por decisión del equipo y debe registrarse en los requerimientos.
 - Los umbrales de `MatchConfidence` (0.85 y 0.60) son valores de ejemplo hasta que se definan en el servicio Python.
 - Los nombres definitivos de los estados de cotización, venta y guía deben armonizarse con los casos de uso (tabla de limitaciones de la metodología); el mapa `STATUS` se actualiza una sola vez cuando se confirmen.
 - La atención parcial de ventas (RF-VEN-12) difiere de la reserva parcial con despacho completo del modelo vigente; las pantallas de venta se ajustan cuando se resuelva.

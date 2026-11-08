@@ -14,3 +14,7 @@ Pestañas para alternar vistas de un mismo contexto, por ejemplo "Todos", "Stock
 - Las pestañas no sustituyen a la navegación principal ni representan pasos secuenciales (usar `Stepper`).
 
 Equivalente en Mantine: `Tabs`.
+
+## Comportamiento responsive
+
+- Teléfono: la lista se desplaza horizontalmente con ajuste al inicio de cada pestaña y ocupa el ancho completo de la barra de herramientas.

@@ -14,3 +14,7 @@ Contenedor de contenido relacionado, con encabezado opcional (título, descripci
 - Las acciones del encabezado se limitan a una o dos; las acciones del flujo (confirmar, cancelar) van en el pie.
 
 Equivalente en Mantine: `Paper` o `Card` con `withBorder`.
+
+## Comportamiento responsive
+
+- Teléfono: relleno de 16 px en lugar de 20 px.

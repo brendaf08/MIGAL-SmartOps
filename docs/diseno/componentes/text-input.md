@@ -16,3 +16,7 @@ Campo de una línea con etiqueta visible, texto de ayuda, mensaje de error y aso
 - `size="lg"` en tablets y pantallas de acceso (16 px de fuente evita el acercamiento automático en iOS).
 
 Equivalente en Mantine: `TextInput` con `useForm` y `zodResolver`.
+
+## Comportamiento responsive
+
+- Teléfono: los campos miden 44 px de alto como mínimo y usan 16 px de fuente para evitar el acercamiento automático de iOS. Lo mismo aplica a `NumberInput`, `Select`, `Textarea` y `SearchInput`.

@@ -14,3 +14,8 @@ Navegación entre páginas de un listado, con el resumen "Mostrando 41–60 de 2
 - Los botones anterior y siguiente se deshabilitan en los extremos.
 
 Equivalente en Mantine: `Pagination` con `total` y `value`.
+
+## Comportamiento responsive
+
+- Teléfono: se muestran las flechas y el texto "Página X de N"; los números de página se ocultan.
+- Tablet y escritorio: números de página y resumen de registros.

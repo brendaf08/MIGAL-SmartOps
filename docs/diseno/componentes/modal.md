@@ -16,3 +16,8 @@ Ventana modal que concentra una tarea corta (registrar un movimiento manual, com
 - Se muestra encima de la barra lateral y por debajo de las notificaciones (`z-modal` < `z-toast`).
 
 Equivalente en Mantine: `Modal` de `@mantine/core`.
+
+## Comportamiento responsive
+
+- Teléfono: el diálogo se presenta como hoja inferior a ancho completo, con esquinas superiores redondeadas, altura máxima de 92 % de la pantalla (`dvh`) y acciones apiladas con la principal arriba y a ancho completo; respeta el área segura inferior.
+- Tablet y escritorio: diálogo centrado.

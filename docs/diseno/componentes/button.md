@@ -17,3 +17,7 @@ Acción que el usuario dispara. Variantes: `primary` (acción principal de la vi
 - Un botón deshabilitado debe ir acompañado de una explicación visible cuando el motivo no es evidente.
 
 Equivalente en Mantine: `Button` con `variant` `filled` (primary), `light` (secondary), `default` (outline), `subtle`, y `color="danger"` o `color="accent"` definidos en el tema.
+
+## Comportamiento responsive
+
+- Teléfono: altura mínima de 44 px; en cabeceras y diálogos las acciones se expanden a ancho completo. Usar `size="lg"` en la acción principal de flujos que se operan con una mano.

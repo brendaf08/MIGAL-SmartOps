@@ -18,3 +18,10 @@ Estructura general de la aplicación: barra lateral de navegación, cabecera con
 - La matriz de roles de la propuesta se deriva de los actores de los casos de uso; el acceso total del Administrador a los módulos operativos es un supuesto pendiente de confirmar.
 
 Equivalente en Mantine: `AppShell` con `AppShell.Navbar`, `AppShell.Header` y `NavLink`.
+
+## Comportamiento responsive
+
+- Teléfono (menos de 768 px): la barra lateral se convierte en un panel deslizable de hasta 300 px (86 % del ancho) que se abre con el botón de menú de la cabecera, se cierra con Escape, con el velo o al elegir un ítem, y vuelve el foco al botón. La cabecera mide 56 px y muestra el menú, el nombre del sistema, el cambio de modo y solo el avatar del usuario.
+- Tablet (768 a 1023 px): barra lateral de íconos (72 px) con `title` en cada ítem.
+- Escritorio (1024 px o más): barra lateral expandida (264 px).
+- Se respetan las áreas seguras (`env(safe-area-inset-*)`) y el panel declara `aria-expanded` y `aria-controls` en el botón de menú.

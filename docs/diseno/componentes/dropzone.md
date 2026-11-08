@@ -16,3 +16,8 @@ Zona de carga de documentos operativos (notas manuscritas, capturas de pedidos y
 - La carga y el procesamiento no generan ventas, reservas ni movimientos de Kardex; el mensaje contiguo debe aclararlo.
 
 Equivalente en Mantine: `Dropzone` de `@mantine/dropzone` con `MIME_TYPES.png`, `jpeg` y `pdf`.
+
+## Comportamiento responsive
+
+- `camera` agrega el botón "Tomar foto", que abre la cámara trasera del teléfono o la tablet (`capture="environment"`) para fotografiar notas, pedidos y guías; es el modo principal de carga en teléfono, donde no existe el arrastre.
+- Teléfono: la zona reduce su altura y relleno; el arrastre se conserva como alternativa en equipos que lo admiten.

@@ -13,3 +13,7 @@ Resumen de la existencia de un producto en una ubicación o de forma consolidada
 - El stock mínimo es una alerta de reposición: no impide reservar unidades disponibles.
 - Supuesto: el nivel se calcula sobre el stock libre. Confirmar con el negocio si debe calcularse sobre el físico.
 - Las cifras de cada ubicación (tienda principal, Almacén 1, Almacén 2) se presentan en filas de tabla con la variante `compact`.
+
+## Comportamiento responsive
+
+- Teléfono: la cantidad libre ocupa toda la fila superior y el stock físico y el reservado se muestran debajo, en dos columnas.

@@ -14,3 +14,7 @@ Mensaje flotante breve que confirma el resultado de una acción o informa un pro
 - Un solo mensaje por resultado; agrupar mensajes repetidos.
 
 Equivalente en Mantine: `@mantine/notifications` con `notifications.show` y `loading`.
+
+## Comportamiento responsive
+
+- Teléfono: la notificación ocupa el ancho completo de la pantalla.

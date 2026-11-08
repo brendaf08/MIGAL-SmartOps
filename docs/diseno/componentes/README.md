@@ -34,6 +34,7 @@ Catálogo de componentes y pantallas de referencia. Cada documento indica cuánd
 | Navegación | [Stepper](stepper.md) | Indicador de avance de un proceso con pasos ordenados. |
 | Navegación | [Tabs](tabs.md) | Pestañas para alternar vistas de un mismo contexto, por ejemplo "Todos", "Stock crítico" y "Movimientos" dentro de inventario. |
 | Estructura | [Card](card.md) | Contenedor de contenido relacionado, con encabezado opcional (título, descripción y acciones), cuerpo y pie. |
+| Estructura | [Columns](columns.md) | Disposición en columnas con separación de la escala `space-*`. |
 | Estructura | [Stack](stack.md) | Contenedor flexible que ordena a sus hijos en columna o fila con un espaciado tomado de la escala `space-*`. |
 | Inventario | [MatchConfidence](match-confidence.md) | Indicador del grado de similitud entre un término extraído por OCR (o escrito por el usuario) y un producto del catálogo maestro. |
 | Inventario | [StockBar](stock-bar.md) | Barra segmentada que muestra de un vistazo cómo se reparte el stock de un producto: libre, reservado y, cuando existe, la cantidad solicitada sin cobertura (pendiente de abastecimiento). |
@@ -41,8 +42,14 @@ Catálogo de componentes y pantallas de referencia. Cada documento indica cuánd
 | Agente de IA | [ChatComposer](chat-composer.md) | Zona de entrada del chat: campo de texto, botón de envío y sugerencias de consultas frecuentes. |
 | Agente de IA | [ChatMessage](chat-message.md) | Mensaje de la conversación con el agente consultivo de IA. |
 | Pantallas | [PantallaAcceso](pantalla-acceso.md) | Pantalla de inicio de sesión (CU-01) con campos grandes (`size="lg"`) para uso táctil, aviso de error en línea y un único botón principal. |
+| Pantallas | [PantallaAccesoMovil](pantalla-acceso-movil.md) | Variante de teléfono del inicio de sesión. |
 | Pantallas | [PantallaAgenteIA](pantalla-agente-ia.md) | Pantalla del agente consultivo de IA (CU-14) con `ChatMessage` y `ChatComposer` dentro de `AppShell`. |
+| Pantallas | [PantallaAgenteIAMovil](pantalla-agente-iamovil.md) | Variante de teléfono del agente de IA. |
 | Pantallas | [PantallaCotizacion](pantalla-cotizacion.md) | Pantalla de cotización a un cliente (CU-09) con `PageHeader` y sello de estado, `Stepper`, `Table` con pie de totales, `Alert` y tarjetas de cliente y condiciones. |
+| Pantallas | [PantallaCotizacionMovil](pantalla-cotizacion-movil.md) | Variante de teléfono de la cotización. |
 | Pantallas | [PantallaDespachoConfirmacion](pantalla-despacho-confirmacion.md) | Confirmación de la salida física de mercadería (CU-06). |
 | Pantallas | [PantallaInventario](pantalla-inventario.md) | Pantalla de consulta de disponibilidad (CU-04) que integra `AppShell`, `PageHeader`, `Stat`, `Tabs`, `SearchInput`, `Table`, `StatusBadge` y `Pagination`. |
+| Pantallas | [PantallaInventarioMovil](pantalla-inventario-movil.md) | Variante de teléfono de la pantalla de disponibilidad. |
+| Pantallas | [PantallaInventarioTablet](pantalla-inventario-tablet.md) | Variante de tablet de la pantalla de disponibilidad. |
 | Pantallas | [PantallaRecepcionOCR](pantalla-recepcion-ocr.md) | Pantalla de recepción de mercadería con documento procesado por OCR (CU-13 y CU-08). |
+| Pantallas | [PantallaRecepcionOCRMovil](pantalla-recepcion-ocrmovil.md) | Variante de teléfono de la recepción con OCR. |

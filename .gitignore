@@ -22,6 +22,7 @@ Thumbs.db
 # Frontend
 node_modules/
 dist/
+storybook-static/
 coverage/
 
 # Python

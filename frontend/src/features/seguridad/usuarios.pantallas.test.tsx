@@ -60,3 +60,83 @@ describe('Usuarios: lista', () => {
     ).toHaveNoViolations();
   });
 });
+
+/** Elige una opción del selector de rol. */
+async function elegirRol(rol: string) {
+  await userEvent.click(screen.getByRole('combobox', { name: 'Rol' }));
+  // El desplegable de Mantine se anima en jsdom y sus opciones quedan marcadas como ocultas durante la transición.
+  await userEvent.click(await screen.findByRole('option', { name: rol, hidden: true }));
+}
+
+describe('Usuarios: registro y edición de rol', () => {
+  it('un Almacenero no accede al formulario de registro', async () => {
+    renderApp('/usuarios/nuevo', 'Almacenero');
+
+    await waitFor(() =>
+      expect(screen.queryByRole('heading', { name: 'Registrar usuario', level: 1 })).toBeNull(),
+    );
+  }, 20000);
+
+  it('registrar un usuario válido lo agrega a la lista', async () => {
+    renderApp('/usuarios/nuevo', 'Administrador');
+
+    await userEvent.type(screen.getByRole('textbox', { name: 'Nombre completo' }), 'Ana Ríos');
+    await userEvent.type(screen.getByRole('textbox', { name: 'Usuario' }), 'arios');
+    await userEvent.type(screen.getByLabelText(/Contraseña temporal/), 'clave1234');
+    await elegirRol('Vendedor');
+    await userEvent.click(screen.getByRole('button', { name: 'Registrar usuario' }));
+
+    const t = await tablaCon('arios');
+    expect(within(t).getByText('Ana Ríos')).toBeInTheDocument();
+  }, 20000);
+
+  it('un usuario duplicado muestra el error junto al campo y conserva los datos', async () => {
+    renderApp('/usuarios/nuevo', 'Administrador');
+
+    await userEvent.type(screen.getByRole('textbox', { name: 'Nombre completo' }), 'Otro Admin');
+    await userEvent.type(screen.getByRole('textbox', { name: 'Usuario' }), 'admin');
+    await userEvent.type(screen.getByLabelText(/Contraseña temporal/), 'clave1234');
+    await elegirRol('Administrador');
+    await userEvent.click(screen.getByRole('button', { name: 'Registrar usuario' }));
+
+    expect(
+      await screen.findByText('El usuario ya está registrado. Ingresar uno distinto.'),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Nombre completo' })).toHaveValue('Otro Admin');
+    expect(screen.getByRole('textbox', { name: 'Usuario' })).toHaveValue('admin');
+  }, 20000);
+
+  it('cada regla de validación muestra su mensaje', async () => {
+    renderApp('/usuarios/nuevo', 'Administrador');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Registrar usuario' }));
+    expect(
+      await screen.findByText('Ingresar el nombre completo, con al menos 3 caracteres.'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Ingresar un usuario de 4 a 20 caracteres.')).toBeInTheDocument();
+    expect(
+      screen.getByText('La contraseña temporal debe tener al menos 8 caracteres.'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Seleccionar un rol.')).toBeInTheDocument();
+
+    await userEvent.type(screen.getByRole('textbox', { name: 'Usuario' }), 'Ana R');
+    await userEvent.type(screen.getByLabelText(/Contraseña temporal/), 'sololetras');
+    await userEvent.click(screen.getByRole('button', { name: 'Registrar usuario' }));
+    expect(
+      await screen.findByText('Usar solo minúsculas, números y los signos . _ -, sin espacios.'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('La contraseña temporal debe incluir un número.')).toBeInTheDocument();
+  }, 20000);
+
+  it('modificar el rol actualiza la fila', async () => {
+    renderApp('/usuarios/U-002', 'Administrador');
+
+    await screen.findByDisplayValue('Lucía Torres');
+    await elegirRol('Almacenero');
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }));
+
+    const t = await tablaCon('esoto');
+    const fila = within(t).getByText('Lucía Torres').closest('tr')!;
+    expect(within(fila).getByText('Almacenero')).toBeInTheDocument();
+  }, 20000);
+});

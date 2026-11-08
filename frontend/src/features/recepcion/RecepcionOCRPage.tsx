@@ -10,7 +10,6 @@ import { PageHeader } from '@/components/layout/PageHeader/PageHeader';
 import { ActionBar } from '@/components/ui/ActionBar/ActionBar';
 import { Alert } from '@/components/ui/Alert/Alert';
 import { Card } from '@/components/ui/Card/Card';
-import { Columns } from '@/components/ui/Columns/Columns';
 import { DataTable, type Column } from '@/components/ui/DataTable/DataTable';
 import { Dropzone } from '@/components/ui/Dropzone/Dropzone';
 import { FileItem } from '@/components/ui/Dropzone/FileItem';
@@ -156,7 +155,8 @@ export function RecepcionOCRPage() {
           aria-label={`Producto para ${l.texto}`}
           placeholder="Seleccionar producto"
           searchable
-          miw={260}
+          miw={150}
+          comboboxProps={{ width: 360, position: 'bottom-start' }}
           data={OPCIONES}
           value={l.sku || null}
           onChange={(sku) => update(l.id, { sku: sku ?? '' })}
@@ -180,30 +180,38 @@ export function RecepcionOCRPage() {
       header: 'Recibido',
       block: true,
       render: (l) => (
-        <Group gap="xs" wrap="nowrap">
-          <NumberInput
-            aria-label={`Cantidad recibida de ${l.texto}`}
-            min={0}
-            miw={110}
-            value={l.recibido}
-            onChange={(v) => update(l.id, { recibido: Number(v) || 0 })}
-          />
-          <Button
-            variant="subtle"
-            size="compact-sm"
-            aria-label={`Igual al pedido, ${l.texto}`}
-            disabled={!l.sku || l.recibido === l.pedido}
-            onClick={() => update(l.id, { recibido: l.pedido })}
-          >
-            Igual al pedido
-          </Button>
-        </Group>
+        <NumberInput
+          aria-label={`Cantidad recibida de ${l.texto}`}
+          min={0}
+          miw={80}
+          maw={110}
+          hideControls
+          value={l.recibido}
+          onChange={(v) => update(l.id, { recibido: Number(v) || 0 })}
+        />
       ),
     },
     {
       key: 'diferencia',
       header: 'Diferencia',
-      render: (l) => <Diferencia valor={diferenciaLinea(l)} />,
+      render: (l) => {
+        const d = diferenciaLinea(l);
+        return (
+          <Stack gap={2} align="flex-start">
+            <Diferencia valor={d} />
+            {(d.tipo === 'faltan' || d.tipo === 'sobran') && (
+              <Button
+                variant="subtle"
+                size="compact-sm"
+                aria-label={`Igual al pedido, ${l.texto}`}
+                onClick={() => update(l.id, { recibido: l.pedido })}
+              >
+                Igual al pedido
+              </Button>
+            )}
+          </Stack>
+        );
+      },
     },
   ];
 
@@ -257,10 +265,14 @@ export function RecepcionOCRPage() {
             </Stack>
           </Card>
         ) : (
-          <Columns layout="aside-main">
-            <Card title="Documento" description="Foto o PDF de la guía del proveedor.">
-              <Stack>
-                {archivo && <FileItem name={archivo.name} size={archivo.size} status="processed" />}
+          <>
+            <Card padded>
+              <Group justify="space-between" wrap="wrap" gap="md">
+                {archivo && (
+                  <div style={{ flex: '1 1 260px', minWidth: 0 }}>
+                    <FileItem name={archivo.name} size={archivo.size} status="processed" />
+                  </div>
+                )}
                 <FileButton onChange={(f) => f && cargar([f])} accept="image/*,application/pdf">
                   {(props) => (
                     <Button {...props} variant="default" leftSection={<Icon name="upload" />}>
@@ -268,7 +280,7 @@ export function RecepcionOCRPage() {
                     </Button>
                   )}
                 </FileButton>
-              </Stack>
+              </Group>
             </Card>
             <Card
               title="Líneas de la recepción"
@@ -286,7 +298,7 @@ export function RecepcionOCRPage() {
             >
               <DataTable caption="Líneas extraídas" columns={columns} rows={lineas} rowKey="id" />
             </Card>
-          </Columns>
+          </>
         )}
       </Stack>
       {doc && (

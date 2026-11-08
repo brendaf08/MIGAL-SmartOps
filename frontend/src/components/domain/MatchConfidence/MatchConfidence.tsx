@@ -31,7 +31,7 @@ export function MatchConfidence({
   return (
     <div>
       <Group justify="space-between" wrap="nowrap" mb={4}>
-        <Badge color={color} leftSection={<Icon name={icon} size={16} />}>
+        <Badge flex="none" color={color} leftSection={<Icon name={icon} size={16} />}>
           {text}
         </Badge>
         <Text fw={600} style={{ fontVariantNumeric: 'tabular-nums' }}>

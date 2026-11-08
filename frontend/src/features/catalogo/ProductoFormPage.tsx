@@ -49,7 +49,7 @@ function FormularioProducto({ inicial, categorias }: FormularioProductoProps) {
   });
 
   const mutation = useMutation({
-    mutationFn: (valores: ValoresProducto) => {
+    mutationFn: (valores: typeof form.values) => {
       const datos: DatosProducto = {
         sku: valores.sku.trim().toUpperCase(),
         nombre: valores.nombre.trim(),

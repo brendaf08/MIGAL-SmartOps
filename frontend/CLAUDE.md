@@ -40,6 +40,8 @@ Dependencias en una sola dirección: `features` usa `components`; `components/do
 
 ## Reglas de implementación
 
+- **Tipografía.** Instrument Sans en todo el texto, los datos y los encabezados de sección; Bricolage Grotesque solo en el título de página (`h1`); Barlow Semi Condensed solo en cifras grandes y en el sello de documento; IBM Plex Mono en códigos. No usar las fuentes de acento en datos de tabla, etiquetas ni botones.
+- **Confirmaciones.** Las acciones de confirmación viven en `ActionBar` al pie, con el resumen por estado y el motivo del bloqueo visible; terminan en una `Constancia` con la existencia antes y después. Bloquear solo lo que el negocio exige.
 - **Tokens, no literales.** Usar las variables de `tokens.css` (`--brand`, `--surface`, `--space-4`, `--radius-md`) o el tema de Mantine. Prohibido escribir colores, tamaños de fuente, radios o sombras literales en los componentes.
 - **Reutilizar antes de crear.** Buscar en `components/` y en el catálogo de `docs/diseno/componentes/` antes de crear un componente. Promover a componente un patrón que se repita en tres lugares.
 - **Estados con `StatusBadge`.** Todo estado de cotización, venta, guía, compra, recepción, documento o reserva se muestra con `StatusBadge`. El mapa de estados reside en un único archivo.

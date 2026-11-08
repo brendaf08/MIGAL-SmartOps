@@ -27,6 +27,7 @@ El flujo consta de tres pasos, indicados con un `Stepper`, y una constancia de c
 ### Paso 2: documento (opcional)
 
 - Zona de carga de la guía con la opción de cámara y el estado del archivo.
+- Con el parámetro `documento=ID`, las líneas de una revisión del OCR ya validada (P24) llegan precargadas en este paso.
 - Con una guía procesada, la tabla "Líneas extraídas" muestra las líneas del OCR con la misma tabla de revisión del OCR (`LineasOcrTabla`).
 - Barra de acciones: "Atrás", "Registrar sin documento" y "Usar datos de la guía". Esta última exige que todas las líneas tengan producto asociado.
 

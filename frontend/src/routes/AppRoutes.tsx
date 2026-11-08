@@ -1,6 +1,8 @@
 import type { ReactElement } from 'react';
 import { Navigate, Route, Routes } from 'react-router';
 import { EmptyState } from '@/components/ui/EmptyState/EmptyState';
+import { CotizacionesPage } from '@/features/comercial/CotizacionesPage';
+import { CotizacionPage } from '@/features/comercial/CotizacionPage';
 import { AgenteIAPage } from '@/features/agente-ia/AgenteIAPage';
 import { DisponibilidadPage } from '@/features/inventario/DisponibilidadPage';
 import { RequireAuth, RequireRole } from '@/features/seguridad/guards';
@@ -16,6 +18,12 @@ const ITEMS = NAV.flatMap((group) => group.items);
 const PAGES: Record<string, ReactElement> = {
   disponibilidad: <DisponibilidadPage />,
   'agente-ia': <AgenteIAPage />,
+  ventas: <CotizacionesPage />,
+};
+
+/** Pantallas de detalle (`/<módulo>/:id`) por clave de navegación. */
+const DETAILS: Record<string, ReactElement> = {
+  ventas: <CotizacionPage />,
 };
 
 /** Lleva al primer módulo visible para el rol del usuario. */
@@ -39,6 +47,7 @@ export function AppRoutes() {
                 path={item.key}
                 element={PAGES[item.key] ?? <PendientePage title={item.label} />}
               />
+              {DETAILS[item.key] && <Route path={`${item.key}/:id`} element={DETAILS[item.key]} />}
             </Route>
           ))}
           <Route

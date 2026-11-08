@@ -130,11 +130,7 @@ export function AlertasPage() {
         description="Productos con stock libre crítico o en el mínimo, del más grave al menos grave."
       />
       <SimpleGrid cols={{ base: 1, sm: 3 }} mb="md">
-        <Stat
-          label="Críticos"
-          tone="danger"
-          value={data ? formatNumber(criticos) : undefined}
-        />
+        <Stat label="Críticos" tone="danger" value={data ? formatNumber(criticos) : undefined} />
         <Stat
           label="En el mínimo"
           tone="warning"

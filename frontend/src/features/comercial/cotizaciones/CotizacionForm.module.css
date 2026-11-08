@@ -1,0 +1,12 @@
+/* Agrupa los campos de una cotización de solo lectura: deshabilitar la fieldset inhabilita todos sus controles. */
+.fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+/* La tarjeta de productos no tiene relleno propio; el editor de líneas lo aporta. */
+.lineas {
+  padding: var(--space-4);
+}

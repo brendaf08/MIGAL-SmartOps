@@ -5,8 +5,17 @@
   padding-block: 2px;
   text-transform: none;
   font-weight: 600;
+  /* El texto del estado nunca se recorta: es parte de la señal (forma y texto). */
+  max-width: none;
+  overflow: visible;
+  flex: none;
   background: var(--tone-bg);
   color: var(--tone-ink);
+
+  & :global(.mantine-Badge-label) {
+    overflow: visible;
+    text-overflow: clip;
+  }
 
   &[data-tone='success'] {
     --tone-bg: var(--success-soft);

@@ -1,4 +1,4 @@
-import type { ProductoDisponibilidad } from './types';
+import type { Movimiento, ProductoDisponibilidad } from './types';
 
 /** Catálogo de prueba hasta contar con la API de inventario. */
 const base: [prefix: string, nombre: string, categoria: string, unidad: string, minimo: number][] =
@@ -33,3 +33,95 @@ export const PRODUCTOS: ProductoDisponibilidad[] = Array.from({ length: 48 }, (_
     minimo,
   };
 });
+
+/** Movimientos de Kardex de prueba, del más reciente al más antiguo. */
+export const MOVIMIENTOS: Movimiento[] = [
+  {
+    id: 8,
+    fecha: '2026-11-05',
+    sku: 'CEM-001',
+    producto: 'Cemento Sol tipo I, bolsa 42.5 kg',
+    tipo: 'Salida',
+    cantidad: 200,
+    origen: 'Despacho',
+    ubicacion: 'Almacén 1',
+    usuario: 'Rosa Quispe',
+  },
+  {
+    id: 7,
+    fecha: '2026-11-05',
+    sku: 'FIE-003',
+    producto: 'Fierro corrugado 1/2 in x 9 m',
+    tipo: 'Salida',
+    cantidad: 60,
+    origen: 'Despacho',
+    ubicacion: 'Almacén 1',
+    usuario: 'Rosa Quispe',
+  },
+  {
+    id: 6,
+    fecha: '2026-11-04',
+    sku: 'TUB-006',
+    producto: 'Tubo PVC desagüe 4 in x 3 m',
+    tipo: 'Salida',
+    cantidad: 20,
+    origen: 'Traslado',
+    ubicacion: 'Almacén 2',
+    usuario: 'Rosa Quispe',
+  },
+  {
+    id: 5,
+    fecha: '2026-11-04',
+    sku: 'TUB-006',
+    producto: 'Tubo PVC desagüe 4 in x 3 m',
+    tipo: 'Entrada',
+    cantidad: 20,
+    origen: 'Traslado',
+    ubicacion: 'Tienda principal',
+    usuario: 'Rosa Quispe',
+  },
+  {
+    id: 4,
+    fecha: '2026-11-02',
+    sku: 'LAD-002',
+    producto: 'Ladrillo King Kong 18 huecos',
+    tipo: 'Entrada',
+    cantidad: 5000,
+    origen: 'Recepcion',
+    ubicacion: 'Almacén 2',
+    usuario: 'Rosa Quispe',
+  },
+  {
+    id: 3,
+    fecha: '2026-10-30',
+    sku: 'PIN-005',
+    producto: 'Pintura látex blanco, balde 4 L',
+    tipo: 'Salida',
+    cantidad: 3,
+    origen: 'Ajuste',
+    ubicacion: 'Tienda principal',
+    usuario: 'Carlos Medina',
+  },
+  {
+    id: 2,
+    fecha: '2026-10-29',
+    sku: 'CAB-007',
+    producto: 'Cable THW 12 AWG, rollo 100 m',
+    tipo: 'Entrada',
+    cantidad: 40,
+    origen: 'Recepcion',
+    ubicacion: 'Almacén 1',
+    usuario: 'Rosa Quispe',
+  },
+  {
+    id: 1,
+    fecha: '2026-10-28',
+    sku: 'CLA-008',
+    producto: 'Clavos de 3 in, bolsa 1 kg',
+    tipo: 'Entrada',
+    cantidad: 120,
+    origen: 'Recepcion',
+    ubicacion: 'Almacén 1',
+    usuario: 'Rosa Quispe',
+  },
+];

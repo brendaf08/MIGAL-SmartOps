@@ -1,6 +1,6 @@
 import { mockRequest } from '@/api/mock';
 import { resumen } from './calculos';
-import { PRODUCTOS } from './fixtures';
+import { MOVIMIENTOS, PRODUCTOS } from './fixtures';
 import type { ConsultaDisponibilidad, RespuestaDisponibilidad } from './types';
 
 const enAlerta = (nivel: string) => nivel !== 'Normal';
@@ -26,3 +26,6 @@ export const consultarDisponibilidad = ({
       totalGeneral: PRODUCTOS.length,
     };
   });
+
+/** CU-05 y CU-07. Movimientos de Kardex, del más reciente al más antiguo. */
+export const listarMovimientos = () => mockRequest(() => [...MOVIMIENTOS]);

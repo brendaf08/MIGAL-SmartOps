@@ -27,3 +27,16 @@ export interface RespuestaDisponibilidad {
   /** Total de productos sin filtros, para el contador de la pestaña "Todos". */
   totalGeneral: number;
 }
+
+/** Movimiento de Kardex: un traslado interno genera dos (salida en el origen y entrada en el destino). */
+export interface Movimiento {
+  id: number;
+  fecha: string;
+  sku: string;
+  producto: string;
+  tipo: 'Entrada' | 'Salida';
+  cantidad: number;
+  origen: 'Despacho' | 'Recepcion' | 'Ajuste' | 'Traslado';
+  ubicacion: string;
+  usuario: string;
+}

@@ -7,6 +7,11 @@ import { DespachoPage } from '@/features/despacho/DespachoPage';
 import { DespachosPage } from '@/features/despacho/DespachosPage';
 import { RecepcionesPage } from '@/features/recepcion/RecepcionesPage';
 import { RecepcionOCRPage } from '@/features/recepcion/RecepcionOCRPage';
+import { ProveedoresPage } from '@/features/abastecimiento/ProveedoresPage';
+import { CatalogoPage } from '@/features/catalogo/CatalogoPage';
+import { DocumentosPage } from '@/features/documentos-ocr/DocumentosPage';
+import { KardexPage } from '@/features/inventario/KardexPage';
+import { UsuariosPage } from '@/features/seguridad/UsuariosPage';
 import { AgenteIAPage } from '@/features/agente-ia/AgenteIAPage';
 import { DisponibilidadPage } from '@/features/inventario/DisponibilidadPage';
 import { RequireAuth, RequireRole } from '@/features/seguridad/guards';
@@ -25,6 +30,11 @@ const PAGES: Record<string, ReactElement> = {
   ventas: <CotizacionesPage />,
   despachos: <DespachosPage />,
   recepciones: <RecepcionesPage />,
+  catalogo: <CatalogoPage />,
+  kardex: <KardexPage />,
+  documentos: <DocumentosPage />,
+  proveedores: <ProveedoresPage />,
+  usuarios: <UsuariosPage />,
 };
 
 /** Pantallas secundarias (`/<módulo>/<ruta>`) por clave de navegación. */

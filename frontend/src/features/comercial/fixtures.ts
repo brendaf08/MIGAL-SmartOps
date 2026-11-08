@@ -1,3 +1,4 @@
+import { hoyIso, sumarDias } from './calculos';
 import type { Cliente, Cotizacion } from './types';
 
 const andes: Cliente = {
@@ -6,15 +7,22 @@ const andes: Cliente = {
   direccion: 'Av. Los Constructores 120, Arequipa',
 };
 
-/** Cotizaciones de prueba hasta contar con la API comercial. Se modifican en memoria. */
+const hoy = hoyIso();
+
+/**
+ * Cotizaciones de prueba hasta contar con la API comercial. Se modifican en memoria.
+ * Las fechas vigentes se calculan a partir de hoy para que las pruebas no dependan de la fecha de ejecución.
+ */
 export const COTIZACIONES: Cotizacion[] = [
   {
     id: 'COT-0231',
     estado: 'Emitida',
-    emision: '2026-11-04',
-    vencimiento: '2026-11-18',
+    emision: sumarDias(hoy, -4),
+    // Vence en tres días: la lista la marca como próxima a vencer.
+    vencimiento: sumarDias(hoy, 3),
     cliente: andes,
     condiciones: 'Entrega completa en obra. Pago al contado.',
+    formaPago: 'Contado',
     descuento: 0.03,
     lineas: [
       {
@@ -43,13 +51,14 @@ export const COTIZACIONES: Cotizacion[] = [
   {
     id: 'COT-0230',
     estado: 'AceptadaCliente',
-    emision: '2026-11-03',
-    vencimiento: '2026-11-17',
+    emision: sumarDias(hoy, -5),
+    vencimiento: sumarDias(hoy, 9),
     cliente: {
       nombre: 'Ferrocentro Quispe E.I.R.L.',
-      ruc: '20512345678',
+      ruc: '20567890123',
       direccion: 'Jr. Comercio 45, Cusco',
     },
+    formaPago: 'Crédito a 15 días',
     descuento: 0,
     lineas: [
       { id: 1, sku: 'TUB-006', nombre: 'Tubo PVC desagüe 4 in x 3 m', cantidad: 80, precio: 18.5 },

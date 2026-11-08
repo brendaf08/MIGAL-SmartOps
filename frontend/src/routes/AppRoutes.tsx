@@ -1,6 +1,7 @@
 import type { ReactElement } from 'react';
 import { Navigate, Route, Routes } from 'react-router';
 import { EmptyState } from '@/components/ui/EmptyState/EmptyState';
+import { AgenteIAPage } from '@/features/agente-ia/AgenteIAPage';
 import { DisponibilidadPage } from '@/features/inventario/DisponibilidadPage';
 import { RequireAuth, RequireRole } from '@/features/seguridad/guards';
 import { LoginPage } from '@/features/seguridad/LoginPage';
@@ -14,6 +15,7 @@ const ITEMS = NAV.flatMap((group) => group.items);
 /** Pantalla de cada módulo por clave de navegación. Los módulos sin pantalla muestran un aviso. */
 const PAGES: Record<string, ReactElement> = {
   disponibilidad: <DisponibilidadPage />,
+  'agente-ia': <AgenteIAPage />,
 };
 
 /** Lleva al primer módulo visible para el rol del usuario. */

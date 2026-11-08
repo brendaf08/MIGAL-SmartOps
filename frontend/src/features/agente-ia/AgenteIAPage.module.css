@@ -1,0 +1,12 @@
+.chat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-width: 820px;
+}
+
+.log {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}

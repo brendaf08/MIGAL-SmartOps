@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it } from 'vitest';
 import { axe } from 'vitest-axe';
@@ -243,6 +243,146 @@ describe('Registrar movimiento (P13)', { timeout: 30000 }, () => {
   it('el formulario y la constancia no tienen violaciones de accesibilidad (axe)', async () => {
     const { container } = renderApp('/kardex/nuevo', 'Almacenero');
     await screen.findByRole('button', { name: 'Revisar movimiento' });
+    expect(
+      await axe(container, { rules: { 'color-contrast': { enabled: false } } }),
+    ).toHaveNoViolations();
+  });
+});
+
+/** Abre la hoja de filtros. Sin `matchMedia` el viewport se toma como teléfono, donde los filtros van en la hoja. */
+async function abrirFiltros() {
+  await userEvent.click(await screen.findByRole('button', { name: /^Filtros/ }));
+  return screen.findByRole('dialog', { name: 'Filtros' });
+}
+
+describe('Movimientos y Kardex (P14)', { timeout: 30000 }, () => {
+  it('rotula cada movimiento con su signo y su origen, y muestra el par de un traslado', async () => {
+    renderApp('/kardex', 'Almacenero');
+
+    expect(await screen.findByText('−200')).toBeInTheDocument();
+    expect(screen.getAllByText('Traslado')).toHaveLength(2);
+    expect(screen.getByText('Hacia Tienda principal')).toBeInTheDocument();
+    expect(screen.getByText('Desde Almacén 2')).toBeInTheDocument();
+  });
+
+  it('combina tipo y origen y muestra cada filtro como etiqueta', async () => {
+    renderApp('/kardex', 'Almacenero');
+    await screen.findByText('−200');
+
+    const hoja = await abrirFiltros();
+    await elegir(/^Tipo/, 'Salida');
+    await elegir(/^Origen/, 'Ajuste');
+    await userEvent.click(within(hoja).getByRole('button', { name: 'Ver resultados' }));
+
+    const tabla = screen.getByRole('table', { name: 'Movimientos de Kardex' });
+    await waitFor(() => expect(within(tabla).queryByText('−200')).not.toBeInTheDocument());
+    expect(within(tabla).getByText('−3')).toBeInTheDocument();
+    expect(screen.getByText('Tipo: Salida')).toBeInTheDocument();
+    expect(screen.getByText('Origen: Ajuste')).toBeInTheDocument();
+  });
+
+  it('filtra por origen traslado y muestra los dos movimientos del traslado', async () => {
+    renderApp('/kardex', 'Almacenero');
+    await screen.findByText('−200');
+
+    const hoja = await abrirFiltros();
+    await elegir(/^Origen/, 'Traslado');
+    await userEvent.click(within(hoja).getByRole('button', { name: 'Ver resultados' }));
+
+    const tabla = screen.getByRole('table', { name: 'Movimientos de Kardex' });
+    await waitFor(() => expect(within(tabla).queryByText('−200')).not.toBeInTheDocument());
+    expect(within(tabla).getAllByText('Traslado')).toHaveLength(2);
+  });
+
+  it('filtra por ubicación y por rango de fechas', async () => {
+    renderApp('/kardex', 'Almacenero');
+    await screen.findByText('−200');
+
+    const hoja = await abrirFiltros();
+    await elegir(/^Ubicación/, 'Almacén 2');
+    await userEvent.click(within(hoja).getByRole('button', { name: 'Ver resultados' }));
+    const tabla = screen.getByRole('table', { name: 'Movimientos de Kardex' });
+    await waitFor(() => expect(within(tabla).queryByText('−200')).not.toBeInTheDocument());
+    expect(within(tabla).getAllByText('Traslado')).toHaveLength(1);
+
+    const hoja2 = await abrirFiltros();
+    await userEvent.click(within(hoja2).getByRole('button', { name: 'Limpiar filtros' }));
+    fireEvent.change(within(hoja2).getByLabelText('Desde'), {
+      target: { value: '2026-11-05' },
+    });
+    await userEvent.click(within(hoja2).getByRole('button', { name: 'Ver resultados' }));
+    expect(await within(tabla).findByText('−200')).toBeInTheDocument();
+    await waitFor(() => expect(within(tabla).queryByText('Traslado')).not.toBeInTheDocument());
+  });
+
+  it('busca por SKU o producto y quita una etiqueta de filtro', async () => {
+    renderApp('/kardex', 'Almacenero');
+    await screen.findByText('−200');
+
+    const hoja = await abrirFiltros();
+    await userEvent.type(within(hoja).getByRole('searchbox', { name: /Buscar por SKU/ }), 'CEM');
+    await userEvent.click(within(hoja).getByRole('button', { name: 'Ver resultados' }));
+    const tabla = screen.getByRole('table', { name: 'Movimientos de Kardex' });
+    await waitFor(() => expect(within(tabla).queryByText('TUB-006')).not.toBeInTheDocument());
+    expect(within(tabla).getByText('CEM-001')).toBeInTheDocument();
+
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Quitar filtro Producto o SKU: CEM' }),
+    );
+    /* Los dos movimientos del traslado de TUB-006 vuelven a la lista. */
+    expect(await within(tabla).findAllByText('TUB-006')).toHaveLength(2);
+  });
+
+  it('limpia todos los filtros y muestra el estado vacío cuando no hay coincidencias', async () => {
+    renderApp('/kardex', 'Almacenero');
+    await screen.findByText('−200');
+
+    const hoja = await abrirFiltros();
+    await userEvent.type(within(hoja).getByRole('searchbox', { name: /Buscar por SKU/ }), 'zzz');
+    await userEvent.click(within(hoja).getByRole('button', { name: 'Ver resultados' }));
+    expect(await screen.findByText('Sin movimientos')).toBeInTheDocument();
+
+    await userEvent.click(screen.getAllByRole('button', { name: 'Limpiar filtros' })[0]!);
+    expect(await screen.findByText('−200')).toBeInTheDocument();
+    expect(screen.queryByText('Sin movimientos')).not.toBeInTheDocument();
+  });
+
+  it('abre el registro de movimiento desde la acción principal', async () => {
+    renderApp('/kardex', 'Almacenero');
+    await screen.findByText('−200');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Registrar movimiento' }));
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Registrar movimiento' }),
+    ).toBeInTheDocument();
+  });
+
+  it('muestra en el Kardex el movimiento recién registrado', async () => {
+    renderApp('/kardex/nuevo', 'Almacenero');
+
+    await llenarMovimiento({ almacen: 'Almacén 2', cantidad: 5 });
+    await userEvent.click(screen.getByRole('button', { name: 'Revisar movimiento' }));
+    const dialogo = await screen.findByRole('dialog', { name: 'Registrar entrada por ajuste' });
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Registrar movimiento' }));
+    await screen.findByRole('status', { name: 'Movimiento registrado' });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Ver movimientos en el Kardex' }));
+
+    expect(await screen.findByText('+5')).toBeInTheDocument();
+  });
+
+  it('no permite al Vendedor acceder al Kardex', async () => {
+    renderApp('/kardex', 'Vendedor');
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Disponibilidad' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Movimientos y Kardex' })).not.toBeInTheDocument();
+  });
+
+  it('no tiene violaciones de accesibilidad (axe)', async () => {
+    const { container } = renderApp('/kardex', 'Almacenero');
+    await screen.findByText('−200');
     expect(
       await axe(container, { rules: { 'color-contrast': { enabled: false } } }),
     ).toHaveNoViolations();

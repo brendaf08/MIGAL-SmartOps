@@ -82,7 +82,7 @@ frontend/
     └── assets/               Logo y recursos estáticos.
 ```
 
-El alias `@/` equivale a `src/`. La organización y las reglas de dependencia se describen en [CLAUDE.md](CLAUDE.md).
+El alias `@/` equivale a `src/`. Las dependencias fluyen en una sola dirección: `features` usa `components`, `components/domain` usa `components/ui`, y `components/ui` no conoce el negocio. Los componentes visuales no llaman a la API: reciben datos por propiedades o mediante hooks de `features`.
 
 ## Rutas y roles
 

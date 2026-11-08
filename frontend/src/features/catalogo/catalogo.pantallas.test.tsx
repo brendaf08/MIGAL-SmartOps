@@ -1,11 +1,14 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { axe } from 'vitest-axe';
+import * as matchers from 'vitest-axe/matchers';
 import { afterEach, describe, expect, it } from 'vitest';
 import { renderApp } from '@/test/renderApp';
 import { resumen } from '@/features/inventario/calculos';
 import { PRODUCTOS } from '@/features/inventario/fixtures';
 import { formatNumber } from '@/lib/format';
 
+expect.extend(matchers);
 afterEach(() => window.sessionStorage.clear());
 
 const contar = (predicado: (sku: string, categoria: string) => boolean) =>
@@ -190,5 +193,23 @@ describe('Catálogo, ficha', () => {
     renderApp('/catalogo/XXX-999', 'Almacenero');
 
     expect(await screen.findByText('El producto no existe')).toBeInTheDocument();
+  });
+});
+
+describe('Catálogo, accesibilidad (axe)', () => {
+  it.each([
+    ['lista', '/catalogo', 'CEM-001'],
+    ['formulario', '/catalogo/CEM-001/editar', 'Guardar cambios'],
+    ['ficha', '/catalogo/CEM-001', 'Existencias'],
+  ])('la %s no tiene violaciones', async (_, ruta, listo) => {
+    const { container } = renderApp(ruta, 'Almacenero');
+
+    await waitFor(() => expect(screen.getAllByText(listo).length).toBeGreaterThan(0), {
+      timeout: 3000,
+    });
+
+    expect(
+      await axe(container, { rules: { 'color-contrast': { enabled: false } } }),
+    ).toHaveNoViolations();
   });
 });

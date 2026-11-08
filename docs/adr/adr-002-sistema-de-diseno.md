@@ -27,7 +27,7 @@ Adoptar un sistema de diseño propio, documentado en [docs/diseno/](../diseno/RE
 | Tokens | Un archivo normativo (`tokens.json`) del que se derivan `tokens.css` y el tema de Mantine (`theme.ts`), ubicados en `frontend/src/theme/`. Ningún componente declara valores literales de color, tamaño ni sombra. |
 | Identidad | Azul Progresol y verde del logo como colores de marca. El verde se limita a marcadores y sellos; el azul rige acciones y navegación. |
 | Temas | Claro (predeterminado) y oscuro tenue, de grises pizarra en lugar de negros, aplicados con `data-theme` y sincronizados con el esquema de color de Mantine. La elección del usuario se conserva en `localStorage` y la preferencia inicial proviene de `prefers-color-scheme`. |
-| Tipografía | Bricolage Grotesque en títulos, Instrument Sans en texto y controles, Barlow Semi Condensed en cifras y rótulos, e IBM Plex Mono en códigos. Se autoalojan mediante paquetes `@fontsource`. |
+| Tipografía | Instrument Sans en todo el texto, los controles, las tablas y los encabezados de sección; Bricolage Grotesque únicamente en el título de página; Barlow Semi Condensed únicamente en cifras grandes y sellos; IBM Plex Mono en códigos. Se autoalojan mediante paquetes `@fontsource`. |
 | Accesibilidad | Contraste WCAG AA verificado para cada par documentado en ambos temas, objetivos táctiles de 44 px, operación completa por teclado y estados que nunca dependen solo del color. |
 | Responsive | Un solo código con tres composiciones: teléfono (menos de 768 px), tablet (768 a 1023 px) y escritorio (1024 px o más), con puntos de quiebre equivalentes a `xs`, `sm`, `md` y `lg` de Mantine. En teléfono: navegación en panel deslizable, tablas en fichas, diálogos como hoja inferior, acciones a ancho completo, campos de 16 px y captura de documentos con la cámara. Cada pantalla de referencia tiene su variante de teléfono o tablet. |
 | Organización del código | `frontend/src/theme/`, `components/ui/` (primitivos), `components/domain/` (estados, stock, coincidencias, chat), `components/layout/` y `features/` por módulo funcional de [Diagramas de paquetes](../diagramas-paquetes.md). |
@@ -77,7 +77,7 @@ Adoptar un sistema de diseño propio, documentado en [docs/diseno/](../diseno/RE
 
 - Hay que mantener la sincronización entre el artefacto, la documentación y el código mientras el diseño evoluciona. Se mitiga con la regla de fuente de verdad por etapa y con la exportación a `docs/diseno/` en el mismo pull request.
 - Storybook y las pruebas de accesibilidad automatizadas agregan dependencias que no figuran en ADR-001. Se proponen como parte de esta decisión y se incorporan al montar el proyecto.
-- Cuatro familias tipográficas aumentan el peso de la carga inicial. Se mitiga con fuentes variables, subconjuntos de caracteres latinos y precarga de las dos de uso principal.
+- Cuatro familias tipográficas aumentan el peso de la carga inicial. Se mitiga con fuentes variables, subconjuntos de caracteres latinos, precarga de las dos de uso principal y la restricción de las dos de acento a usos puntuales.
 - RNF-05 no incluye los teléfonos. Registrar la ampliación en los requerimientos y verificar cada pantalla en tres tamaños aumenta el esfuerzo de prueba. Se mitiga con la matriz de verificación documentada y las variantes del prototipo.
 - Los supuestos pendientes (permisos del Administrador, nivel de stock sobre libre o físico, umbrales de coincidencia y nombres de estados) deben confirmarse antes de implementar las pantallas que dependen de ellos.
 

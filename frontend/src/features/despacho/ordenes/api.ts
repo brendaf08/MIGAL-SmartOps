@@ -54,7 +54,10 @@ export const generarOrden = (ventaId: string) =>
       throw new Error('La venta no está lista para despacho.');
     if (ordenDeVenta(ventaId)) throw new Error('La venta ya tiene una orden de despacho.');
     const orden: OrdenDespacho = {
-      id: siguienteCodigo('D', ORDENES.map((o) => o.id)),
+      id: siguienteCodigo(
+        'D',
+        ORDENES.map((o) => o.id),
+      ),
       venta: venta.id,
       cliente: nombreCliente(venta.clienteId),
       estado: 'Emitida',

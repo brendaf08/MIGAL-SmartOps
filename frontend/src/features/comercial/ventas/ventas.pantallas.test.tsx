@@ -96,7 +96,9 @@ describe('Detalle de la venta', () => {
   it('informa la atención parcial y la disponibilidad de cada producto pendiente', async () => {
     renderApp('/ventas/V-0040', 'Vendedor');
 
-    expect(await screen.findByText(/Atención parcial: se atendieron 1,200 de 2,010/)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Atención parcial: se atendieron 1,200 de 2,010/),
+    ).toBeInTheDocument();
     expect(screen.getByRole('img', { name: /Disponibilidad de Ladrillo/ })).toBeDefined();
   });
 

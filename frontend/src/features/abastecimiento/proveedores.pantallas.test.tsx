@@ -12,7 +12,9 @@ describe('Proveedores: lista', () => {
   it('muestra los proveedores al Reponedor y no ofrece la pestaña de órdenes de compra', async () => {
     renderApp('/proveedores', 'Reponedor');
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Proveedores' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Proveedores' }),
+    ).toBeInTheDocument();
     expect(await screen.findByText('Distribuidora Andina S.A.C.')).toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: /Órdenes de compra/ })).not.toBeInTheDocument();
   });
@@ -47,7 +49,9 @@ describe('Proveedores: lista', () => {
 
     await user.type(screen.getByRole('searchbox', { name: 'Buscar proveedor' }), '20234567890');
 
-    expect(await screen.findByText('Aceros del Sur S.A.', {}, { timeout: 4000 })).toBeInTheDocument();
+    expect(
+      await screen.findByText('Aceros del Sur S.A.', {}, { timeout: 4000 }),
+    ).toBeInTheDocument();
     await waitFor(() =>
       expect(screen.queryByText('Distribuidora Andina S.A.C.')).not.toBeInTheDocument(),
     );
@@ -63,11 +67,20 @@ describe('Proveedores: lista', () => {
   });
 });
 
-const llenarDatosValidos = async (user: ReturnType<typeof userEvent.setup>, ruc = '20999888777') => {
-  await user.type(screen.getByRole('textbox', { name: /Razón social/ }), 'Importadora Nueva S.A.C.');
+const llenarDatosValidos = async (
+  user: ReturnType<typeof userEvent.setup>,
+  ruc = '20999888777',
+) => {
+  await user.type(
+    screen.getByRole('textbox', { name: /Razón social/ }),
+    'Importadora Nueva S.A.C.',
+  );
   await user.type(screen.getByRole('textbox', { name: /RUC/ }), ruc);
   await user.type(screen.getByRole('textbox', { name: /Persona de contacto/ }), 'Mario Ríos');
-  await user.type(screen.getByRole('textbox', { name: /Condiciones comerciales/ }), 'Pago a 30 días');
+  await user.type(
+    screen.getByRole('textbox', { name: /Condiciones comerciales/ }),
+    'Pago a 30 días',
+  );
 };
 
 describe('Proveedores: formulario', () => {
@@ -83,7 +96,9 @@ describe('Proveedores: formulario', () => {
     await user.click(await screen.findByText(/^CEM-001,/));
     await user.click(screen.getByRole('button', { name: 'Registrar proveedor' }));
 
-    expect(await screen.findByText('Importadora Nueva S.A.C.', {}, { timeout: 4000 })).toBeInTheDocument();
+    expect(
+      await screen.findByText('Importadora Nueva S.A.C.', {}, { timeout: 4000 }),
+    ).toBeInTheDocument();
   }, 20000);
 
   it('muestra el error de RUC duplicado con el enlace al proveedor existente', async () => {
@@ -155,7 +170,9 @@ describe('Proveedores: formulario', () => {
     expect(screen.getByText('Activar el proveedor para modificarlo.')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Activar proveedor' }));
-    const dialogo = await screen.findByRole('dialog', { name: 'Activar a Cementos Arequipa E.I.R.L.' });
+    const dialogo = await screen.findByRole('dialog', {
+      name: 'Activar a Cementos Arequipa E.I.R.L.',
+    });
     await user.click(within(dialogo).getByRole('button', { name: 'Activar proveedor' }));
 
     await waitFor(() =>
@@ -184,7 +201,9 @@ describe('Proveedores: formulario', () => {
     renderApp('/proveedores/nueva', 'Vendedor');
 
     await waitFor(() =>
-      expect(screen.queryByRole('heading', { name: 'Registrar proveedor' })).not.toBeInTheDocument(),
+      expect(
+        screen.queryByRole('heading', { name: 'Registrar proveedor' }),
+      ).not.toBeInTheDocument(),
     );
   });
 

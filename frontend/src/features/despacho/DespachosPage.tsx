@@ -18,12 +18,7 @@ import { SearchInput } from '@/components/ui/SearchInput/SearchInput';
 import { Tabs } from '@/components/ui/Tabs/Tabs';
 import { formatDate, formatNumber } from '@/lib/format';
 import { listarOrdenes, reservaCompleta } from './api';
-import {
-  generarOrden,
-  reimprimirOrden,
-  ventasParaOrden,
-  type VentaParaOrden,
-} from './ordenes/api';
+import { generarOrden, reimprimirOrden, ventasParaOrden, type VentaParaOrden } from './ordenes/api';
 import type { EstadoGuia, OrdenDespacho } from './types';
 
 /** Pestañas del listado: cada una agrupa las órdenes de un estado de la guía. */

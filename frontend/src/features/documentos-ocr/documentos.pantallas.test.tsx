@@ -18,7 +18,9 @@ describe('Documentos OCR', () => {
   it('la lista filtra los documentos por estado', async () => {
     renderApp('/documentos', 'Almacenero');
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Documentos OCR' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Documentos OCR' }),
+    ).toBeInTheDocument();
     expect(await screen.findAllByText('guia-cemento-05.jpg')).not.toHaveLength(0);
 
     await userEvent.click(screen.getByRole('tab', { name: /Procesado por OCR/ }));
@@ -56,7 +58,9 @@ describe('Documentos OCR', () => {
 
     await cargar('otra-ilegible.jpg');
     await userEvent.click(await screen.findByRole('button', { name: 'Registrar manualmente' }));
-    expect(await screen.findByRole('heading', { level: 1, name: 'Documentos OCR' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Documentos OCR' }),
+    ).toBeInTheDocument();
   });
 
   it('la revisión bloquea el uso de los datos hasta asociar las líneas sin producto', async () => {
@@ -71,12 +75,16 @@ describe('Documentos OCR', () => {
     const select = screen.getByRole('combobox', { name: 'Producto para ALAMBRE REC. N16' });
     await userEvent.click(select);
     const lista = document.getElementById(select.getAttribute('aria-controls')!)!;
-    await userEvent.click(await within(lista).findByRole('option', { name: /CLA-008/, hidden: true }));
+    await userEvent.click(
+      await within(lista).findByRole('option', { name: /CLA-008/, hidden: true }),
+    );
 
     expect(within(barra).queryByRole('status')).not.toBeInTheDocument();
     await userEvent.click(within(barra).getByRole('button', { name: 'Usar estos datos' }));
     // El destino de la recepción conserva el documento validado.
-    expect(await screen.findByRole('heading', { level: 1, name: 'Nueva recepción' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Nueva recepción' }),
+    ).toBeInTheDocument();
   });
 
   it('descartar el documento pide confirmación antes de quitarlo', async () => {
@@ -98,23 +106,31 @@ describe('Documentos OCR', () => {
       name: 'Descartar documento guia-proveedor.jpg',
     });
     await userEvent.click(within(confirmar).getByRole('button', { name: 'Descartar documento' }));
-    expect(await screen.findByRole('heading', { level: 1, name: 'Documentos OCR' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Documentos OCR' }),
+    ).toBeInTheDocument();
   });
 
   it('un Almacenero y un Vendedor acceden a los documentos', async () => {
     const { unmount } = renderApp('/documentos', 'Almacenero');
-    expect(await screen.findByRole('heading', { level: 1, name: 'Documentos OCR' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Documentos OCR' }),
+    ).toBeInTheDocument();
     unmount();
 
     renderApp('/documentos/procesar', 'Vendedor');
-    expect(await screen.findByRole('heading', { level: 1, name: 'Procesar documento' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Procesar documento' }),
+    ).toBeInTheDocument();
   });
 
   it('un Reponedor no accede a los documentos', async () => {
     renderApp('/documentos/procesar', 'Reponedor');
 
     // Redirige al primer módulo visible para el rol: Alertas de stock.
-    expect(await screen.findByRole('heading', { level: 1, name: 'Alertas de stock' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Alertas de stock' }),
+    ).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Procesar documento' })).not.toBeInTheDocument();
   });
 

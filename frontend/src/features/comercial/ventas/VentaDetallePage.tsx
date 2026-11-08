@@ -197,9 +197,8 @@ export function VentaDetallePage() {
       {pendientes && (
         <Alert tone="warning" title="Hay cantidades pendientes de atención">
           <Text size="sm">
-            Atención parcial: se atendieron {formatNumber(atendidas)} de{' '}
-            {formatNumber(solicitadas)} unidades; las {formatNumber(unidadesPendientes(venta))}{' '}
-            restantes quedan pendientes.
+            Atención parcial: se atendieron {formatNumber(atendidas)} de {formatNumber(solicitadas)}{' '}
+            unidades; las {formatNumber(unidadesPendientes(venta))} restantes quedan pendientes.
           </Text>
           {plan.map((a) => (
             <StockBar

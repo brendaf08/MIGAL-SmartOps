@@ -66,7 +66,8 @@ export function planAtencion(venta: Venta): LineaAtencion[] {
 
 /** Subtotal por lo solicitado, descuento global y total, redondeados a céntimos. */
 export function totalesVenta(venta: Venta) {
-  const subtotal = Math.round(venta.lineas.reduce((s, l) => s + l.solicitada * l.precio, 0) * 100) / 100;
+  const subtotal =
+    Math.round(venta.lineas.reduce((s, l) => s + l.solicitada * l.precio, 0) * 100) / 100;
   const total = Math.round((subtotal - venta.descuento) * 100) / 100;
   return { subtotal, descuento: venta.descuento, total };
 }

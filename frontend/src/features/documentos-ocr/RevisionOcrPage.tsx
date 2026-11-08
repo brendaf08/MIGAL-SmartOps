@@ -65,7 +65,10 @@ export function RevisionOcrPage() {
       <>
         <PageHeader
           title="Revisión del OCR"
-          breadcrumbs={[{ label: 'Documentos OCR', href: '/documentos' }, { label: 'Revisión del OCR' }]}
+          breadcrumbs={[
+            { label: 'Documentos OCR', href: '/documentos' },
+            { label: 'Revisión del OCR' },
+          ]}
         />
         <EmptyState
           title="No se encontró el documento"
@@ -85,7 +88,10 @@ export function RevisionOcrPage() {
       <>
         <PageHeader
           title="Revisión del OCR"
-          breadcrumbs={[{ label: 'Documentos OCR', href: '/documentos' }, { label: 'Revisión del OCR' }]}
+          breadcrumbs={[
+            { label: 'Documentos OCR', href: '/documentos' },
+            { label: 'Revisión del OCR' },
+          ]}
         />
         <Text c="dimmed">Cargando el documento.</Text>
       </>
@@ -123,7 +129,10 @@ export function RevisionOcrPage() {
     <>
       <PageHeader
         title="Revisión del OCR"
-        breadcrumbs={[{ label: 'Documentos OCR', href: '/documentos' }, { label: 'Revisión del OCR' }]}
+        breadcrumbs={[
+          { label: 'Documentos OCR', href: '/documentos' },
+          { label: 'Revisión del OCR' },
+        ]}
         description={documento ? `${documento.archivo}, ${documento.tipo}` : undefined}
         status={documento && <StatusBadge entity="documento" value={documento.estado} />}
       />

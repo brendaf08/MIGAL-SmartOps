@@ -54,12 +54,15 @@ export function ProcesarDocumentoPage() {
       <PageHeader
         title="Procesar documento"
         description="Cargar una foto o un PDF para extraer sus líneas con OCR."
-        breadcrumbs={[{ label: 'Documentos OCR', href: '/documentos' }, { label: 'Procesar documento' }]}
+        breadcrumbs={[
+          { label: 'Documentos OCR', href: '/documentos' },
+          { label: 'Procesar documento' },
+        ]}
       />
       <Stack gap="lg">
         <Alert title="El procesamiento no modifica el inventario">
-          El documento no genera ventas, reservas ni movimientos de Kardex. Se revisa antes de
-          usar sus datos.
+          El documento no genera ventas, reservas ni movimientos de Kardex. Se revisa antes de usar
+          sus datos.
         </Alert>
         <Card title="Documento" description="Seleccionar el tipo y cargar la imagen o el PDF.">
           <Stack>

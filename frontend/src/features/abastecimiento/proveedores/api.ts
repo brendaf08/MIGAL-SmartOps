@@ -49,7 +49,11 @@ export const registrarProveedor = (datos: DatosProveedor) =>
     const nuevo: Proveedor = {
       ...datos,
       skus: [...datos.skus],
-      id: siguienteCodigo('P', PROVEEDORES.map((p) => p.id), 3),
+      id: siguienteCodigo(
+        'P',
+        PROVEEDORES.map((p) => p.id),
+        3,
+      ),
       estado: 'Activo',
     };
     PROVEEDORES.push(nuevo);

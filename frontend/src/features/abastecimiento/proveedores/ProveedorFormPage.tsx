@@ -43,7 +43,11 @@ function EditarProveedor({ id }: { id: string }) {
       <EmptyState
         title="Proveedor no encontrado"
         description="El proveedor no existe o ya no está disponible."
-        action={<Anchor component={Link} to="/proveedores">Volver a la lista de proveedores</Anchor>}
+        action={
+          <Anchor component={Link} to="/proveedores">
+            Volver a la lista de proveedores
+          </Anchor>
+        }
       />
     );
   }
@@ -141,7 +145,9 @@ function FormularioProveedor({ proveedor }: { proveedor?: Proveedor }) {
       <FormPage
         title={proveedor ? proveedor.razonSocial : 'Registrar proveedor'}
         description={
-          proveedor ? 'Datos, condiciones y productos que suministra.' : 'Datos del nuevo proveedor.'
+          proveedor
+            ? 'Datos, condiciones y productos que suministra.'
+            : 'Datos del nuevo proveedor.'
         }
         breadcrumbs={[
           { label: 'Proveedores', href: '/proveedores' },
@@ -161,7 +167,10 @@ function FormularioProveedor({ proveedor }: { proveedor?: Proveedor }) {
                 <StatusBadge entity="registro" value={proveedor.estado} />
               </div>
               {inactivo && (
-                <Alert tone="warning" title="Este proveedor está inactivo y no puede usarse en nuevas órdenes de compra" />
+                <Alert
+                  tone="warning"
+                  title="Este proveedor está inactivo y no puede usarse en nuevas órdenes de compra"
+                />
               )}
               <Group>
                 {inactivo ? (

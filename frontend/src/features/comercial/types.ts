@@ -24,6 +24,8 @@ export interface Cotizacion {
   /** El cliente es opcional (RF-CLI-04): su ausencia no bloquea la emisión. */
   cliente?: Cliente;
   condiciones?: string;
+  /** Forma de pago elegida al emitir (por ejemplo, "Contado"). */
+  formaPago?: string;
   /** Descuento global, de 0 a 1. */
   descuento: number;
   lineas: LineaCotizacion[];

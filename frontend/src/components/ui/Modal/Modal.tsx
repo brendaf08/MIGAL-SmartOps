@@ -36,6 +36,7 @@ export function Modal({
       title={title}
       size={SIZES[size]}
       withCloseButton={!persistent}
+      closeButtonProps={{ 'aria-label': 'Cerrar' }}
       closeOnEscape={!persistent}
       transitionProps={{ transition, duration: 200 }}
       classNames={{ inner: classes.inner, content: classes.content }}

@@ -6,6 +6,7 @@
 <script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
 <script src="../bundle.js"></script>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Dropzone - vista previa</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400..700&family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Barlow+Semi+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
@@ -28,7 +29,8 @@ function Demo() {
       h('div', null, Cap('Reposo (interactivo)'), h(M.Dropzone, { onDrop: function (f) { files[1](f.map(function (x) { return { name: x.name, size: x.size, status: 'done' }; }).concat(files[0])); } })),
       h('div', null, Cap('Archivo sobre la zona'), h(M.Dropzone, { state: 'dragover' })),
       h('div', null, Cap('Procesando'), h(M.Dropzone, { state: 'processing', busyTitle: 'Procesando documento' })),
-      h('div', null, Cap('Error'), h(M.Dropzone, { error: 'Formato no admitido. Cargar archivos JPG, PNG o PDF.' }))),
+      h('div', null, Cap('Error'), h(M.Dropzone, { error: 'Formato no admitido. Cargar archivos JPG, PNG o PDF.' })),
+      h('div', null, Cap('Con cámara (teléfono y tablet)'), h(M.Dropzone, { camera: true, title: 'Arrastrar o fotografiar un documento' }))),
     Cap('Archivos cargados'),
     h('ul', { className: 'mg-files' }, files[0].map(function (f, i) { return h(M.FileItem, Object.assign({ key: f.name + i, onRemove: function () { files[1](files[0].filter(function (_, j) { return j !== i; })); } }, f)); }).concat(h(M.FileItem, { key: 'e', name: 'foto-borrosa.png', size: 4100000, status: 'error', error: 'No se detectó texto legible' }))));
 }

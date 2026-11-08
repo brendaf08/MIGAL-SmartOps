@@ -6,6 +6,7 @@
 <script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
 <script src="../bundle.js"></script>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>PantallaRecepcionOCR - vista previa</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400..700&family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Barlow+Semi+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
@@ -60,11 +61,11 @@ function Demo() {
   var products = [{ value: 'CEM-SOL-001', label: 'CEM-SOL-001, Cemento Sol tipo I' }, { value: 'FIE-012-009', label: 'FIE-012-009, Fierro corrugado 1/2 in' }, { value: 'ALA-REC-016', label: 'ALA-REC-016, Alambre recocido N.º 16' }];
   function set(id, k, v) { lines[1](lines[0].map(function (l) { return l.id === id ? Object.assign({}, l, (function () { var o = {}; o[k] = v; return o; })()) : l; })); }
   var cols = [
-    { key: 'texto', header: 'Texto extraído', render: function (l) { return h('span', { className: 't-sku' }, l.texto); } },
-    { key: 'sku', header: 'Producto del catálogo', width: 300, render: function (l) { return h(M.Select, { 'aria-label': 'Producto para ' + l.texto, placeholder: 'Seleccionar producto', value: l.sku, onChange: function (v) { set(l.id, 'sku', v); }, options: products, error: !l.sku ? 'Asociar un producto.' : undefined }); } },
-    { key: 'score', header: 'Coincidencia', width: 200, render: function (l) { return h(M.MatchConfidence, { score: l.score }); } },
+    { key: 'texto', header: 'Texto extraído', primary: true, render: function (l) { return h('span', { className: 't-sku' }, l.texto); } },
+    { key: 'sku', header: 'Producto del catálogo', block: true, width: 300, render: function (l) { return h(M.Select, { 'aria-label': 'Producto para ' + l.texto, placeholder: 'Seleccionar producto', value: l.sku, onChange: function (v) { set(l.id, 'sku', v); }, options: products, error: !l.sku ? 'Asociar un producto.' : undefined }); } },
+    { key: 'score', header: 'Coincidencia', block: true, width: 200, render: function (l) { return h(M.MatchConfidence, { score: l.score }); } },
     { key: 'ped', header: 'Pedido', numeric: true },
-    { key: 'cant', header: 'Recibido', width: 170, render: function (l) { return h(M.NumberInput, { 'aria-label': 'Cantidad recibida de ' + l.texto, value: l.cant, min: 0, onChange: function (v) { set(l.id, 'cant', v); } }); } }
+    { key: 'cant', header: 'Recibido', block: true, width: 170, render: function (l) { return h(M.NumberInput, { 'aria-label': 'Cantidad recibida de ' + l.texto, value: l.cant, min: 0, onChange: function (v) { set(l.id, 'cant', v); } }); } }
   ];
   return h('div', { style: { minHeight: '100vh' } }, h(M.AppShell, { theme: TH[0], onToggleTheme: TH[1], logo: LOGO, nav: NAV, role: 'Almacenero', current: 'recepciones', user: { name: 'Rosa Quispe', role: 'Almacenero' }, onLogout: function () {}, header: h(M.Breadcrumbs, { items: [{ label: 'Abastecimiento' }, { label: 'Recepciones' }, { label: 'Nueva recepción' }] }) },
     h(M.PageHeader, { title: 'Nueva recepción', status: h(M.StatusBadge, { entity: 'recepcion', value: 'Pendiente' }), description: 'Orden de compra OC-0087, Distribuidora Andina S.A.C., Almacén 1', actions: h(React.Fragment, null, h(M.Button, { variant: 'outline' }, 'Cancelar'), h(M.Button, { leftIcon: 'check' }, 'Confirmar recepción')) }),
@@ -72,7 +73,7 @@ function Demo() {
     h('div', { style: { height: 16 } }),
     h(M.Alert, { tone: 'info', title: 'Datos precargados desde el documento' }, 'Revisar y corregir las líneas. Los movimientos de entrada al Kardex se generan solo al confirmar la recepción, con las cantidades efectivamente recibidas.'),
     h('div', { style: { height: 16 } }),
-    h('div', { style: { display: 'grid', gridTemplateColumns: '300px minmax(0, 1fr)', gap: 20, alignItems: 'start' } },
+    h(M.Columns, { layout: 'aside-main' },
       h(M.Card, { title: 'Documento', description: 'Foto o PDF de la guía del proveedor.' }, h('ul', { className: 'mg-files', style: { marginBottom: 12 } }, h(M.FileItem, { name: 'guia-proveedor.jpg', size: 1480000, processed: true, onRemove: function () {} })), h(M.Button, { variant: 'outline', size: 'sm', leftIcon: 'upload' }, 'Reemplazar archivo')),
       h(M.Card, { title: 'Líneas de la recepción', description: '3 productos, 1 requiere validación manual', padded: false }, h(M.Table, { caption: 'Líneas extraídas', columns: cols, rows: lines[0], rowKey: 'id' })))));
 }

@@ -1,4 +1,4 @@
-/* @ds-bundle: {"format":4,"namespace":"Migal","components":[{"name":"Icon"},{"name":"Button"},{"name":"IconButton"},{"name":"Badge"},{"name":"StatusBadge"},{"name":"MovementBadge"},{"name":"TextInput"},{"name":"NumberInput"},{"name":"Select"},{"name":"Textarea"},{"name":"Checkbox"},{"name":"Switch"},{"name":"SearchInput"},{"name":"Card"},{"name":"Stack"},{"name":"Alert"},{"name":"Notification"},{"name":"EmptyState"},{"name":"Spinner"},{"name":"Skeleton"},{"name":"Tabs"},{"name":"Stepper"},{"name":"Breadcrumbs"},{"name":"PageHeader"},{"name":"Table"},{"name":"Pagination"},{"name":"Dropzone"},{"name":"Modal"},{"name":"ConfirmDialog"},{"name":"StockSummary"},{"name":"StockBar"},{"name":"MatchConfidence"},{"name":"Stat"},{"name":"ChatMessage"},{"name":"ChatComposer"},{"name":"AppShell"}]} */
+/* @ds-bundle: {"format":4,"namespace":"Migal","components":[{"name":"Icon"},{"name":"Button"},{"name":"IconButton"},{"name":"Badge"},{"name":"StatusBadge"},{"name":"MovementBadge"},{"name":"TextInput"},{"name":"NumberInput"},{"name":"Select"},{"name":"Textarea"},{"name":"Checkbox"},{"name":"Switch"},{"name":"SearchInput"},{"name":"Card"},{"name":"Stack"},{"name":"Columns"},{"name":"Alert"},{"name":"Notification"},{"name":"EmptyState"},{"name":"Spinner"},{"name":"Skeleton"},{"name":"Tabs"},{"name":"Stepper"},{"name":"Breadcrumbs"},{"name":"PageHeader"},{"name":"Table"},{"name":"Pagination"},{"name":"Dropzone"},{"name":"Modal"},{"name":"ConfirmDialog"},{"name":"StockSummary"},{"name":"StockBar"},{"name":"MatchConfidence"},{"name":"Stat"},{"name":"ChatMessage"},{"name":"ChatComposer"},{"name":"AppShell"}]} */
 (function () {
   'use strict';
   var React = window.React;
@@ -82,6 +82,7 @@
     send: ['M20 4L10.5 13.5M20 4l-6 16-3.5-6.5L4 10z'],
     sun: [['c', 12, 12, 4], 'M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4'],
     moon: ['M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z'],
+    camera: [['r', 3, 7, 18, 13, 2], 'M9 7l1.5-2h3L15 7', ['c', 12, 13.5, 3.5]],
     sparkles: ['M10 4l1.6 4.4L16 10l-4.4 1.6L10 16l-1.6-4.4L4 10l4.4-1.6z', 'M18 14l.8 2.2L21 17l-2.2.8L18 20l-.8-2.2L15 17l2.2-.8z'],
     bell: ['M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15z', 'M10 20a2 2 0 0 0 4 0'],
     dashboard: [['r', 4, 4, 7, 7, 1.5], ['r', 13, 4, 7, 4, 1.5], ['r', 13, 11, 7, 9, 1.5], ['r', 4, 14, 7, 6, 1.5]],
@@ -361,6 +362,9 @@
       style: Object.assign({ flexDirection: dir, gap: 'var(--space-' + (p.gap || 4) + ')', alignItems: p.align, justifyContent: p.justify, flexWrap: p.wrap ? 'wrap' : undefined }, p.style)
     }, p.children);
   }
+  function Columns(p) {
+    return h(p.as || 'div', { className: cx('mg-cols', 'mg-cols-' + (p.layout || 'two'), p.className), style: p.gap ? { gap: 'var(--space-' + p.gap + ')' } : undefined }, p.children);
+  }
   function Card(p) {
     var head = p.title || p.actions;
     return h(p.as || 'section', { className: cx('mg-card', p.flat && 'is-flat', p.className), 'aria-labelledby': p.title ? p.titleId : undefined },
@@ -465,7 +469,7 @@
     var body;
     if (p.loading) {
       body = [0, 1, 2, 3, 4].map(function (i) {
-        return h('tr', { key: 'sk' + i }, cols.map(function (c) { return h('td', { key: c.key, className: c.align === 'right' || c.numeric ? 'is-right' : undefined }, h(Skeleton, { width: c.numeric ? 56 : (i % 2 ? '70%' : '90%'), height: 14 })); }));
+        return h('tr', { key: 'sk' + i }, cols.map(function (c) { return h('td', { key: c.key, 'data-label': c.header, className: cx(c.align === 'right' || c.numeric ? 'is-right' : undefined, c.phone === false && 'mg-hide-phone', c.primary && 'is-primary') }, h(Skeleton, { width: c.numeric ? 56 : (i % 2 ? '70%' : '90%'), height: 14 })); }));
       });
     } else if (!rows.length) {
       body = h('tr', null, h('td', { colSpan: cols.length, className: 'mg-table-empty' }, p.empty || h(EmptyState, { title: 'Sin resultados', description: 'No hay registros que coincidan con los filtros aplicados.' })));
@@ -481,18 +485,18 @@
           'aria-selected': p.selectedKey !== undefined ? (p.selectedKey === k ? 'true' : 'false') : undefined
         }, cols.map(function (c) {
           var right = c.align === 'right' || c.numeric;
-          return h('td', { key: c.key, className: cx(right && 'is-right', c.numeric && 'mg-num', c.mono && 'mg-mono t-sku') }, c.render ? c.render(r) : r[c.key]);
+          return h('td', { key: c.key, 'data-label': c.header, className: cx(right && 'is-right', c.numeric && 'mg-num', c.mono && 'mg-mono t-sku', c.primary && 'is-primary', c.block && 'is-block', c.phone === false && 'mg-hide-phone') }, c.render ? c.render(r) : r[c.key]);
         }));
       });
     }
     return h('div', { className: cx('mg-table-wrap', p.className) },
-      h('table', { className: cx('mg-table', p.density === 'sm' && 'is-dense', p.stickyHeader && 'is-sticky'), 'aria-busy': p.loading ? 'true' : undefined },
+      h('table', { className: cx('mg-table', p.density === 'sm' && 'is-dense', p.stickyHeader && 'is-sticky', p.stack !== false && 'is-stack'), 'aria-busy': p.loading ? 'true' : undefined },
         p.caption ? h('caption', { className: 'mg-sr' }, p.caption) : null,
         h('thead', null, h('tr', null, cols.map(function (c) {
           var right = c.align === 'right' || c.numeric;
           var active = sort.key === c.key;
           var ariaSort = c.sortable ? (active ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none') : undefined;
-          return h('th', { key: c.key, scope: 'col', 'aria-sort': ariaSort, style: c.width ? { width: c.width } : undefined, className: cx(right && 'is-right') },
+          return h('th', { key: c.key, scope: 'col', 'aria-sort': ariaSort, style: c.width ? { width: c.width } : undefined, className: cx(right && 'is-right', c.phone === false && 'mg-hide-phone') },
             c.sortable ? h('button', { type: 'button', className: cx('mg-sort t-th', active && 'is-active'), onClick: function () { if (p.onSort) p.onSort(c.key, active && sort.dir === 'asc' ? 'desc' : 'asc'); } },
               c.header, h(Icon, { name: active ? (sort.dir === 'asc' ? 'chevron-up' : 'chevron-down') : 'chevrons-up-down', size: 16 }))
               : h('span', { className: 't-th' }, c.header));
@@ -501,7 +505,7 @@
         p.footer && rows.length ? h('tfoot', null, (Array.isArray(p.footer) ? p.footer : [p.footer]).map(function (f, ri) {
           return h('tr', { key: ri }, cols.map(function (c) {
             var right = c.align === 'right' || c.numeric;
-            return h('td', { key: c.key, className: cx(right && 'is-right', c.numeric && 'mg-num') }, f[c.key] !== undefined ? f[c.key] : null);
+            return h('td', { key: c.key, className: cx(right && 'is-right', c.numeric && 'mg-num', c.phone === false && 'mg-hide-phone') }, f[c.key] !== undefined ? f[c.key] : null);
           }));
         })) : null));
   }
@@ -515,6 +519,7 @@
       p.total ? h('span', { className: 't-body-sm mg-desc' }, 'Mostrando ', h('b', null, from + '–' + to), ' de ', h('b', null, formatNumber(p.total))) : h('span'),
       h('div', { className: 'mg-pager-pages' },
         h(IconButton, { icon: 'chevron-left', label: 'Página anterior', size: 'sm', variant: 'outline', disabled: page <= 1, onClick: function () { p.onChange(page - 1); } }),
+        h('span', { className: 'mg-pager-compact t-label' }, 'Página ' + page + ' de ' + pages),
         list.map(function (n, i) {
           return n === '…' ? h('span', { key: 'e' + i, className: 'mg-pager-gap' }, n)
             : h('button', { key: n, type: 'button', className: cx('mg-pager-btn t-button-sm', n === page && 'is-active'), 'aria-current': n === page ? 'page' : undefined, 'aria-label': 'Página ' + n, onClick: function () { p.onChange(n); } }, n);
@@ -563,6 +568,9 @@
         h('span', { className: 't-h4' }, busy ? (p.busyTitle || 'Procesando documento') : over ? 'Soltar para cargar' : (p.title || 'Arrastrar un archivo aquí')),
         h('span', { className: 't-body mg-desc' }, busy ? (p.busyHint || 'Extrayendo el texto del documento. Puede tardar unos segundos.') : h('span', null, 'o ', h('span', { className: 'mg-link' }, 'seleccionar desde el equipo'))),
         h('span', { className: 't-caption mg-desc' }, typeLabel(accept) + '. Máximo ' + formatBytes(maxSize) + '.')),
+      p.camera ? h('label', { className: cx('mg-btn mg-btn-outline mg-btn-md t-button-md mg-dz-camera', (p.disabled || busy) && 'is-disabled') },
+        h(Icon, { name: 'camera', size: 20 }), h('span', { className: 'mg-btn-label' }, 'Tomar foto'),
+        h('input', { type: 'file', accept: 'image/*', capture: 'environment', className: 'mg-sr-input', disabled: p.disabled || busy, onChange: function (e) { handle(e.target.files); e.target.value = ''; } })) : null,
       error ? h('div', { className: 'mg-error t-body-sm', role: 'alert' }, h(Icon, { name: 'status-danger', size: 16 }), h('span', null, error)) : null);
   }
   function FileItem(p) {
@@ -715,13 +723,23 @@
   /* ---------- Estructura de aplicación ---------- */
   function initials(name) { return String(name || '?').split(' ').slice(0, 2).map(function (w) { return w.charAt(0); }).join('').toUpperCase(); }
   function AppShell(p) {
+    var navState = useState(false);
+    var navOpen = navState[0];
+    useEffect(function () {
+      if (!navOpen) return undefined;
+      function onKey(e) { if (e.key === 'Escape') navState[1](false); }
+      document.addEventListener('keydown', onKey);
+      return function () { document.removeEventListener('keydown', onKey); };
+    }, [navOpen]);
     var role = p.role;
     var groups = p.nav || [];
     var user = p.user;
-    return h('div', { className: cx('mg-shell', p.collapsed && 'is-collapsed', p.className) },
+    return h('div', { className: cx('mg-shell', p.collapsed && 'is-collapsed', navOpen && 'is-nav-open', p.className) },
       h('a', { className: 'mg-skip t-label', href: '#contenido' }, 'Saltar al contenido'),
-      h('aside', { className: 'mg-sidebar' },
-        h('div', { className: 'mg-sidebar-brand' }, p.logo || null, h('div', { className: 'mg-sidebar-name' }, h('span', { className: 't-h4' }, p.name || 'MIGAL SmartOps'), h('span', { className: 't-caption mg-sidebar-sub' }, p.subtitle || 'Ferretería Progresol Migal'))),
+      h('div', { className: 'mg-scrim', 'aria-hidden': 'true', onClick: function () { navState[1](false); } }),
+      h('aside', { className: 'mg-sidebar', id: 'mg-nav' },
+        h('div', { className: 'mg-sidebar-brand' }, p.logo || null, h('div', { className: 'mg-sidebar-name' }, h('span', { className: 't-h4' }, p.name || 'MIGAL SmartOps'), h('span', { className: 't-caption mg-sidebar-sub' }, p.subtitle || 'Ferretería Progresol Migal')),
+          h(IconButton, { icon: 'close', label: 'Cerrar menú de navegación', variant: 'inverse', className: 'mg-drawer-close', onClick: function () { navState[1](false); } })),
         h('nav', { 'aria-label': 'Navegación principal', className: 'mg-sidebar-nav' },
           groups.map(function (g, gi) {
             var items = (g.items || []).filter(function (it) { return !it.roles || !role || it.roles.indexOf(role) !== -1; });
@@ -732,12 +750,14 @@
                 var active = it.key === p.current;
                 return h('li', { key: it.key }, h('a', {
                   href: it.href || '#' + it.key, className: cx('mg-nav-item', 't-label', active && 'is-active'), 'aria-current': active ? 'page' : undefined, title: it.label,
-                  onClick: function (e) { if (p.onNavigate) { e.preventDefault(); p.onNavigate(it.key); } }
+                  onClick: function (e) { navState[1](false); if (p.onNavigate) { e.preventDefault(); p.onNavigate(it.key); } }
                 }, h(Icon, { name: it.icon, size: 20 }), h('span', { className: 'mg-nav-text' }, it.label), it.badge ? h('span', { className: 'mg-nav-badge t-caption' }, it.badge) : null));
               })));
           }))),
       h('div', { className: 'mg-shell-main' },
         h('header', { className: 'mg-topbar' },
+          h(IconButton, { icon: 'menu', label: 'Abrir menú de navegación', className: 'mg-menu-btn', 'aria-expanded': navOpen ? 'true' : 'false', 'aria-controls': 'mg-nav', onClick: function () { navState[1](!navOpen); } }),
+          h('div', { className: 'mg-topbar-brand t-h4' }, p.name || 'MIGAL SmartOps'),
           h('div', { className: 'mg-topbar-slot' }, p.header || null),
           p.onToggleTheme ? h(IconButton, { icon: p.theme === 'dark' ? 'sun' : 'moon', label: p.theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro', onClick: p.onToggleTheme }) : null,
           user ? h('div', { className: 'mg-user' },
@@ -750,7 +770,7 @@
   var api = {
     Icon: Icon, Button: Button, IconButton: IconButton, Badge: Badge, StatusBadge: StatusBadge, MovementBadge: MovementBadge,
     Field: Field, TextInput: TextInput, NumberInput: NumberInput, Select: Select, Textarea: Textarea, Checkbox: Checkbox, Switch: Switch, SearchInput: SearchInput,
-    Card: Card, Stack: Stack, Alert: Alert, Notification: Notification, EmptyState: EmptyState, Spinner: Spinner, Skeleton: Skeleton,
+    Card: Card, Stack: Stack, Columns: Columns, Alert: Alert, Notification: Notification, EmptyState: EmptyState, Spinner: Spinner, Skeleton: Skeleton,
     Tabs: Tabs, Stepper: Stepper, Breadcrumbs: Breadcrumbs, PageHeader: PageHeader, Table: Table, Pagination: Pagination,
     Dropzone: Dropzone, FileItem: FileItem, Modal: Modal, ConfirmDialog: ConfirmDialog,
     StockSummary: StockSummary, StockBar: StockBar, MatchConfidence: MatchConfidence, Stat: Stat,

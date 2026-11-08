@@ -6,6 +6,7 @@
 <script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
 <script src="../bundle.js"></script>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>PantallaCotizacion - vista previa</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400..700&family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Barlow+Semi+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
@@ -62,7 +63,7 @@ function Demo() {
   var desc = sub * 0.03;
   var cols = [
     { key: 'sku', header: 'SKU', mono: true },
-    { key: 'nombre', header: 'Producto' },
+    { key: 'nombre', header: 'Producto', primary: true },
     { key: 'cant', header: 'Cantidad', numeric: true, render: function (l) { return M.formatNumber(l.cant); } },
     { key: 'pu', header: 'Precio unit.', numeric: true, render: function (l) { return money(l.pu); } },
     { key: 'imp', header: 'Importe', numeric: true, render: function (l) { return money(l.cant * l.pu); } }
@@ -71,7 +72,7 @@ function Demo() {
     h(M.PageHeader, { title: 'Cotización COT-0231', status: h(M.StatusBadge, { entity: 'cotizacion', value: 'Emitida', variant: 'sello' }), description: 'Emitida el 04/11/2026, vence el 18/11/2026', actions: h(React.Fragment, null, h(M.Button, { variant: 'outline', leftIcon: 'print' }, 'Imprimir'), h(M.Button, { leftIcon: 'check' }, 'Registrar aceptación')) }),
     h(M.Stepper, { current: 0, steps: [{ label: 'Emitida' }, { label: 'Aceptada' }, { label: 'Validada' }, { label: 'Venta' }], 'aria-label': 'Ciclo de la cotización' }),
     h('div', { style: { height: 20 } }),
-    h('div', { style: { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 300px', gap: 20, alignItems: 'start' } },
+    h(M.Columns, { layout: 'main-aside' },
       h('div', { className: 'pv-col' },
         h(M.Card, { title: 'Productos cotizados', padded: false, actions: h(M.Button, { size: 'sm', variant: 'outline', leftIcon: 'plus' }, 'Agregar producto') },
           h(M.Table, { caption: 'Líneas de la cotización', columns: cols, rows: lines, rowKey: 'id', footer: [{ pu: 'Subtotal', imp: money(sub) }, { pu: 'Descuento (3 %)', imp: '− ' + money(desc) }, { pu: 'Total', imp: money(sub - desc) }] })),

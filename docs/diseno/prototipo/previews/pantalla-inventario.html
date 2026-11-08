@@ -6,6 +6,7 @@
 <script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
 <script src="../bundle.js"></script>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>PantallaInventario - vista previa</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400..700&family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Barlow+Semi+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
@@ -64,20 +65,20 @@ function Demo() {
   var shown = rows.filter(function (r) { return (tab[0] === 'todos' || r.nivel !== 'Normal') && (!q[0] || (r.sku + r.nombre).toLowerCase().indexOf(q[0].toLowerCase()) !== -1); });
   var cols = [
     { key: 'sku', header: 'SKU', mono: true },
-    { key: 'nombre', header: 'Producto', render: function (r) { return h('div', null, h('div', { className: 't-label' }, r.nombre), h('div', { className: 't-caption', style: { color: 'var(--ink-muted)' } }, r.cat)); } },
-    { key: 't', header: 'Tienda', numeric: true, render: function (r) { return M.formatNumber(r.t); } },
-    { key: 'a1', header: 'Almacén 1', numeric: true, render: function (r) { return M.formatNumber(r.a1); } },
-    { key: 'a2', header: 'Almacén 2', numeric: true, render: function (r) { return M.formatNumber(r.a2); } },
-    { key: 'fisico', header: 'Físico', numeric: true, render: function (r) { return M.formatNumber(r.fisico); } },
-    { key: 'res', header: 'Reservado', numeric: true, render: function (r) { return M.formatNumber(r.res); } },
+    { key: 'nombre', header: 'Producto', primary: true, render: function (r) { return h('div', null, h('div', { className: 't-label' }, r.nombre), h('div', { className: 't-caption', style: { color: 'var(--ink-muted)' } }, r.cat)); } },
+    { key: 't', header: 'Tienda', numeric: true, phone: false, render: function (r) { return M.formatNumber(r.t); } },
+    { key: 'a1', header: 'Almacén 1', numeric: true, phone: false, render: function (r) { return M.formatNumber(r.a1); } },
+    { key: 'a2', header: 'Almacén 2', numeric: true, phone: false, render: function (r) { return M.formatNumber(r.a2); } },
+    { key: 'fisico', header: 'Físico', numeric: true, phone: false, render: function (r) { return M.formatNumber(r.fisico); } },
+    { key: 'res', header: 'Reservado', numeric: true, phone: false, render: function (r) { return M.formatNumber(r.res); } },
     { key: 'libre', header: 'Libre', numeric: true, render: function (r) { return h('b', null, M.formatNumber(r.libre)); } },
     { key: 'nivel', header: 'Nivel', render: function (r) { return h(M.StatusBadge, { entity: 'stock', value: r.nivel }); } }
   ];
   return h('div', { style: { minHeight: '100vh' } }, h(M.AppShell, { theme: TH[0], onToggleTheme: TH[1], logo: LOGO, nav: NAV, role: 'Almacenero', current: 'disponibilidad', user: { name: 'Rosa Quispe', role: 'Almacenero' }, onLogout: function () {}, header: h(M.Breadcrumbs, { items: [{ label: 'Inicio' }, { label: 'Operación' }, { label: 'Disponibilidad' }] }) },
     h(M.PageHeader, { title: 'Disponibilidad', description: 'Existencias físicas, reservadas y libres por ubicación.', actions: h(React.Fragment, null, h(M.Button, { variant: 'outline', leftIcon: 'download' }, 'Exportar'), h(M.Button, { leftIcon: 'movimiento' }, 'Registrar movimiento')) }),
-    h('div', { style: { display: 'flex', gap: 12, alignItems: 'end', justifyContent: 'space-between', flexWrap: 'wrap', marginBottom: 12 } },
+    h('div', { className: 'mg-toolbar' },
       h(M.Tabs, { value: tab[0], onChange: tab[1], items: [{ value: 'todos', label: 'Todos', count: rows.length }, { value: 'alerta', label: 'En alerta', count: rows.filter(function (r) { return r.nivel !== 'Normal'; }).length, icon: 'alert-triangle' }] }),
-      h('div', { style: { width: 320 } }, h(M.SearchInput, { value: q[0], onChange: q[1] }))),
+      h('div', { className: 'mg-toolbar-search' }, h(M.SearchInput, { value: q[0], onChange: q[1] }))),
     h(M.Table, { caption: 'Disponibilidad por producto', columns: cols, rows: shown, rowKey: 'sku', onRowClick: function () {} }),
     h(M.Pagination, { page: 1, pages: 8, total: 152, pageSize: 20, onChange: function () {} })));
 }

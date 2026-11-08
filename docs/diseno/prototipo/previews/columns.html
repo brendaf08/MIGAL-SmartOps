@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="es" data-theme="light">
+<head>
+<link rel="stylesheet" href="../tokens.css"><link rel="stylesheet" href="../bundle.css">
+<script src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script src="../bundle.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Columns - vista previa</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400..700&family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Barlow+Semi+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  body { padding: 16px; }
+  .pv-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  .pv-col { display: flex; flex-direction: column; gap: 12px; }
+  .pv-grid { display: grid; gap: 16px; }
+  .pv-cap { font-size: 12px; line-height: 16px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-muted); margin: 0 0 8px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+var M = window.Migal, h = React.createElement;
+function Cap(t) { return h('p', { className: 'pv-cap' }, t); }
+function Box(t, tone) { return h('div', { className: 't-label', style: { padding: 16, borderRadius: 'var(--radius-lg)', border: '1px solid var(--line)', background: 'var(--surface)' } }, t); }
+ReactDOM.createRoot(document.getElementById('root')).render(h('div', { className: 'pv-col' },
+  Cap('Contenido y panel lateral: se apila bajo 1024 px'), h(M.Columns, { layout: 'main-aside' }, Box('Contenido principal'), Box('Panel lateral')),
+  Cap('Dos columnas: se apila bajo 768 px'), h(M.Columns, { layout: 'two' }, Box('Primera'), Box('Segunda')),
+  Cap('Tres columnas: dos bajo 1024 px y una bajo 768 px'), h(M.Columns, { layout: 'three' }, Box('Uno'), Box('Dos'), Box('Tres'))));
+</script>
+</body>
+</html>

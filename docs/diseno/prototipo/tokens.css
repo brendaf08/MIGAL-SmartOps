@@ -140,7 +140,11 @@
   --sidebar-width: 264px;
   --sidebar-collapsed: 72px;
   --header-height: 64px;
+  --header-compact: 56px;
+  --drawer-width: 300px;
+  --touch-min: 44px;
   --content-max: 1440px;
+  --bp-phone: 36em;
   --bp-tablet: 48em;
   --bp-desktop: 64em;
   --bp-wide: 80em;

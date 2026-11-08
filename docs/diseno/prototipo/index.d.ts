@@ -57,6 +57,9 @@ export declare function Switch(props: SwitchProps): React.ReactElement;
 export interface SearchInputProps { value?: string; onChange?: (value: string) => void; onSubmit?: (value: string) => void; placeholder?: string; label?: string; size?: Size; className?: string; 'aria-label'?: string }
 export declare function SearchInput(props: SearchInputProps): React.ReactElement;
 
+export interface ColumnsProps { layout?: 'two' | 'three' | 'main-aside' | 'aside-main'; gap?: 1 | 2 | 3 | 4 | 5 | 6 | 8; as?: string; className?: string; children?: React.ReactNode }
+export declare function Columns(props: ColumnsProps): React.ReactElement;
+
 export interface CardProps { title?: string; titleId?: string; level?: 2 | 3 | 4; description?: string; actions?: React.ReactNode; footer?: React.ReactNode; flat?: boolean; padded?: boolean; as?: string; className?: string; children?: React.ReactNode }
 export declare function Card(props: CardProps): React.ReactElement;
 
@@ -91,12 +94,12 @@ export declare function Breadcrumbs(props: BreadcrumbsProps): React.ReactElement
 export interface PageHeaderProps { title: string; description?: string; breadcrumbs?: BreadcrumbsProps['items']; status?: React.ReactNode; actions?: React.ReactNode; className?: string }
 export declare function PageHeader(props: PageHeaderProps): React.ReactElement;
 
-export interface TableColumn<T = any> { key: string; header: string; align?: 'left' | 'right' | 'center'; width?: number | string; numeric?: boolean; mono?: boolean; sortable?: boolean; render?: (row: T) => React.ReactNode }
+export interface TableColumn<T = any> { key: string; header: string; primary?: boolean; block?: boolean; phone?: false; align?: 'left' | 'right' | 'center'; width?: number | string; numeric?: boolean; mono?: boolean; sortable?: boolean; render?: (row: T) => React.ReactNode }
 export interface TableProps<T = any> {
   columns: TableColumn<T>[]; rows: T[]; rowKey?: string | ((row: T) => string | number);
   sort?: { key: string; dir: 'asc' | 'desc' }; onSort?: (key: string, dir: 'asc' | 'desc') => void;
   loading?: boolean; empty?: React.ReactNode; onRowClick?: (row: T) => void; selectedKey?: string | number; footer?: Record<string, React.ReactNode> | Record<string, React.ReactNode>[];
-  density?: 'md' | 'sm'; stickyHeader?: boolean; caption?: string; className?: string;
+  density?: 'md' | 'sm'; stack?: boolean; stickyHeader?: boolean; caption?: string; className?: string;
 }
 export declare function Table<T = any>(props: TableProps<T>): React.ReactElement;
 
@@ -105,7 +108,7 @@ export declare function Pagination(props: PaginationProps): React.ReactElement;
 
 export interface DropzoneProps {
   accept?: string[]; maxSize?: number; multiple?: boolean; onDrop?: (files: File[]) => void; onReject?: (errors: { file: File; reason: 'type' | 'size' }[]) => void;
-  state?: 'idle' | 'dragover' | 'processing' | 'error'; error?: string; title?: string; busyTitle?: string; busyHint?: string; disabled?: boolean; className?: string;
+  camera?: boolean; state?: 'idle' | 'dragover' | 'processing' | 'error'; error?: string; title?: string; busyTitle?: string; busyHint?: string; disabled?: boolean; className?: string;
 }
 export declare function Dropzone(props: DropzoneProps): React.ReactElement;
 

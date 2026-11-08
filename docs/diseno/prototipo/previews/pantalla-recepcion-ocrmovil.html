@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="es" data-theme="light">
+<head>
+<link rel="stylesheet" href="../tokens.css"><link rel="stylesheet" href="../bundle.css">
+<script src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script src="../bundle.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PantallaRecepcionOCRMovil - vista previa</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400..700&family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Barlow+Semi+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  body { padding: 16px; }
+  .pv-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  .pv-col { display: flex; flex-direction: column; gap: 12px; }
+  .pv-grid { display: grid; gap: 16px; }
+  .pv-cap { font-size: 12px; line-height: 16px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-muted); margin: 0 0 8px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+var M = window.Migal, h = React.createElement;
+function Cap(t) { return h('p', { className: 'pv-cap' }, t); }
+
+var NAV = [
+  { label: 'Operación', items: [
+    { key: 'disponibilidad', label: 'Disponibilidad', icon: 'almacen', roles: ['Administrador', 'Almacenero', 'Vendedor'] },
+    { key: 'catalogo', label: 'Catálogo', icon: 'producto', roles: ['Administrador', 'Almacenero'] },
+    { key: 'movimientos', label: 'Movimientos', icon: 'movimiento', roles: ['Administrador', 'Almacenero'] },
+    { key: 'kardex', label: 'Kardex', icon: 'kardex', roles: ['Administrador', 'Almacenero'] },
+    { key: 'despachos', label: 'Despachos', icon: 'despacho', roles: ['Administrador', 'Almacenero'] },
+    { key: 'recepciones', label: 'Recepciones', icon: 'recepcion', roles: ['Administrador', 'Almacenero'] }
+  ] },
+  { label: 'Comercial', items: [
+    { key: 'documentos', label: 'Documentos OCR', icon: 'scan', roles: ['Administrador', 'Almacenero', 'Vendedor'] },
+    { key: 'cotizaciones', label: 'Cotizaciones', icon: 'cotizacion', roles: ['Administrador', 'Vendedor'] },
+    { key: 'ventas', label: 'Ventas', icon: 'venta', roles: ['Administrador', 'Vendedor'] }
+  ] },
+  { label: 'Abastecimiento', items: [
+    { key: 'proveedores', label: 'Proveedores', icon: 'proveedor', roles: ['Administrador', 'Reponedor'] },
+    { key: 'ordenes', label: 'Órdenes de compra', icon: 'orden-compra', roles: ['Administrador', 'Reponedor'] }
+  ] },
+  { label: 'Asistente', items: [
+    { key: 'agente', label: 'Agente de IA', icon: 'sparkles' }
+  ] },
+  { label: 'Administración', items: [
+    { key: 'usuarios', label: 'Usuarios y roles', icon: 'rol', roles: ['Administrador'] }
+  ] }
+];
+function useTheme() { var s = React.useState(document.documentElement.getAttribute('data-theme') || 'light'); function toggle() { var n = s[0] === 'dark' ? 'light' : 'dark'; document.documentElement.setAttribute('data-theme', n); s[1](n); } return [s[0], toggle]; }
+var LOGO = h('img', { src: '../progresol-logo.png', alt: 'Progresol', width: 44, height: 44 });
+document.body.style.padding = '0';
+function Demo() {
+  var TH = useTheme();
+  var lines = React.useState([
+    { id: 1, texto: 'CEMENTO SOL TIPO 1 42.5KG', sku: 'CEM-SOL-001', score: 0.94, cant: 100, ped: 100 },
+    { id: 2, texto: 'FIERRO COR. 1/2 x 9', sku: 'FIE-012-009', score: 0.72, cant: 40, ped: 60 },
+    { id: 3, texto: 'ALAMBRE REC. N16', sku: '', score: 0.31, cant: 25, ped: 25 }
+  ]);
+  var products = [{ value: 'CEM-SOL-001', label: 'CEM-SOL-001, Cemento Sol tipo I' }, { value: 'FIE-012-009', label: 'FIE-012-009, Fierro corrugado 1/2 in' }, { value: 'ALA-REC-016', label: 'ALA-REC-016, Alambre recocido N.º 16' }];
+  function set(id, k, v) { lines[1](lines[0].map(function (l) { return l.id === id ? Object.assign({}, l, (function () { var o = {}; o[k] = v; return o; })()) : l; })); }
+  var cols = [
+    { key: 'texto', header: 'Texto extraído', primary: true, render: function (l) { return h('span', { className: 't-sku' }, l.texto); } },
+    { key: 'sku', header: 'Producto del catálogo', block: true, width: 300, render: function (l) { return h(M.Select, { 'aria-label': 'Producto para ' + l.texto, placeholder: 'Seleccionar producto', value: l.sku, onChange: function (v) { set(l.id, 'sku', v); }, options: products, error: !l.sku ? 'Asociar un producto.' : undefined }); } },
+    { key: 'score', header: 'Coincidencia', block: true, width: 200, render: function (l) { return h(M.MatchConfidence, { score: l.score }); } },
+    { key: 'ped', header: 'Pedido', numeric: true },
+    { key: 'cant', header: 'Recibido', block: true, width: 170, render: function (l) { return h(M.NumberInput, { 'aria-label': 'Cantidad recibida de ' + l.texto, value: l.cant, min: 0, onChange: function (v) { set(l.id, 'cant', v); } }); } }
+  ];
+  return h('div', { style: { minHeight: '100vh' } }, h(M.AppShell, { theme: TH[0], onToggleTheme: TH[1], logo: LOGO, nav: NAV, role: 'Almacenero', current: 'recepciones', user: { name: 'Rosa Quispe', role: 'Almacenero' }, onLogout: function () {}, header: h(M.Breadcrumbs, { items: [{ label: 'Abastecimiento' }, { label: 'Recepciones' }, { label: 'Nueva recepción' }] }) },
+    h(M.PageHeader, { title: 'Nueva recepción', status: h(M.StatusBadge, { entity: 'recepcion', value: 'Pendiente' }), description: 'Orden de compra OC-0087, Distribuidora Andina S.A.C., Almacén 1', actions: h(React.Fragment, null, h(M.Button, { variant: 'outline' }, 'Cancelar'), h(M.Button, { leftIcon: 'check' }, 'Confirmar recepción')) }),
+    h(M.Stepper, { current: 1, steps: [{ label: 'Cargar documento', description: 'guia-proveedor.jpg' }, { label: 'Revisar datos', description: 'Corregir y asociar SKU' }, { label: 'Confirmar recepción' }], 'aria-label': 'Pasos de la recepción' }),
+    h('div', { style: { height: 16 } }),
+    h(M.Alert, { tone: 'info', title: 'Datos precargados desde el documento' }, 'Revisar y corregir las líneas. Los movimientos de entrada al Kardex se generan solo al confirmar la recepción, con las cantidades efectivamente recibidas.'),
+    h('div', { style: { height: 16 } }),
+    h(M.Columns, { layout: 'aside-main' },
+      h(M.Card, { title: 'Documento', description: 'Foto o PDF de la guía del proveedor.' }, h('ul', { className: 'mg-files', style: { marginBottom: 12 } }, h(M.FileItem, { name: 'guia-proveedor.jpg', size: 1480000, processed: true, onRemove: function () {} })), h(M.Button, { variant: 'outline', size: 'sm', leftIcon: 'upload' }, 'Reemplazar archivo')),
+      h(M.Card, { title: 'Líneas de la recepción', description: '3 productos, 1 requiere validación manual', padded: false }, h(M.Table, { caption: 'Líneas extraídas', columns: cols, rows: lines[0], rowKey: 'id' })))));
+}
+ReactDOM.createRoot(document.getElementById('root')).render(h(Demo));
+</script>
+</body>
+</html>

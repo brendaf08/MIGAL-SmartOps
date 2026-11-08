@@ -111,3 +111,80 @@ describe('Órdenes de compra, nueva orden (P26)', () => {
     ).toHaveNoViolations();
   });
 });
+
+describe('Órdenes de compra, flujo completo y detalle (P25, P26)', () => {
+  it('crea una orden válida como Pendiente y muestra su total en el detalle', async () => {
+    renderApp('/compras/nueva', 'Reponedor');
+
+    await userEvent.click(await screen.findByRole('combobox', { name: /Proveedor/ }));
+    await userEvent.click(
+      await screen.findByRole('option', { name: 'Distribuidora Andina S.A.C.', hidden: true }),
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Agregar producto' }));
+    await userEvent.click(screen.getByRole('combobox', { name: 'Producto de la línea 1' }));
+    await userEvent.click(
+      await screen.findByRole('option', {
+        name: 'CEM-001, Cemento Sol tipo I, bolsa 42.5 kg',
+        hidden: true,
+      }),
+    );
+    await userEvent.clear(screen.getByLabelText('Cantidad de la línea 1'));
+    await userEvent.type(screen.getByLabelText('Cantidad de la línea 1'), '100');
+    await userEvent.clear(screen.getByLabelText('Precio de la línea 1'));
+    await userEvent.type(screen.getByLabelText('Precio de la línea 1'), '26.5');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar orden de compra' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Crear orden de compra' }));
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Orden de compra OC-0091' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Registrar recepción' })).toBeInTheDocument();
+    // El importe aparece en la línea (subtotal) y en el pie (total).
+    expect(screen.getAllByText(/2,650\.00/)).toHaveLength(2);
+  }, 20000);
+
+  it('muestra recibida y pendiente por línea en el detalle', async () => {
+    renderApp('/compras/OC-0086', 'Reponedor');
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Orden de compra OC-0086' }),
+    ).toBeInTheDocument();
+    const tabla = screen.getByRole('table', { name: 'Líneas de la orden OC-0086' });
+    expect(within(tabla).getByText('180')).toBeInTheDocument();
+    expect(within(tabla).getByText('120')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Registrar recepción' })).toBeInTheDocument();
+  });
+
+  it('una orden completada no ofrece la recepción', async () => {
+    renderApp('/compras/OC-0084', 'Reponedor');
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Orden de compra OC-0084' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Registrar recepción' })).not.toBeInTheDocument();
+  });
+
+  it('avisa cuando la orden no existe y ofrece volver al listado', async () => {
+    renderApp('/compras/OC-9999', 'Reponedor');
+
+    expect(
+      await screen.findByText('La orden de compra no existe', undefined, { timeout: 4000 }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Volver a las órdenes de compra' })).toHaveAttribute(
+      'href',
+      '/compras',
+    );
+  });
+
+  it('el detalle no tiene violaciones de accesibilidad', async () => {
+    const { container } = renderApp('/compras/OC-0086', 'Reponedor');
+    await screen.findByRole('heading', { level: 1, name: 'Orden de compra OC-0086' });
+
+    expect(
+      await axe(container, {
+        rules: { 'color-contrast': { enabled: false }, region: { enabled: false } },
+      }),
+    ).toHaveNoViolations();
+  });
+});

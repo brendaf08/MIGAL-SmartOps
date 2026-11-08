@@ -94,7 +94,7 @@ export const theme = createTheme({
     xl: '0 16px 40px #0e1b3d2e',
   },
 
-  /** Puntos de quiebre: tablet desde 48em (768 px), escritorio desde 64em (1024 px), pantallas All-in-One desde 80em. */
+  /** Puntos de quiebre: teléfono grande desde 36em (576 px), tablet desde 48em (768 px), escritorio desde 64em (1024 px) y pantallas All-in-One desde 80em. Por debajo de 48em rige el diseño de teléfono. */
   breakpoints: { xs: '36em', sm: '48em', md: '64em', lg: '80em', xl: '90em' },
 
   /** Mantine dibuja el anillo con el color primario; los componentes propios usan var(--shadow-focus) de tokens.css. */

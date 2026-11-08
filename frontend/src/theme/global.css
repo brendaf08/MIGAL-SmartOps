@@ -50,6 +50,52 @@ p {
   box-shadow: var(--shadow-focus);
 }
 
+/*
+ * Responsive: en teléfono y en pantallas táctiles todo control alcanza 44 px (--touch-min), y en teléfono los
+ * campos usan 16 px para evitar el acercamiento automático de iOS. La página nunca se desplaza en horizontal.
+ */
+body {
+  overflow-x: clip;
+}
+
+@define-mixin touch-targets {
+  .mantine-Input-input,
+  .mantine-Button-root,
+  .mantine-Tabs-tab {
+    height: auto;
+    min-height: var(--touch-min);
+  }
+
+  .mantine-ActionIcon-root {
+    min-width: var(--touch-min);
+    min-height: var(--touch-min);
+  }
+}
+
+@media (pointer: coarse) {
+  @mixin touch-targets;
+}
+
+@mixin smaller-than $mantine-breakpoint-sm {
+  @mixin touch-targets;
+
+  .mantine-Input-input {
+    font-size: 16px;
+  }
+
+  /* Tabs desplazables con ajuste al inicio de cada pestaña. */
+  .mantine-Tabs-list {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+  }
+
+  .mantine-Tabs-tab {
+    flex-shrink: 0;
+    scroll-snap-align: start;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

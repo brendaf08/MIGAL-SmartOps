@@ -9,7 +9,7 @@ import {
   Text,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import type { ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useThemeMode } from '@/theme';
 import { Icon } from '../../ui/Icon/Icon';
 import { NavMenu, type NavGroup } from './NavMenu';
@@ -49,7 +49,15 @@ export function AppShell({
   header,
   children,
 }: AppShellProps) {
-  const [open, { toggle, close }] = useDisclosure();
+  const [open, { toggle, close: hide }] = useDisclosure();
+  const [burger, setBurger] = useState<HTMLButtonElement | null>(null);
+  const close = hide;
+  // Al cerrarse el panel (Escape, velo o ítem), el foco regresa al botón de menú.
+  const wasOpen = useRef(false);
+  useEffect(() => {
+    if (wasOpen.current && !open) burger?.focus();
+    wasOpen.current = open;
+  }, [open, burger]);
   const { scheme, toggle: toggleScheme } = useThemeMode();
   const brand = (
     <div className={classes.brand}>
@@ -84,9 +92,11 @@ export function AppShell({
 
       <MantineAppShell.Header className={classes.header}>
         <Burger
+          ref={setBurger}
           hiddenFrom="sm"
           opened={open}
           onClick={toggle}
+          className={classes.burger}
           aria-label="Abrir menú"
           aria-controls="panel-navegacion"
           aria-expanded={open}
@@ -124,6 +134,7 @@ export function AppShell({
         id="panel-navegacion"
         opened={open}
         onClose={close}
+        returnFocus
         hiddenFrom="sm"
         size="min(var(--drawer-width), 86vw)"
         withCloseButton={false}

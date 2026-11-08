@@ -37,3 +37,14 @@
     }
   }
 }
+
+/* Enlaces de las migas con área táctil de 44 px (--touch-min), sin alterar el aspecto del texto. */
+.crumbs {
+  align-items: center;
+}
+
+.crumb {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch-min);
+}

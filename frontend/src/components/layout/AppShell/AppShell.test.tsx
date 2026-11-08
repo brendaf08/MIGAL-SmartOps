@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { AppProviders } from '@/app/AppProviders';
@@ -62,8 +62,33 @@ describe('AppShell', () => {
     expect(menu).toHaveAttribute('aria-expanded', 'true');
 
     // El panel abierto añade una segunda copia de la navegación; se elige la del panel.
-    const items = await screen.findAllByRole('button', { name: 'Despachos', hidden: true });
-    await userEvent.click(items[items.length - 1]!);
+    const panel = await screen.findByRole('dialog', { hidden: true });
+    await userEvent.click(within(panel).getByRole('button', { name: 'Despachos', hidden: true }));
     expect(onNavigate).toHaveBeenCalledWith('despachos');
+    await waitFor(() =>
+      expect(screen.getByLabelText('Abrir menú')).toHaveAttribute('aria-expanded', 'false'),
+    );
+  });
+
+  it('cierra el panel con Escape', async () => {
+    renderShell('Almacenero');
+    const menu = screen.getByLabelText('Abrir menú');
+
+    await userEvent.click(menu);
+    expect(menu).toHaveAttribute('aria-expanded', 'true');
+    expect(menu).toHaveAttribute('aria-controls', 'panel-navegacion');
+
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(menu).toHaveAttribute('aria-expanded', 'false'));
+    // jsdom no evalúa las reglas @media: el foco real se comprueba en el navegador (390 px).
+  });
+
+  it('conserva el título de cada ítem para la barra de íconos de la tablet', () => {
+    renderShell('Almacenero');
+
+    expect(screen.getAllByRole('button', { name: 'Despachos', hidden: true })[0]).toHaveAttribute(
+      'title',
+      'Despachos',
+    );
   });
 });

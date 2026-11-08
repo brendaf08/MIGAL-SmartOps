@@ -19,6 +19,11 @@
   background: var(--surface);
 }
 
+.burger {
+  min-width: var(--touch-min);
+  min-height: var(--touch-min);
+}
+
 .appName {
   flex: 1;
   min-width: 0;
@@ -109,6 +114,13 @@
 
 .linkSection {
   margin-inline-end: var(--space-3);
+}
+
+/* Tablet: ítems de 48 px (--control-lg) para el toque. */
+@mixin smaller-than $mantine-breakpoint-md {
+  .link {
+    min-height: var(--control-lg);
+  }
 }
 
 /* Tablet: barra de íconos; cada ítem conserva su `title`. En teléfono la barra está oculta. */

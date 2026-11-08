@@ -18,10 +18,10 @@ export function PageHeader({ title, description, breadcrumbs, status, actions }:
   return (
     <header className={classes.root}>
       {breadcrumbs && (
-        <Breadcrumbs aria-label="Ruta de navegación">
+        <Breadcrumbs aria-label="Ruta de navegación" className={classes.crumbs}>
           {breadcrumbs.map(({ label, href }, i) =>
             href && i < breadcrumbs.length - 1 ? (
-              <Anchor key={label} href={href}>
+              <Anchor key={label} href={href} className={classes.crumb}>
                 {label}
               </Anchor>
             ) : (

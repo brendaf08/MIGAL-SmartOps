@@ -28,7 +28,8 @@ function cambiosDeSalida(lineas: LineaDespacho[]): CambioStock[] {
   return lineas.flatMap((l) => {
     const producto = PRODUCTOS.find((p) => p.sku === l.sku);
     if (!producto) return [];
-    const fisico = producto.tienda + producto.almacen1 + producto.almacen2;
+    // Una reserva implica existencia física al menos igual; el inventario simulado no siempre lo cumple.
+    const fisico = Math.max(producto.tienda + producto.almacen1 + producto.almacen2, l.reservado);
     return [
       {
         producto: l.nombre,

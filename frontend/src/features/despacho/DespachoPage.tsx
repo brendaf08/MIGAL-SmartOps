@@ -1,4 +1,4 @@
-import { Button, Skeleton } from '@mantine/core';
+import { Button, Skeleton, Text } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -6,6 +6,7 @@ import { useNavigate, useParams } from 'react-router';
 import { Constancia, type CambioStock } from '@/components/domain/Constancia/Constancia';
 import { StatusBadge } from '@/components/domain/StatusBadge/StatusBadge';
 import { PageHeader } from '@/components/layout/PageHeader/PageHeader';
+import { ActionBar } from '@/components/ui/ActionBar/ActionBar';
 import { Alert } from '@/components/ui/Alert/Alert';
 import { Card } from '@/components/ui/Card/Card';
 import { DataTable, type Column } from '@/components/ui/DataTable/DataTable';
@@ -80,6 +81,7 @@ export function DespachoPage() {
 
   const completa = reservaCompleta(orden.lineas);
   const pendiente = orden.estado === 'Emitida';
+  const sinReservar = orden.lineas.filter((l) => l.reservado < l.cantidad).length;
 
   return (
     <>
@@ -88,17 +90,6 @@ export function DespachoPage() {
         breadcrumbs={[{ label: 'Despachos', href: '/despachos' }, { label: orden.id }]}
         status={<StatusBadge entity="guia" value={orden.estado} />}
         description={`Venta ${orden.venta}, ${orden.cliente}, Entrega ${orden.entrega.toLowerCase()}`}
-        actions={
-          pendiente && (
-            <Button
-              leftSection={<Icon name="despacho" />}
-              disabled={!completa}
-              onClick={() => setConfirming(true)}
-            >
-              Confirmar salida
-            </Button>
-          )
-        }
       />
       {cambios && (
         <Constancia
@@ -138,6 +129,35 @@ export function DespachoPage() {
           rowKey="sku"
         />
       </Card>
+      {pendiente && (
+        <ActionBar
+          aria-label="Resumen y confirmación de la salida"
+          summary={
+            <Text size="sm" fw={600}>
+              {orden.lineas.length === 1 ? '1 línea' : `${orden.lineas.length} líneas`}:{' '}
+              {sinReservar === 0
+                ? 'todas con la cantidad reservada'
+                : `${sinReservar} sin la reserva completa`}
+            </Text>
+          }
+          reason={
+            completa
+              ? null
+              : 'Falta reservar cantidades. Gestionar el abastecimiento antes de confirmar la salida.'
+          }
+        >
+          <Button variant="default" onClick={() => void navigate('/despachos')}>
+            Cancelar
+          </Button>
+          <Button
+            leftSection={<Icon name="despacho" />}
+            disabled={!completa}
+            onClick={() => setConfirming(true)}
+          >
+            Confirmar salida
+          </Button>
+        </ActionBar>
+      )}
       <ConfirmDialog
         open={confirming}
         title="Confirmar salida de la mercadería"

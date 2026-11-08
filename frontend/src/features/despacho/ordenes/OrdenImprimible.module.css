@@ -1,0 +1,169 @@
+.barra {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+}
+
+/* Hoja del documento. Sus colores salen de la paleta fija de tokens (escalas brand y gray), que no cambia con el tema. */
+.hoja {
+  max-width: 210mm;
+  margin-inline: auto;
+  padding: var(--space-8) var(--space-10);
+  background: var(--brand-0);
+  color: var(--gray-9);
+  border: 1px solid var(--gray-2);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
+  font-family: var(--font-sans);
+  font-size: var(--mantine-font-size-md);
+
+  @include smaller-than $mantine-breakpoint-sm {
+    padding: var(--space-4);
+  }
+}
+
+.encabezado {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding-bottom: var(--space-4);
+  border-bottom: 2px solid var(--brand-7);
+}
+
+.negocio {
+  margin: 0;
+  font-weight: 700;
+  font-size: var(--mantine-font-size-lg);
+}
+
+.titulo {
+  margin: var(--space-6) 0 var(--space-4);
+  font-family: var(--font-heading);
+  font-size: var(--mantine-font-size-xl);
+  font-weight: 700;
+}
+
+.datos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3) var(--space-6);
+  margin: 0 0 var(--space-6);
+
+  & div {
+    display: flex;
+    flex-direction: column;
+  }
+
+  & dt {
+    font-size: var(--mantine-font-size-sm);
+    color: var(--gray-6);
+  }
+
+  & dd {
+    margin: 0;
+    font-weight: 600;
+  }
+
+  @include smaller-than $mantine-breakpoint-sm {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.mono {
+  font-family: var(--font-mono);
+}
+
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+
+  & caption {
+    margin-bottom: var(--space-2);
+    text-align: left;
+    font-weight: 600;
+  }
+
+  & th,
+  & td {
+    padding: var(--space-2) var(--space-3);
+    border-bottom: 1px solid var(--gray-2);
+    text-align: left;
+    vertical-align: top;
+  }
+
+  & thead th {
+    border-bottom: 2px solid var(--gray-6);
+  }
+
+  & tfoot th,
+  & tfoot td {
+    border-top: 2px solid var(--gray-6);
+    border-bottom: none;
+    font-weight: 700;
+  }
+}
+
+.tabla .numerico {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.firmas {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-6);
+  margin: var(--space-12) 0 0;
+  padding: 0;
+  list-style: none;
+  text-align: center;
+
+  @include smaller-than $mantine-breakpoint-sm {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-8);
+  }
+}
+
+.linea {
+  display: block;
+  height: var(--space-12);
+  margin-bottom: var(--space-2);
+  border-bottom: 1px solid var(--gray-9);
+}
+
+@media print {
+  /* Valores literales: el documento impreso ignora el tema de pantalla y ocupa una hoja A4 con márgenes de 15 mm. */
+  @page {
+    size: A4;
+    margin: 15mm;
+  }
+
+  :global(body) * {
+    visibility: hidden;
+  }
+
+  .hoja,
+  .hoja * {
+    visibility: visible;
+  }
+
+  .hoja {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    background: #ffffff;
+    color: #000000;
+  }
+
+  .barra {
+    display: none;
+  }
+}

@@ -6,9 +6,13 @@ export const esquemaProveedor = z.object({
   ruc: z
     .string()
     .trim()
-    .min(1, 'Ingresar el RUC.')
-    .regex(/^\d{11}$/, 'El RUC debe tener 11 dígitos.')
-    .regex(/^(10|20)/, 'El RUC debe empezar con 10 o 20.'),
+    .superRefine((valor, ctx) => {
+      if (!/^\d{11}$/.test(valor)) {
+        ctx.addIssue({ code: 'custom', message: 'El RUC debe tener 11 dígitos.' });
+      } else if (!/^(10|20)/.test(valor)) {
+        ctx.addIssue({ code: 'custom', message: 'El RUC debe empezar con 10 o 20.' });
+      }
+    }),
   contacto: z.string().trim().min(1, 'Ingresar la persona de contacto.'),
   telefono: z
     .string()

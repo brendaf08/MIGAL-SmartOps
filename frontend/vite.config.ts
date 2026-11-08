@@ -17,5 +17,10 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./vitest.setup.ts'],
     css: true,
+    // Las pruebas de pantalla montan Mantine completo y usan latencia simulada: con muchos archivos en paralelo
+    // el límite de 5 s por prueba se supera por contención, no por un defecto.
+    testTimeout: 20000,
+    hookTimeout: 20000,
+    maxWorkers: 6,
   },
 });

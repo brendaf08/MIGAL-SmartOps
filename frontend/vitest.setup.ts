@@ -23,6 +23,11 @@ class ResizeObserverMock {
 }
 vi.stubGlobal('ResizeObserver', ResizeObserverMock);
 
+/* jsdom no implementa document.fonts, que usa el autoajuste de altura de Textarea. */
+Object.defineProperty(document, 'fonts', {
+  value: { addEventListener: vi.fn(), removeEventListener: vi.fn(), ready: Promise.resolve() },
+});
+
 afterEach(() => {
   window.localStorage.clear();
   document.documentElement.removeAttribute('data-theme');

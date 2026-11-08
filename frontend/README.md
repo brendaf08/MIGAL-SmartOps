@@ -4,7 +4,7 @@ Aplicación web de MIGAL SmartOps (SPA en React). La decisión de stack se encue
 
 ## Estado
 
-Incluye la configuración base, el tema claro y oscuro, el layout responsive (teléfono, tablet y escritorio), los primitivos y componentes de dominio del sistema de diseño, la sesión con rutas protegidas por rol y las pantallas de todos los módulos de la navegación: disponibilidad, catálogo, Kardex, despachos, recepciones con OCR, documentos, cotizaciones, proveedores y compras, agente de IA y usuarios. Incorpora además la barra de acciones con diferencias y bloqueo con motivo en la recepción, las ubicaciones de stock (`StockLocations`), la constancia de cierre de recepciones y salidas, y el modo almacén por equipo. Las pantallas de referencia del diseño (acceso, disponibilidad, cotización, recepción con OCR, despacho y agente de IA) tienen implementación completa; el resto son listados.
+Incluye la configuración base, el tema claro y oscuro, el layout responsive (teléfono, tablet y escritorio), los primitivos y componentes de dominio del sistema de diseño, la sesión con rutas protegidas por rol y las pantallas de todos los módulos de la navegación: disponibilidad, catálogo, alertas de stock, Kardex con registro de movimientos, despachos con orden imprimible, recepciones y documentos con OCR, cotizaciones, ventas, clientes, proveedores, órdenes de compra, agente de IA y usuarios. Cada módulo cubre sus flujos de punta a punta (listado, formulario, detalle y confirmación) y se documenta en [docs/diseno/pantallas](../docs/diseno/pantallas/README.md).
 
 El backend aún no existe (la carpeta `backend/` solo contiene su README). Los datos provienen de una capa simulada, descrita en [Datos simulados](#datos-simulados-y-usuarios-de-prueba).
 

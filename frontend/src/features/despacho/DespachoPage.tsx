@@ -2,7 +2,7 @@ import { Button, Skeleton, Text } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { Link, useNavigate, useParams } from 'react-router';
 import { Constancia, type CambioStock } from '@/components/domain/Constancia/Constancia';
 import { StatusBadge } from '@/components/domain/StatusBadge/StatusBadge';
 import { PageHeader } from '@/components/layout/PageHeader/PageHeader';
@@ -90,6 +90,16 @@ export function DespachoPage() {
         breadcrumbs={[{ label: 'Despachos', href: '/despachos' }, { label: orden.id }]}
         status={<StatusBadge entity="guia" value={orden.estado} />}
         description={`Venta ${orden.venta}, ${orden.cliente}, Entrega ${orden.entrega.toLowerCase()}`}
+        actions={
+          <Button
+            component={Link}
+            to={`/despachos/${orden.id}/imprimir`}
+            variant="default"
+            leftSection={<Icon name="print" />}
+          >
+            Imprimir orden
+          </Button>
+        }
       />
       {cambios && (
         <Constancia

@@ -51,6 +51,14 @@ export function resumirRecepcion(lineas: LineaRecepcion[]): ResumenRecepcion {
   };
 }
 
+/** Unidades que faltan por recibir respecto del pedido, solo en líneas con producto asociado. */
+export function faltanteTotal(lineas: LineaRecepcion[]): number {
+  return lineas.reduce((suma, l) => {
+    const d = diferenciaLinea(l);
+    return d.tipo === 'faltan' ? suma + d.cantidad : suma;
+  }, 0);
+}
+
 /** Iguala lo recibido al pedido solo en las líneas con producto asociado y coincidencia alta. */
 export function igualarCoincidenciasAltas(
   lineas: LineaRecepcion[],

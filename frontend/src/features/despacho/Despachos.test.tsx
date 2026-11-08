@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it } from 'vitest';
 import { renderApp } from '@/test/renderApp';
@@ -35,9 +35,17 @@ describe('Despachos', () => {
 
     await userEvent.click(within(dialog).getByRole('button', { name: 'Confirmar salida' }));
 
+    const constancia = await screen.findByRole('status', {
+      name: 'Salida de la orden D-0031 confirmada',
+    });
+    expect(constancia).toHaveTextContent('Se registraron las salidas de la orden D-0031');
     expect(
-      await screen.findByText(/Se registraron las salidas de la orden D-0031/),
+      within(constancia).getByRole('table', { name: 'Existencia antes y después' }),
     ).toBeInTheDocument();
+    // La tabla de origen refleja el cambio: la orden ya no se puede confirmar de nuevo.
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: 'Confirmar salida' })).not.toBeInTheDocument(),
+    );
     expect(ORDENES[0]!.estado).toBe('SalidaConfirmada');
     ORDENES[0]!.estado = 'Emitida';
   });

@@ -3,6 +3,7 @@ import { notifications } from '@mantine/notifications';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
+import { Constancia } from '@/components/domain/Constancia/Constancia';
 import { MatchConfidence } from '@/components/domain/MatchConfidence/MatchConfidence';
 import { StatusBadge } from '@/components/domain/StatusBadge/StatusBadge';
 import { PageHeader } from '@/components/layout/PageHeader/PageHeader';
@@ -16,9 +17,11 @@ import { FileItem } from '@/components/ui/Dropzone/FileItem';
 import { Icon } from '@/components/ui/Icon/Icon';
 import { ConfirmDialog } from '@/components/ui/Modal/ConfirmDialog';
 import { PRODUCTOS } from '@/features/inventario/fixtures';
-import { confirmarRecepcion, procesarDocumento } from './api';
+import { formatNumber } from '@/lib/format';
+import { confirmarRecepcion, procesarDocumento, type ResultadoRecepcion } from './api';
 import {
   diferenciaLinea,
+  faltanteTotal,
   igualarCoincidenciasAltas,
   resumirRecepcion,
   type DiferenciaLinea,
@@ -67,6 +70,10 @@ export function RecepcionOCRPage() {
   const [doc, setDoc] = useState<DocumentoProcesado | null>(null);
   const [lineas, setLineas] = useState<LineaRecepcion[]>([]);
   const [confirming, setConfirming] = useState(false);
+  /** La constancia solo existe como resultado de confirmar. */
+  const [cerrada, setCerrada] = useState<
+    (ResultadoRecepcion & { parciales: number; faltante: number }) | null
+  >(null);
 
   const procesar = useMutation({
     mutationFn: procesarDocumento,
@@ -79,12 +86,8 @@ export function RecepcionOCRPage() {
     mutationFn: () => confirmarRecepcion(doc!, lineas),
     onSuccess: (r) => {
       void queryClient.invalidateQueries({ queryKey: ['recepciones'] });
-      notifications.show({
-        color: 'success',
-        title: 'Recepción confirmada',
-        message: `Se registró la recepción ${r.id} y sus entradas en el Kardex.`,
-      });
-      void navigate('/recepciones');
+      setConfirming(false);
+      setCerrada({ ...r, parciales: resumen.parciales, faltante: faltanteTotal(lineas) });
     },
     onError: (e) => {
       setConfirming(false);
@@ -108,6 +111,39 @@ export function RecepcionOCRPage() {
 
   const resumen = resumirRecepcion(lineas);
   const { sinAsociar: sinProducto, parciales } = resumen;
+
+  if (cerrada) {
+    const { recepcion, cambios } = cerrada;
+    return (
+      <>
+        <PageHeader
+          title="Recepción confirmada"
+          breadcrumbs={[{ label: 'Recepciones', href: '/recepciones' }, { label: recepcion.id }]}
+        />
+        <Constancia
+          sello={<StatusBadge entity="recepcion" value={recepcion.estado} variant="sello" />}
+          title={`Recepción ${recepcion.id} registrada`}
+          description={`Orden ${recepcion.orden}, ${recepcion.proveedor}, ${recepcion.almacen}.`}
+          cambios={cambios}
+          nota={
+            cerrada.parciales > 0
+              ? `Recepción parcial: quedan por recibir ${formatNumber(cerrada.faltante)} unidades en ${plural(cerrada.parciales, 'línea', 'líneas')}.`
+              : 'Las entradas quedaron registradas en el Kardex.'
+          }
+          actions={
+            <>
+              <Button variant="default" onClick={() => void navigate('/recepciones')}>
+                Volver a recepciones
+              </Button>
+              <Button leftSection={<Icon name="kardex" />} onClick={() => void navigate('/kardex')}>
+                Ver movimientos en el Kardex
+              </Button>
+            </>
+          }
+        />
+      </>
+    );
+  }
 
   const columns: Column<LineaRecepcion>[] = [
     { key: 'texto', header: 'Texto extraído', primary: true, mono: true },

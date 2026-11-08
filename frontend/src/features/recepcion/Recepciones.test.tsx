@@ -95,7 +95,13 @@ describe('Recepciones', () => {
     expect(dialog).toHaveTextContent('recepción parcial');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Confirmar recepción' }));
 
-    expect(await screen.findByText(/Se registró la recepción/)).toBeInTheDocument();
+    const constancia = await screen.findByRole('status', { name: /Recepción R-\d+ registrada/ });
+    expect(within(constancia).getByText('Validada')).toBeInTheDocument();
+    const tabla = within(constancia).getByRole('table', { name: 'Existencia antes y después' });
+    // Fierro: se esperaban 60 y se recibieron 40, de modo que quedan 20 por recibir.
+    expect(tabla).toHaveTextContent('Cemento Sol tipo I');
+    expect(constancia).toHaveTextContent('quedan por recibir 20 unidades en 1 línea');
+    expect(within(constancia).getByRole('button', { name: 'Ver movimientos en el Kardex' })).toBeEnabled();
     expect(RECEPCIONES).toHaveLength(antes + 1);
     RECEPCIONES.shift();
   });

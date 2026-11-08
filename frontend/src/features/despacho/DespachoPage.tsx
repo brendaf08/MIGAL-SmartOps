@@ -2,7 +2,8 @@ import { Button, Skeleton } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { useParams } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
+import { Constancia, type CambioStock } from '@/components/domain/Constancia/Constancia';
 import { StatusBadge } from '@/components/domain/StatusBadge/StatusBadge';
 import { PageHeader } from '@/components/layout/PageHeader/PageHeader';
 import { Alert } from '@/components/ui/Alert/Alert';
@@ -36,6 +37,9 @@ export function DespachoPage() {
   const { id = '' } = useParams();
   const queryClient = useQueryClient();
   const [confirming, setConfirming] = useState(false);
+  /** La constancia solo existe como resultado de confirmar la salida en esta pantalla. */
+  const [cambios, setCambios] = useState<CambioStock[] | null>(null);
+  const navigate = useNavigate();
   const { data: orden, isError } = useQuery({
     queryKey: ['orden', id],
     queryFn: () => obtenerOrden(id),
@@ -43,15 +47,11 @@ export function DespachoPage() {
 
   const confirmar = useMutation({
     mutationFn: () => confirmarSalida(id),
-    onSuccess: () => {
+    onSuccess: (r) => {
       setConfirming(false);
+      setCambios(r.cambios);
       void queryClient.invalidateQueries({ queryKey: ['orden', id] });
       void queryClient.invalidateQueries({ queryKey: ['ordenes'] });
-      notifications.show({
-        color: 'success',
-        title: 'Salida confirmada',
-        message: `Se registraron las salidas de la orden ${id} en el Kardex.`,
-      });
     },
     onError: (e) => {
       setConfirming(false);
@@ -100,6 +100,25 @@ export function DespachoPage() {
           )
         }
       />
+      {cambios && (
+        <Constancia
+          sello={<StatusBadge entity="guia" value={orden.estado} variant="sello" />}
+          title={`Salida de la orden ${orden.id} confirmada`}
+          description={`Se registraron las salidas de la orden ${orden.id} en el Kardex.`}
+          cambios={cambios}
+          nota="La reserva de la venta quedó consumida por la salida."
+          actions={
+            <>
+              <Button variant="default" onClick={() => void navigate('/despachos')}>
+                Volver a despachos
+              </Button>
+              <Button leftSection={<Icon name="kardex" />} onClick={() => void navigate('/kardex')}>
+                Ver movimientos en el Kardex
+              </Button>
+            </>
+          }
+        />
+      )}
       {pendiente &&
         (completa ? (
           <Alert tone="success" title="Todas las cantidades están reservadas">

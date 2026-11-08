@@ -1,5 +1,9 @@
 import '@testing-library/jest-dom/vitest';
+import { configure } from '@testing-library/react';
 import { afterEach, vi } from 'vitest';
+
+/* Con la suite completa en paralelo, las consultas simuladas con latencia superan el segundo por omisión. */
+configure({ asyncUtilTimeout: 4000 });
 
 /* jsdom no implementa matchMedia ni ResizeObserver, que Mantine utiliza. */
 Object.defineProperty(window, 'matchMedia', {

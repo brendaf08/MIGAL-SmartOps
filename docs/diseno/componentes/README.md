@@ -11,6 +11,7 @@ Catálogo de componentes y pantallas de referencia. Cada documento indica cuánd
 | Formularios | [Dropzone](dropzone.md) | Zona de carga de documentos operativos (notas manuscritas, capturas de pedidos y guías de proveedores) para su procesamiento mediante OCR. |
 | Formularios | [NumberInput](number-input.md) | Entrada de cantidades con botones de disminuir y aumentar, soporte de teclado (flechas arriba y abajo), límites y unidad de medida visible. |
 | Formularios | [SearchInput](search-input.md) | Campo de búsqueda con ícono de lupa y botón "Limpiar búsqueda" visible cuando hay texto. |
+| Formularios | [ProductoSelect y MoneyInput](producto-select.md) | Selector buscable de productos del catálogo y campo de importes en soles con formato `S/ 1,250.00`. |
 | Formularios | [Select](select.md) | Selector de una opción entre varias, basado en el elemento nativo `select` para conservar teclado, lectores de pantalla y selector táctil del sistema operativo. |
 | Formularios | [Switch](switch.md) | Interruptor (`role="switch"`) para activar o desactivar una opción con efecto inmediato, como el estado activo de un cliente, proveedor o usuario. |
 | Formularios | [TextInput](text-input.md) | Campo de una línea con etiqueta visible, texto de ayuda, mensaje de error y asociación automática entre etiqueta, ayuda y error (`for`, `aria-describedby`, `aria-invalid`). |
@@ -37,6 +38,8 @@ Catálogo de componentes y pantallas de referencia. Cada documento indica cuánd
 | Estructura | [Card](card.md) | Contenedor de contenido relacionado, con encabezado opcional (título, descripción y acciones), cuerpo y pie. |
 | Estructura | [Columns](columns.md) | Disposición en columnas con separación de la escala `space-*`. |
 | Estructura | [Constancia](constancia.md) | Constancia que cierra una operación de inventario (recepción, despacho, ajuste, traslado). |
+| Estructura | [FormPage](form-page.md) | Estructura de un formulario de página completa con tarjetas y barra de acciones al pie. |
+| Estructura | [LineasEditor](lineas-editor.md) | Tabla editable de líneas de detalle con cantidades, precios, descuento y totales. |
 | Estructura | [Stack](stack.md) | Contenedor flexible que ordena a sus hijos en columna o fila con un espaciado tomado de la escala `space-*`. |
 | Inventario | [MatchConfidence](match-confidence.md) | Indicador del grado de similitud entre un término extraído por OCR (o escrito por el usuario) y un producto del catálogo maestro. |
 | Inventario | [StockBar](stock-bar.md) | Barra segmentada que muestra de un vistazo cómo se reparte el stock de un producto: libre, reservado y, cuando existe, la cantidad solicitada sin cobertura (pendiente de abastecimiento). |

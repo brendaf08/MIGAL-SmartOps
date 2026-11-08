@@ -105,4 +105,14 @@ describe('Recepción desde una orden de compra', () => {
     await screen.findByRole('table', { name: 'Conteo de la recepción' });
     expect(await sinViolaciones()).toHaveNoViolations();
   }, 15000);
+
+  it('un documento revisado en la pantalla de documentos llega precargado al paso del documento', async () => {
+    renderApp('/recepciones/nueva?oc=OC-0087&documento=4', 'Almacenero');
+    await continuar();
+
+    expect(await screen.findByRole('table', { name: 'Líneas extraídas' })).toBeInTheDocument();
+    expect(screen.getByText('Datos precargados desde el documento')).toBeInTheDocument();
+    const barra = screen.getByRole('region', { name: 'Documento de la recepción' });
+    expect(within(barra).getByRole('status')).toHaveTextContent('Falta asociar 1 línea');
+  });
 });

@@ -15,7 +15,7 @@ import { FileItem } from '@/components/ui/Dropzone/FileItem';
 import { Icon } from '@/components/ui/Icon/Icon';
 import { ConfirmDialog } from '@/components/ui/Modal/ConfirmDialog';
 import { Stepper } from '@/components/ui/Stepper/Stepper';
-import { procesarDocumento, type LineaOcr } from '@/features/documentos-ocr/api';
+import { obtenerDocumento, procesarDocumento, type LineaOcr } from '@/features/documentos-ocr/api';
 import { LineasOcrTabla } from '@/features/documentos-ocr/LineasOcrTabla';
 import { formatNumber } from '@/lib/format';
 import {
@@ -84,6 +84,14 @@ export function OrdenRecepcionPage() {
   const [ordenId, setOrdenId] = useState<string | null>(params.get('oc'));
   const [archivo, setArchivo] = useState<File | null>(null);
   const [lineasOcr, setLineasOcr] = useState<LineaOcr[] | null>(null);
+  /** Con `documento=ID` la revisión del OCR (P24) llega ya validada: sus líneas se precargan en el paso del documento. */
+  const [usarPrecargado, setUsarPrecargado] = useState(params.has('documento'));
+  const precargado = useQuery({
+    queryKey: ['documento', Number(params.get('documento'))],
+    queryFn: () => obtenerDocumento(Number(params.get('documento'))),
+    enabled: params.has('documento') && Number.isInteger(Number(params.get('documento'))),
+  });
+  const ocr = lineasOcr ?? (usarPrecargado ? (precargado.data?.lineas ?? null) : null);
   const [lineas, setLineas] = useState<LineaRecepcion[]>([]);
   const [nota, setNota] = useState('');
   const [confirming, setConfirming] = useState(false);
@@ -121,6 +129,7 @@ export function OrdenRecepcionPage() {
     if (!file) return;
     setArchivo(file);
     setLineasOcr(null);
+    setUsarPrecargado(false);
     procesar.mutate(file);
   };
 
@@ -129,13 +138,14 @@ export function OrdenRecepcionPage() {
     setPaso(0);
     setArchivo(null);
     setLineasOcr(null);
+    setUsarPrecargado(false);
     setLineas([]);
     setNota('');
     procesar.reset();
   };
 
   const actualizarOcr = (id: number, patch: Partial<LineaOcr>) =>
-    setLineasOcr((prev) => prev?.map((l) => (l.id === id ? { ...l, ...patch } : l)) ?? null);
+    setLineasOcr((prev) => (prev ?? ocr)?.map((l) => (l.id === id ? { ...l, ...patch } : l)) ?? null);
   const actualizarConteo = (id: number, patch: Partial<LineaRecepcion>) =>
     setLineas((prev) => prev.map((l) => (l.id === id ? { ...l, ...patch } : l)));
 
@@ -177,10 +187,10 @@ export function OrdenRecepcionPage() {
     );
   }
 
-  const sinAsociarOcr = lineasOcr?.filter((l) => !l.sku).length ?? 0;
+  const sinAsociarOcr = ocr?.filter((l) => !l.sku).length ?? 0;
   const motivoPaso1 = procesar.isPending
     ? 'Leyendo la guía con OCR.'
-    : !lineasOcr
+    : !ocr
       ? 'Cargar la guía o registrar la recepción sin documento.'
       : sinAsociarOcr > 0
         ? `Falta asociar ${plural(sinAsociarOcr, 'línea', 'líneas')} a un producto del catálogo.`
@@ -280,12 +290,12 @@ export function OrdenRecepcionPage() {
           <>
             <Alert
               title={
-                lineasOcr
+                ocr
                   ? 'Datos precargados desde el documento'
                   : 'La carga no modifica el inventario'
               }
             >
-              {lineasOcr
+              {ocr
                 ? 'Las entradas al Kardex se generan solo al confirmar, con lo efectivamente recibido.'
                 : 'El documento no genera ventas, reservas ni movimientos; se revisa antes de confirmar.'}
             </Alert>
@@ -308,15 +318,15 @@ export function OrdenRecepcionPage() {
                 )}
               </Stack>
             </Card>
-            {lineasOcr && (
+            {ocr && (
               <Card
                 title="Líneas de la guía"
-                description={`${plural(lineasOcr.length, 'línea', 'líneas')}${sinAsociarOcr ? `, ${sinAsociarOcr} sin asociar` : ''}`}
+                description={`${plural(ocr.length, 'línea', 'líneas')}${sinAsociarOcr ? `, ${sinAsociarOcr} sin asociar` : ''}`}
                 padded={false}
               >
                 <LineasOcrTabla
                   caption="Líneas extraídas"
-                  lineas={lineasOcr}
+                  lineas={ocr}
                   onSkuChange={(id, sku) => actualizarOcr(id, { sku })}
                   columnas={columnasOcr}
                 />
@@ -396,9 +406,9 @@ export function OrdenRecepcionPage() {
         <ActionBar
           aria-label="Documento de la recepción"
           summary={
-            lineasOcr && (
+            ocr && (
               <Text size="sm" fw={600}>
-                {plural(lineasOcr.length, 'línea', 'líneas')}, {sinAsociarOcr} sin asociar
+                {plural(ocr.length, 'línea', 'líneas')}, {sinAsociarOcr} sin asociar
               </Text>
             )
           }
@@ -411,6 +421,7 @@ export function OrdenRecepcionPage() {
             variant="default"
             onClick={() => {
               setLineasOcr(null);
+              setUsarPrecargado(false);
               setLineas(construirLineas(orden, null));
               setPaso(2);
             }}
@@ -419,9 +430,9 @@ export function OrdenRecepcionPage() {
           </Button>
           <Button
             leftSection={<Icon name="check" />}
-            disabled={!lineasOcr || sinAsociarOcr > 0 || procesar.isPending}
+            disabled={!ocr || sinAsociarOcr > 0 || procesar.isPending}
             onClick={() => {
-              setLineas(construirLineas(orden, lineasOcr));
+              setLineas(construirLineas(orden, ocr));
               setPaso(2);
             }}
           >

@@ -3,6 +3,8 @@ import { Navigate, Route, Routes } from 'react-router';
 import { EmptyState } from '@/components/ui/EmptyState/EmptyState';
 import { CotizacionesPage } from '@/features/comercial/CotizacionesPage';
 import { CotizacionPage } from '@/features/comercial/CotizacionPage';
+import { DespachoPage } from '@/features/despacho/DespachoPage';
+import { DespachosPage } from '@/features/despacho/DespachosPage';
 import { AgenteIAPage } from '@/features/agente-ia/AgenteIAPage';
 import { DisponibilidadPage } from '@/features/inventario/DisponibilidadPage';
 import { RequireAuth, RequireRole } from '@/features/seguridad/guards';
@@ -19,11 +21,13 @@ const PAGES: Record<string, ReactElement> = {
   disponibilidad: <DisponibilidadPage />,
   'agente-ia': <AgenteIAPage />,
   ventas: <CotizacionesPage />,
+  despachos: <DespachosPage />,
 };
 
 /** Pantallas de detalle (`/<módulo>/:id`) por clave de navegación. */
 const DETAILS: Record<string, ReactElement> = {
   ventas: <CotizacionPage />,
+  despachos: <DespachoPage />,
 };
 
 /** Lleva al primer módulo visible para el rol del usuario. */

@@ -2,6 +2,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router';
 import logo from '@/assets/progresol-logo.png';
 import { AppShell } from '@/components/layout/AppShell/AppShell';
 import { useSession } from '@/features/seguridad/session';
+import { useWarehouseMode } from '@/theme';
 import { NAV } from './navigation';
 
 /** Marco de las rutas internas: la clave de cada ítem de navegación es su ruta. */
@@ -9,6 +10,7 @@ export function ShellLayout() {
   const { user, logout } = useSession();
   const navigate = useNavigate();
   const current = useLocation().pathname.split('/')[1];
+  const { warehouse, toggle: toggleWarehouse } = useWarehouseMode();
 
   if (!user) return null;
 
@@ -23,6 +25,8 @@ export function ShellLayout() {
       logo={logo}
       appName="MIGAL SmartOps"
       subtitle="Ferretería Progresol Migal"
+      warehouse={warehouse}
+      onToggleWarehouse={toggleWarehouse}
     >
       <Outlet />
     </AppShell>

@@ -2,8 +2,8 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
 import { StatusBadge } from '@/components/domain/StatusBadge/StatusBadge';
 import { PageHeader } from '@/components/layout/PageHeader/PageHeader';
-import { Alert } from '@/components/ui/Alert/Alert';
-import { DataTable, type Column } from '@/components/ui/DataTable/DataTable';
+import { type Column } from '@/components/ui/DataTable/DataTable';
+import { QueryTable } from '@/components/ui/QueryTable/QueryTable';
 import { listarOrdenes } from './api';
 import type { OrdenDespacho } from './types';
 
@@ -22,25 +22,19 @@ const columns: Column<OrdenDespacho>[] = [
 /** CU-06: órdenes de despacho; cada fila abre su confirmación de salida. */
 export function DespachosPage() {
   const navigate = useNavigate();
-  const { data, isLoading, isError } = useQuery({ queryKey: ['ordenes'], queryFn: listarOrdenes });
+  const query = useQuery({ queryKey: ['ordenes'], queryFn: listarOrdenes });
 
   return (
     <>
       <PageHeader title="Despachos" description="Órdenes de despacho pendientes y atendidas." />
-      {isError ? (
-        <Alert tone="danger" title="No se pudieron cargar las órdenes">
-          Verificar la conexión e intentar de nuevo.
-        </Alert>
-      ) : (
-        <DataTable
-          caption="Órdenes de despacho"
-          columns={columns}
-          rows={data ?? []}
-          rowKey="id"
-          loading={isLoading}
-          onRowClick={(o) => void navigate(`/despachos/${o.id}`)}
-        />
-      )}
+      <QueryTable
+        query={query}
+        errorTitle="No se pudieron cargar las órdenes"
+        caption="Órdenes de despacho"
+        columns={columns}
+        rowKey="id"
+        onRowClick={(o) => void navigate(`/despachos/${o.id}`)}
+      />
     </>
   );
 }

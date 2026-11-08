@@ -2,8 +2,8 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
 import { StatusBadge } from '@/components/domain/StatusBadge/StatusBadge';
 import { PageHeader } from '@/components/layout/PageHeader/PageHeader';
-import { Alert } from '@/components/ui/Alert/Alert';
-import { DataTable, type Column } from '@/components/ui/DataTable/DataTable';
+import { type Column } from '@/components/ui/DataTable/DataTable';
+import { QueryTable } from '@/components/ui/QueryTable/QueryTable';
 import { formatCurrency, formatDate } from '@/lib/format';
 import { listarCotizaciones } from './api';
 import { totales } from './calculos';
@@ -25,10 +25,7 @@ const columns: Column<Cotizacion>[] = [
 /** CU-09: listado de cotizaciones; cada fila abre su detalle. */
 export function CotizacionesPage() {
   const navigate = useNavigate();
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ['cotizaciones'],
-    queryFn: listarCotizaciones,
-  });
+  const query = useQuery({ queryKey: ['cotizaciones'], queryFn: listarCotizaciones });
 
   return (
     <>
@@ -36,20 +33,14 @@ export function CotizacionesPage() {
         title="Cotizaciones y ventas"
         description="Cotizaciones emitidas a clientes y su estado."
       />
-      {isError ? (
-        <Alert tone="danger" title="No se pudieron cargar las cotizaciones">
-          Verificar la conexión e intentar de nuevo.
-        </Alert>
-      ) : (
-        <DataTable
-          caption="Cotizaciones"
-          columns={columns}
-          rows={data ?? []}
-          rowKey="id"
-          loading={isLoading}
-          onRowClick={(c) => void navigate(`/ventas/${c.id}`)}
-        />
-      )}
+      <QueryTable
+        query={query}
+        errorTitle="No se pudieron cargar las cotizaciones"
+        caption="Cotizaciones"
+        columns={columns}
+        rowKey="id"
+        onRowClick={(c) => void navigate(`/ventas/${c.id}`)}
+      />
     </>
   );
 }

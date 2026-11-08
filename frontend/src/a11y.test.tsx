@@ -12,7 +12,7 @@ afterEach(() => window.sessionStorage.clear());
 const PANTALLAS: [ruta: string, rol: Role | undefined, listo: RegExp | string][] = [
   ['/acceso', undefined, 'Iniciar sesión'],
   ['/disponibilidad', 'Almacenero', 'CEM-001'],
-  ['/ventas/COT-0231', 'Vendedor', 'Esta cotización no reserva existencias'],
+  ['/cotizaciones/COT-0231', 'Vendedor', 'Esta cotización no reserva existencias'],
   ['/despachos/D-0031', 'Almacenero', 'Todas las cantidades están reservadas'],
   ['/recepciones', 'Almacenero', 'R-0012'],
   ['/agente-ia', 'Vendedor', 'Rol: Vendedor'],

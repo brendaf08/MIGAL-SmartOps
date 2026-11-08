@@ -20,7 +20,7 @@ describe('totales', () => {
 
 describe('Cotizaciones', () => {
   it('lista las cotizaciones y abre el detalle de una fila', async () => {
-    renderApp('/ventas', 'Vendedor');
+    renderApp('/cotizaciones', 'Vendedor');
 
     await userEvent.click(await screen.findByText('COT-0231'));
 
@@ -31,7 +31,7 @@ describe('Cotizaciones', () => {
   });
 
   it('presenta los totales con subtotal, descuento y total', async () => {
-    renderApp('/ventas/COT-0231', 'Vendedor');
+    renderApp('/cotizaciones/COT-0231', 'Vendedor');
 
     const table = await screen.findByRole('table', { name: 'Líneas de la cotización' });
     expect(within(table).getByText('Subtotal')).toBeInTheDocument();
@@ -40,7 +40,7 @@ describe('Cotizaciones', () => {
   });
 
   it('registra la aceptación y cambia el estado', async () => {
-    renderApp('/ventas/COT-0231', 'Vendedor');
+    renderApp('/cotizaciones/COT-0231', 'Vendedor');
 
     await userEvent.click(await screen.findByRole('button', { name: 'Registrar aceptación' }));
 
@@ -50,7 +50,7 @@ describe('Cotizaciones', () => {
   });
 
   it('avisa cuando la cotización no existe', async () => {
-    renderApp('/ventas/COT-9999', 'Vendedor');
+    renderApp('/cotizaciones/COT-9999', 'Vendedor');
 
     // La consulta fallida se reintenta una vez antes de informar el error.
     expect(

@@ -36,7 +36,7 @@ describe('AppShell', () => {
       hidden: true,
     })[0]!;
     expect(nav).toHaveTextContent('Disponibilidad');
-    expect(nav).toHaveTextContent('Cotizaciones y ventas');
+    expect(nav).toHaveTextContent('Cotizaciones');
     expect(nav).not.toHaveTextContent('Usuarios y roles');
     expect(
       screen.getAllByRole('button', { name: 'Disponibilidad', hidden: true })[0],

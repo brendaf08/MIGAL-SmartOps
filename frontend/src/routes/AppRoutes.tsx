@@ -1,48 +1,28 @@
-import type { ReactElement } from 'react';
 import { Navigate, Route, Routes } from 'react-router';
 import { EmptyState } from '@/components/ui/EmptyState/EmptyState';
-import { CotizacionesPage } from '@/features/comercial/CotizacionesPage';
-import { CotizacionPage } from '@/features/comercial/CotizacionPage';
-import { DespachoPage } from '@/features/despacho/DespachoPage';
-import { DespachosPage } from '@/features/despacho/DespachosPage';
-import { RecepcionesPage } from '@/features/recepcion/RecepcionesPage';
-import { RecepcionOCRPage } from '@/features/recepcion/RecepcionOCRPage';
-import { ProveedoresPage } from '@/features/abastecimiento/ProveedoresPage';
-import { CatalogoPage } from '@/features/catalogo/CatalogoPage';
-import { DocumentosPage } from '@/features/documentos-ocr/DocumentosPage';
-import { KardexPage } from '@/features/inventario/KardexPage';
-import { UsuariosPage } from '@/features/seguridad/UsuariosPage';
-import { AgenteIAPage } from '@/features/agente-ia/AgenteIAPage';
-import { DisponibilidadPage } from '@/features/inventario/DisponibilidadPage';
 import { RequireAuth, RequireRole } from '@/features/seguridad/guards';
 import { LoginPage } from '@/features/seguridad/LoginPage';
 import { useSession } from '@/features/seguridad/session';
 import { NAV } from './navigation';
+import type { RutaModulo } from './modulos/tipos';
 import { PendientePage } from './PendientePage';
 import { ShellLayout } from './ShellLayout';
 
 const ITEMS = NAV.flatMap((group) => group.items);
 
-/** Pantalla de cada módulo por clave de navegación. Los módulos sin pantalla muestran un aviso. */
-const PAGES: Record<string, ReactElement> = {
-  disponibilidad: <DisponibilidadPage />,
-  'agente-ia': <AgenteIAPage />,
-  ventas: <CotizacionesPage />,
-  despachos: <DespachosPage />,
-  recepciones: <RecepcionesPage />,
-  catalogo: <CatalogoPage />,
-  kardex: <KardexPage />,
-  documentos: <DocumentosPage />,
-  proveedores: <ProveedoresPage />,
-  usuarios: <UsuariosPage />,
-};
-
-/** Pantallas secundarias (`/<módulo>/<ruta>`) por clave de navegación. */
-const DETAILS: Record<string, { path: string; element: ReactElement }> = {
-  ventas: { path: ':id', element: <CotizacionPage /> },
-  despachos: { path: ':id', element: <DespachoPage /> },
-  recepciones: { path: 'nueva', element: <RecepcionOCRPage /> },
-};
+/**
+ * Rutas de cada módulo, leídas de `modulos/<clave>.tsx`. La clave es el nombre del archivo hasta el primer punto,
+ * de modo que `ventas.registro.tsx` aporta rutas al módulo `ventas`. Cada archivo pertenece a una sola rama de trabajo.
+ */
+const ARCHIVOS = import.meta.glob<{ RUTAS: RutaModulo[] }>('./modulos/*.tsx', { eager: true });
+const RUTAS_POR_MODULO = Object.entries(ARCHIVOS).reduce<Record<string, RutaModulo[]>>(
+  (acc, [archivo, modulo]) => {
+    const clave = archivo.replace('./modulos/', '').split('.')[0] ?? '';
+    acc[clave] = [...(acc[clave] ?? []), ...modulo.RUTAS];
+    return acc;
+  },
+  {},
+);
 
 /** Lleva al primer módulo visible para el rol del usuario. */
 function Home() {
@@ -60,14 +40,23 @@ export function AppRoutes() {
         <Route element={<ShellLayout />}>
           <Route index element={<Home />} />
           {ITEMS.map((item) => {
-            const detail = DETAILS[item.key];
+            const rutas = RUTAS_POR_MODULO[item.key] ?? [];
+            const principal = rutas.some((r) => r.path === '');
             return (
               <Route key={item.key} element={<RequireRole roles={item.roles} />}>
-                <Route
-                  path={item.key}
-                  element={PAGES[item.key] ?? <PendientePage title={item.label} />}
-                />
-                {detail && <Route path={`${item.key}/${detail.path}`} element={detail.element} />}
+                {!principal && (
+                  <Route path={item.key} element={<PendientePage title={item.label} />} />
+                )}
+                {rutas.map((ruta) => {
+                  const path = ruta.path ? `${item.key}/${ruta.path}` : item.key;
+                  return ruta.roles ? (
+                    <Route key={ruta.path} element={<RequireRole roles={ruta.roles} />}>
+                      <Route path={path} element={ruta.element} />
+                    </Route>
+                  ) : (
+                    <Route key={ruta.path} path={path} element={ruta.element} />
+                  );
+                })}
               </Route>
             );
           })}

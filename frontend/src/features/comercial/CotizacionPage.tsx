@@ -60,7 +60,7 @@ export function CotizacionPage() {
       <>
         <PageHeader
           title="Cotización no encontrada"
-          breadcrumbs={[{ label: 'Cotizaciones y ventas', href: '/ventas' }, { label: id }]}
+          breadcrumbs={[{ label: 'Cotizaciones', href: '/cotizaciones' }, { label: id }]}
         />
         <Alert tone="warning" title="La cotización no existe">
           Volver al listado y elegir otra cotización.
@@ -78,7 +78,7 @@ export function CotizacionPage() {
       <PageHeader
         title={`Cotización ${cotizacion.id}`}
         breadcrumbs={[
-          { label: 'Cotizaciones y ventas', href: '/ventas' },
+          { label: 'Cotizaciones', href: '/cotizaciones' },
           { label: cotizacion.id },
         ]}
         status={<StatusBadge entity="cotizacion" value={cotizacion.estado} variant="sello" />}

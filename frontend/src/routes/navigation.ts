@@ -16,6 +16,12 @@ export const NAV: NavGroup[] = [
         roles: ['Almacenero', 'Vendedor'],
       },
       { key: 'catalogo', label: 'Catálogo', icon: 'sku', roles: ['Almacenero', 'Administrador'] },
+      {
+        key: 'alertas',
+        label: 'Alertas de stock',
+        icon: 'alert-triangle',
+        roles: ['Almacenero', 'Reponedor'],
+      },
       { key: 'kardex', label: 'Movimientos y Kardex', icon: 'kardex', roles: ['Almacenero'] },
       { key: 'despachos', label: 'Despachos', icon: 'despacho', roles: ['Almacenero'] },
       { key: 'recepciones', label: 'Recepciones', icon: 'recepcion', roles: ['Almacenero'] },
@@ -30,18 +36,16 @@ export const NAV: NavGroup[] = [
   {
     label: 'Comercial',
     items: [
-      { key: 'ventas', label: 'Cotizaciones y ventas', icon: 'cotizacion', roles: ['Vendedor'] },
+      { key: 'cotizaciones', label: 'Cotizaciones', icon: 'cotizacion', roles: ['Vendedor'] },
+      { key: 'ventas', label: 'Ventas', icon: 'venta', roles: ['Vendedor'] },
+      { key: 'clientes', label: 'Clientes', icon: 'users', roles: ['Vendedor'] },
     ],
   },
   {
     label: 'Abastecimiento',
     items: [
-      {
-        key: 'proveedores',
-        label: 'Proveedores y compras',
-        icon: 'proveedor',
-        roles: ['Reponedor'],
-      },
+      { key: 'proveedores', label: 'Proveedores', icon: 'proveedor', roles: ['Reponedor'] },
+      { key: 'compras', label: 'Órdenes de compra', icon: 'orden-compra', roles: ['Reponedor'] },
     ],
   },
   { label: 'Asistente', items: [{ key: 'agente-ia', label: 'Agente de IA', icon: 'sparkles' }] },

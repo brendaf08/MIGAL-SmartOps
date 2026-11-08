@@ -30,7 +30,7 @@ export function CotizacionesPage() {
   return (
     <>
       <PageHeader
-        title="Cotizaciones y ventas"
+        title="Cotizaciones"
         description="Cotizaciones emitidas a clientes y su estado."
       />
       <QueryTable
@@ -39,7 +39,7 @@ export function CotizacionesPage() {
         caption="Cotizaciones"
         columns={columns}
         rowKey="id"
-        onRowClick={(c) => void navigate(`/ventas/${c.id}`)}
+        onRowClick={(c) => void navigate(`/cotizaciones/${c.id}`)}
       />
     </>
   );

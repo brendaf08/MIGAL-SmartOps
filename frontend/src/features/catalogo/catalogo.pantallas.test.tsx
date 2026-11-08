@@ -2,7 +2,9 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it } from 'vitest';
 import { renderApp } from '@/test/renderApp';
+import { resumen } from '@/features/inventario/calculos';
 import { PRODUCTOS } from '@/features/inventario/fixtures';
+import { formatNumber } from '@/lib/format';
 
 afterEach(() => window.sessionStorage.clear());
 
@@ -87,6 +89,9 @@ describe('Catálogo, formulario', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Registrar producto' }));
 
     expect(await screen.findByText('Producto registrado')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Producto de prueba' }),
+    ).toBeInTheDocument();
   });
 
   it('bloquea el guardado con un SKU que ya existe', async () => {
@@ -153,5 +158,37 @@ describe('Catálogo, formulario', () => {
       await screen.findByRole('table', { name: 'Disponibilidad por producto' }),
     ).toBeInTheDocument();
     expect(screen.queryByRole('textbox', { name: 'SKU' })).not.toBeInTheDocument();
+  });
+});
+
+describe('Catálogo, ficha', () => {
+  it('abre la ficha desde la lista y muestra las existencias por ubicación', async () => {
+    renderApp('/catalogo', 'Almacenero');
+    const primero = PRODUCTOS[0]!;
+
+    await userEvent.click(await screen.findByText(primero.sku));
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: primero.nombre }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Tienda principal')).toBeInTheDocument();
+    expect(screen.getAllByText(formatNumber(resumen(primero).fisico)).length).toBeGreaterThan(0);
+  });
+
+  it('no ofrece controles de edición en línea', async () => {
+    renderApp('/catalogo/CEM-001', 'Almacenero');
+    await screen.findByRole('heading', { level: 1, name: PRODUCTOS[0]!.nombre });
+
+    expect(screen.queryAllByRole('textbox')).toHaveLength(0);
+    expect(screen.getByRole('link', { name: 'Modificar' })).toHaveAttribute(
+      'href',
+      '/catalogo/CEM-001/editar',
+    );
+  });
+
+  it('indica que el producto no existe', async () => {
+    renderApp('/catalogo/XXX-999', 'Almacenero');
+
+    expect(await screen.findByText('El producto no existe')).toBeInTheDocument();
   });
 });

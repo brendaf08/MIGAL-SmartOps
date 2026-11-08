@@ -76,6 +76,10 @@ export const obtenerProducto = (sku: string) =>
     return producto ? aCatalogo(producto) : null;
   });
 
+/** Existencias por ubicación de un producto (CU-04), o `null` si no existe. */
+export const obtenerExistencias = (sku: string) =>
+  mockRequest<ProductoDisponibilidad | null>(() => PRODUCTOS.find((p) => p.sku === sku) ?? null);
+
 /** Categorías presentes en el catálogo, en orden alfabético. */
 export const listarCategorias = () =>
   mockRequest(() => [...new Set(PRODUCTOS.map((p) => p.categoria))].sort((a, b) => a.localeCompare(b, 'es')));

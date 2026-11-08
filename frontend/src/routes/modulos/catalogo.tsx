@@ -1,4 +1,5 @@
 import { CatalogoPage } from '@/features/catalogo/CatalogoPage';
+import { ProductoFichaPage } from '@/features/catalogo/ProductoFichaPage';
 import { ProductoFormPage } from '@/features/catalogo/ProductoFormPage';
 import type { RutaModulo } from './tipos';
 
@@ -7,4 +8,5 @@ export const RUTAS: RutaModulo[] = [
   { path: '', element: <CatalogoPage /> },
   { path: 'nuevo', element: <ProductoFormPage /> },
   { path: ':sku/editar', element: <ProductoFormPage /> },
+  { path: ':sku', element: <ProductoFichaPage /> },
 ];

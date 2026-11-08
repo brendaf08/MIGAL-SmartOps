@@ -142,13 +142,24 @@
   }
 }
 
+/*
+ * El relleno se expresa por lado para conservar los desplazamientos que Mantine calcula para la barra lateral y la
+ * cabecera; un `padding` abreviado los anularía y dejaría el contenido bajo ambas.
+ */
 .main {
-  padding: var(--space-4) max(var(--space-4), env(safe-area-inset-right))
-    calc(var(--space-6) + env(safe-area-inset-bottom))
-    max(var(--space-4), env(safe-area-inset-left));
+  --main-pad-x: var(--space-4);
+  --main-pad-y: var(--space-4);
+
+  padding-inline-start: calc(
+    var(--app-shell-navbar-offset, 0rem) + max(var(--main-pad-x), env(safe-area-inset-left))
+  );
+  padding-inline-end: max(var(--main-pad-x), env(safe-area-inset-right));
+  padding-top: calc(var(--app-shell-header-offset, 0rem) + var(--main-pad-y));
+  padding-bottom: calc(var(--space-6) + env(safe-area-inset-bottom));
 
   @mixin larger-than $mantine-breakpoint-sm {
-    padding: var(--space-5) var(--space-6);
+    --main-pad-x: var(--space-6);
+    --main-pad-y: var(--space-5);
   }
 }
 

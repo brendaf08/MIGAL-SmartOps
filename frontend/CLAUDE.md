@@ -55,7 +55,8 @@ Dependencias en una sola dirección: `features` usa `components`; `components/do
 - Contraste WCAG AA, operación completa por teclado, foco visible, objetivos táctiles de 44 px y estados con texto y forma, no solo color.
 - Etiqueta visible en cada campo; `aria-label` obligatorio en botones de solo ícono; encabezados en orden.
 - Cada componente nuevo incluye: prueba con Testing Library (roles, nombres accesibles y teclado), historia de Storybook y verificación con `axe`.
-- Comprobar en 1280 px (All-in-One) y 768 px (tablet), en tema claro y oscuro.
+- Comprobar en 390 px (teléfono), 768 px (tablet) y 1280 px (All-in-One), en tema claro y oscuro, y con el zoom del navegador al 200 %.
+- **Responsive.** Una sola base de código con tres composiciones (teléfono, tablet y escritorio) según [Diseño responsive](../docs/diseno/sistema-de-diseno.md). Usar los puntos de quiebre del tema de Mantine (`xs`, `sm`, `md`, `lg`), nunca anchos fijos en píxeles ni valores de media query sueltos. En teléfono: navegación en panel deslizable, tablas en fichas con las columnas secundarias omitidas, diálogos como hoja inferior, acciones principales a ancho completo, objetivos táctiles de 44 px y campos de 16 px. Sin desplazamiento horizontal de la página. Declarar `viewport-fit=cover` y respetar las áreas seguras.
 
 ## Flujo de trabajo
 

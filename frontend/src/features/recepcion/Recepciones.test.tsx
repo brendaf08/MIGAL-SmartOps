@@ -1,9 +1,12 @@
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { axe } from 'vitest-axe';
+import * as matchers from 'vitest-axe/matchers';
 import { afterEach, describe, expect, it } from 'vitest';
 import { renderApp } from '@/test/renderApp';
 import { RECEPCIONES } from './api';
 
+expect.extend(matchers);
 afterEach(() => window.sessionStorage.clear());
 
 const guia = new File(['x'], 'guia-proveedor.jpg', { type: 'image/jpeg' });
@@ -34,6 +37,44 @@ describe('Recepciones', () => {
     expect(screen.getByText('Sin coincidencia')).toBeInTheDocument();
     expect(screen.getByText('Asociar un producto.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Confirmar recepción' })).toBeDisabled();
+  });
+
+  it('explica el bloqueo en la barra de acciones y resume las líneas por estado', async () => {
+    await cargarDocumento();
+
+    const barra = screen.getByRole('region', { name: 'Resumen y confirmación de la recepción' });
+    expect(within(barra).getByRole('status')).toHaveTextContent(
+      'Falta asociar 1 línea a un producto del catálogo.',
+    );
+    expect(barra).toHaveTextContent('3 líneas');
+    expect(barra).toHaveTextContent('1 sin asociar');
+    expect(within(barra).getByRole('button', { name: 'Confirmar recepción' })).toBeDisabled();
+    expect(screen.getByText('Sin asociar')).toBeInTheDocument();
+  });
+
+  it('la revisión con la barra de acciones no tiene violaciones de accesibilidad', async () => {
+    await cargarDocumento();
+
+    expect(
+      await axe(document.body, { rules: { 'color-contrast': { enabled: false } } }),
+    ).toHaveNoViolations();
+  });
+
+  it('iguala lo recibido al pedido de una línea con su botón', async () => {
+    await cargarDocumento();
+
+    expect(screen.getByText('Faltan 20')).toBeInTheDocument();
+    expect(screen.getAllByText('Completa')).toHaveLength(1);
+
+    // Solo la línea con diferencia y producto asociado admite igualar al pedido.
+    const habilitados = screen
+      .getAllByRole('button', { name: /^Igual al pedido/ })
+      .filter((b) => !(b as HTMLButtonElement).disabled);
+    expect(habilitados).toHaveLength(1);
+    await userEvent.click(habilitados[0]!);
+
+    expect(screen.queryByText('Faltan 20')).not.toBeInTheDocument();
+    expect(screen.getAllByText('Completa')).toHaveLength(2);
   });
 
   it('confirma la recepción tras asociar el producto y aceptar las consecuencias', async () => {

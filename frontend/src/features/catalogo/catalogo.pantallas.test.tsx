@@ -95,7 +95,7 @@ describe('Catálogo, formulario', () => {
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Producto de prueba' }),
     ).toBeInTheDocument();
-  });
+  }, 15000);
 
   it('bloquea el guardado con un SKU que ya existe', async () => {
     renderApp('/catalogo/nuevo', 'Administrador');

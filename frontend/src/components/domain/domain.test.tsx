@@ -67,10 +67,13 @@ describe('StockBar y MovementBadge', () => {
 
 describe('papeles tipográficos', () => {
   const css = (ruta: string) => readFileSync(resolve(__dirname, ruta), 'utf-8');
-  const usaFuenteDeAcento = (fuente: string) => /font-family:\s*var\(--font-(display|heading)\)/.test(fuente);
+  const usaFuenteDeAcento = (fuente: string) =>
+    /font-family:\s*var\(--font-(display|heading)\)/.test(fuente);
 
   it('los datos corrientes no usan la fuente de cifras', () => {
-    const fuentes = ['MatchConfidence/MatchConfidence.tsx', 'MovementBadge/MovementBadge.tsx'].map(css);
+    const fuentes = ['MatchConfidence/MatchConfidence.tsx', 'MovementBadge/MovementBadge.tsx'].map(
+      css,
+    );
     for (const fuente of fuentes) expect(fuente).not.toMatch(/ff=.*font-(display|heading)/);
   });
 
@@ -82,8 +85,13 @@ describe('papeles tipográficos', () => {
 
   it('el título de página usa la fuente de encabezados y los demás encabezados la de texto', () => {
     const global = readFileSync(resolve(__dirname, '../../theme/global.css'), 'utf-8');
-    const resolver = readFileSync(resolve(__dirname, '../../theme/cssVariablesResolver.ts'), 'utf-8');
+    const resolver = readFileSync(
+      resolve(__dirname, '../../theme/cssVariablesResolver.ts'),
+      'utf-8',
+    );
     expect(resolver).toContain("'--mantine-font-family-headings': 'var(--font-sans)'");
-    expect(global).toMatch(/h1,\s*\.mantine-Title-root\[data-order='1'\]\s*\{\s*font-family: var\(--font-heading\)/);
+    expect(global).toMatch(
+      /h1,\s*\.mantine-Title-root\[data-order='1'\]\s*\{\s*font-family: var\(--font-heading\)/,
+    );
   });
 });

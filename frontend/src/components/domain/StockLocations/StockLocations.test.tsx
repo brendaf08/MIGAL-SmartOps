@@ -22,9 +22,9 @@ describe('StockLocations', () => {
       </AppProviders>,
     );
 
-    const celdas = within(screen.getByRole('list', { name: 'Existencias por ubicación' })).getAllByRole(
-      'listitem',
-    );
+    const celdas = within(
+      screen.getByRole('list', { name: 'Existencias por ubicación' }),
+    ).getAllByRole('listitem');
     expect(celdas.map((c) => c.textContent)).toEqual([
       expect.stringContaining('Tienda principal'),
       expect.stringContaining('Almacén 1'),

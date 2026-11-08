@@ -9,7 +9,13 @@ import { Constancia, type CambioStock } from './Constancia';
 expect.extend(matchers);
 
 const cambios: CambioStock[] = [
-  { producto: 'Cemento Sol tipo I', ubicacion: 'Almacén 1', antes: 1200, despues: 1300, unidad: 'bolsa' },
+  {
+    producto: 'Cemento Sol tipo I',
+    ubicacion: 'Almacén 1',
+    antes: 1200,
+    despues: 1300,
+    unidad: 'bolsa',
+  },
 ];
 
 const montar = (props: Partial<Parameters<typeof Constancia>[0]> = {}) =>

@@ -4,7 +4,9 @@ Aplicación web de MIGAL SmartOps (SPA en React). La decisión de stack se encue
 
 ## Estado
 
-El proyecto se encuentra montado con la configuración base, el tema claro y oscuro, los proveedores globales y las herramientas de verificación. Los componentes de interfaz y las pantallas se incorporan siguiendo el orden definido en [CLAUDE.md](CLAUDE.md): primitivos, componentes de dominio y pantallas por módulo.
+Incluye la configuración base, el tema claro y oscuro, el layout responsive (teléfono, tablet y escritorio), los primitivos y componentes de dominio del sistema de diseño, la sesión con rutas protegidas por rol y las pantallas de todos los módulos de la navegación: disponibilidad, catálogo, Kardex, despachos, recepciones con OCR, documentos, cotizaciones, proveedores y compras, agente de IA y usuarios. Las pantallas de referencia del diseño (acceso, disponibilidad, cotización, recepción con OCR, despacho y agente de IA) tienen implementación completa; el resto son listados.
+
+El backend aún no existe (la carpeta `backend/` solo contiene su README). Los datos provienen de una capa simulada, descrita en [Datos simulados](#datos-simulados-y-usuarios-de-prueba).
 
 ## Requisitos
 
@@ -59,18 +61,47 @@ TypeScript se mantiene en la serie 6 y ESLint en la serie 9 porque `typescript-e
 frontend/
 ├── index.html
 ├── vite.config.ts
+├── postcss.config.js         Mixins de Mantine y puntos de quiebre para CSS Modules.
 ├── vitest.setup.ts
 ├── Dockerfile
 ├── nginx.conf
 └── src/
-    ├── main.tsx              Punto de entrada y estilos globales.
+    ├── main.tsx              Punto de entrada, estilos globales y enrutador.
     ├── App.tsx
     ├── app/                  Proveedores globales y cliente de consultas.
     ├── theme/                Tokens, tema de Mantine, fuentes y modo claro u oscuro.
+    ├── components/
+    │   ├── ui/               Primitivos genéricos (DataTable, Modal, Tabs, Stepper, Dropzone, ...).
+    │   ├── domain/           StatusBadge, StockSummary, StockBar, MatchConfidence y chat.
+    │   └── layout/           AppShell y PageHeader.
+    ├── features/             Un directorio por módulo funcional (pantallas, consultas y tipos).
+    ├── routes/               Rutas, navegación por rol y marco de las pantallas internas.
+    ├── api/                  Utilidades de la capa de datos simulada.
+    ├── lib/                  Formatos es-PE y utilidades.
+    ├── test/                 Utilidades de prueba.
     └── assets/               Logo y recursos estáticos.
 ```
 
-Las carpetas `components/`, `features/`, `api/` y `routes/` se crean al incorporar los primeros elementos de cada una. Su organización se describe en [CLAUDE.md](CLAUDE.md). El alias `@/` equivale a `src/`.
+El alias `@/` equivale a `src/`. La organización y las reglas de dependencia se describen en [CLAUDE.md](CLAUDE.md).
+
+## Rutas y roles
+
+La navegación y las rutas protegidas se definen una sola vez en `src/routes/navigation.ts`. Un módulo oculto para un rol equivale a una ruta no accesible; la autorización real corresponde al backend (RNF-09). La clave de cada ítem es su ruta (`/disponibilidad`, `/ventas`, `/despachos`, etc.) y las pantallas secundarias se registran en `src/routes/AppRoutes.tsx` (`/ventas/:id`, `/despachos/:id`, `/recepciones/nueva`).
+
+## Datos simulados y usuarios de prueba
+
+Cada módulo expone sus consultas en un archivo `api.ts` con firmas tipadas que devuelven datos de prueba mediante `mockRequest` (`src/api/mock.ts`), con latencia simulada. Al disponer de la API REST, cada función se sustituye por una llamada HTTP sin modificar su firma ni las pantallas. Las operaciones que modifican datos (aceptar una cotización, confirmar una salida o una recepción) actualizan los datos en memoria y se reinician al recargar la página.
+
+Usuarios de prueba para desarrollo (contraseña `demo1234` en todos los casos):
+
+| Usuario | Rol |
+| --- | --- |
+| `admin` | Administrador |
+| `vendedor` | Vendedor |
+| `rquispe` | Almacenero |
+| `reponedor` | Reponedor |
+
+Estos usuarios se eliminan al integrar la autenticación del backend (`src/features/seguridad/fixtures.ts`).
 
 ## Tema y modo claro u oscuro
 
@@ -107,4 +138,8 @@ La aplicación queda disponible en `http://localhost:8080`.
 
 ## Dependencias de diseño pendientes
 
-Storybook y una librería de pruebas de accesibilidad con `axe` se incorporan junto con los primeros componentes, conforme a ADR-002.
+Storybook y la verificación automatizada con `axe` se incorporan conforme a ADR-002. Hasta entonces, cada componente se verifica con pruebas de Testing Library (roles, nombres accesibles y teclado) y con `eslint-plugin-jsx-a11y`.
+
+## Verificación responsive pendiente
+
+Las composiciones de teléfono, tablet y escritorio se implementan con CSS Modules y los puntos de quiebre del tema, y las pruebas automatizadas no evalúan la maquetación. Antes de integrar, comprobar manualmente cada pantalla en 390, 768 y 1280 px, en tema claro y oscuro y con el zoom al 200 %.

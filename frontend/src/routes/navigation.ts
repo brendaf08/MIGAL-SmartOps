@@ -45,7 +45,12 @@ export const NAV: NavGroup[] = [
     label: 'Abastecimiento',
     items: [
       { key: 'proveedores', label: 'Proveedores', icon: 'proveedor', roles: ['Reponedor'] },
-      { key: 'compras', label: 'Órdenes de compra', icon: 'orden-compra', roles: ['Reponedor'] },
+      {
+        key: 'compras',
+        label: 'Órdenes de compra',
+        icon: 'orden-compra',
+        roles: ['Reponedor', 'Almacenero'],
+      },
     ],
   },
   { label: 'Asistente', items: [{ key: 'agente-ia', label: 'Agente de IA', icon: 'sparkles' }] },

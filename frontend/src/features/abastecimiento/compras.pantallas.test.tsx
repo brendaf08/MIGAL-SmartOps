@@ -27,8 +27,8 @@ describe('Órdenes de compra, listado (P25)', () => {
     ).toHaveNoViolations();
   });
 
-  it('un Almacenero no accede al módulo y se redirige al inicio de su rol', async () => {
-    renderApp('/compras', 'Almacenero');
+  it('un Vendedor no accede al módulo y se redirige al inicio de su rol', async () => {
+    renderApp('/compras', 'Vendedor');
 
     await waitFor(() =>
       expect(
@@ -139,13 +139,13 @@ describe('Órdenes de compra, flujo completo y detalle (P25, P26)', () => {
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Orden de compra OC-0091' }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Registrar recepción' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Registrar recepción' })).not.toBeInTheDocument();
     // El importe aparece en la línea (subtotal) y en el pie (total).
     expect(screen.getAllByText(/2,650\.00/)).toHaveLength(2);
   }, 20000);
 
   it('muestra recibida y pendiente por línea en el detalle', async () => {
-    renderApp('/compras/OC-0086', 'Reponedor');
+    renderApp('/compras/OC-0086', 'Almacenero');
 
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Orden de compra OC-0086' }),

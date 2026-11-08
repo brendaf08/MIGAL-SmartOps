@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { StatusBadge } from '@/components/domain/StatusBadge/StatusBadge';
+import { useSession } from '@/features/seguridad/session';
 import { PageHeader } from '@/components/layout/PageHeader/PageHeader';
 import { type Column } from '@/components/ui/DataTable/DataTable';
 import { Icon } from '@/components/ui/Icon/Icon';
@@ -60,6 +61,7 @@ const columns: Column<FilaOrdenCompra>[] = [
 
 /** P25: órdenes de compra con su estado y avance de recepción, búsqueda y pestañas por estado (CU-12). */
 export function ComprasPage() {
+  const { user } = useSession();
   const navigate = useNavigate();
   const query = useQuery({ queryKey: ['ordenes-compra'], queryFn: listarOrdenesCompra });
   const [filtro, setFiltro] = useState<Filtro>('Todas');
@@ -83,12 +85,14 @@ export function ComprasPage() {
         title="Órdenes de compra"
         description="Órdenes emitidas a proveedores y su avance de recepción."
         actions={
-          <Button
-            leftSection={<Icon name="plus" />}
-            onClick={() => void navigate('/compras/nueva')}
-          >
-            Nueva orden de compra
-          </Button>
+          user?.role === 'Reponedor' && (
+            <Button
+              leftSection={<Icon name="plus" />}
+              onClick={() => void navigate('/compras/nueva')}
+            >
+              Nueva orden de compra
+            </Button>
+          )
         }
       />
       <Tabs

@@ -140,3 +140,65 @@ describe('Usuarios: registro y edición de rol', () => {
     expect(within(fila).getByText('Almacenero')).toBeInTheDocument();
   }, 20000);
 });
+
+describe('Usuarios: revocación de acceso', () => {
+  it('revocar acceso pide confirmación con sus consecuencias y cambia el estado', async () => {
+    renderApp('/usuarios', 'Administrador');
+    await tablaCon('jcamacho');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Revocar acceso de Julio Camacho' }));
+    const dialogo = await screen.findByRole('dialog');
+    expect(within(dialogo).getByText('Revocar acceso de jcamacho')).toBeInTheDocument();
+    expect(within(dialogo).getByText('El usuario no podrá iniciar sesión.')).toBeInTheDocument();
+    expect(
+      within(dialogo).getByText('Su historial de movimientos se conserva.'),
+    ).toBeInTheDocument();
+    expect(
+      within(dialogo).getByText('El acceso puede restituirse editando al usuario.'),
+    ).toBeInTheDocument();
+
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Revocar acceso' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+
+    const t = await tablaCon('jcamacho');
+    const fila = within(t).getByText('Julio Camacho').closest('tr')!;
+    expect(within(fila).getByText('Inactivo')).toBeInTheDocument();
+  }, 20000);
+
+  it('no permite revocar la propia cuenta y muestra el motivo', async () => {
+    renderApp('/usuarios', 'Administrador');
+    await tablaCon('rquispe');
+
+    expect(
+      screen.getByRole('button', { name: /Revocar acceso de Carlos Medina/ }),
+    ).toBeDisabled();
+    expect(screen.getAllByText('No se puede revocar la propia cuenta').length).toBeGreaterThan(0);
+  }, 20000);
+
+  it('el formulario de registro no tiene violaciones de accesibilidad', async () => {
+    const { container } = renderApp('/usuarios/nuevo', 'Administrador');
+    await screen.findByRole('textbox', { name: 'Usuario' });
+
+    expect(
+      await axe(container, { rules: { 'color-contrast': { enabled: false } } }),
+    ).toHaveNoViolations();
+  }, 20000);
+
+  it('el diálogo de revocación no tiene violaciones de accesibilidad', async () => {
+    renderApp('/usuarios', 'Administrador');
+    await tablaCon('jcamacho');
+    await userEvent.click(screen.getByRole('button', { name: 'Revocar acceso de Elena Soto' }));
+    const dialogo = await screen.findByRole('dialog');
+
+    // El encabezado del modal de Mantine es un <header> que axe cuenta como banner de la página.
+    expect(
+      await axe(dialogo, {
+        rules: {
+          'color-contrast': { enabled: false },
+          region: { enabled: false },
+          'landmark-no-duplicate-banner': { enabled: false },
+        },
+      }),
+    ).toHaveNoViolations();
+  }, 20000);
+});

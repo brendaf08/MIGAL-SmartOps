@@ -32,6 +32,7 @@ import {
   VALIDEZ,
   type ValoresCotizacion,
 } from './esquema';
+import { usePrecargaDocumento } from '@/features/documentos-ocr/usePrecargaDocumento';
 import classes from './CotizacionForm.module.css';
 
 /** Valores iniciales: un formulario vacío para una cotización nueva, o los datos de la cotización a modificar. */
@@ -100,6 +101,7 @@ function CotizacionForm({ cotizacion }: CotizacionFormProps) {
     validate: zod4Resolver(esquemaCotizacion),
   });
   const { values } = form;
+  const precarga = usePrecargaDocumento((lineas) => form.setFieldValue('lineas', lineas));
 
   const total = totalLineas(values.lineas, values.descuento);
   const numeroProductos = values.lineas.length;
@@ -217,12 +219,17 @@ function CotizacionForm({ cotizacion }: CotizacionFormProps) {
                 <Button
                   variant="default"
                   leftSection={<Icon name="scan" />}
-                  onClick={() => void navigate('/documentos/procesar')}
+                  onClick={() => void navigate('/documentos/procesar?destino=cotizacion')}
                 >
                   Cargar desde un documento
                 </Button>
               }
             >
+              {precarga.habilitado && (
+                <Alert tone="info" title="Productos cargados desde el documento">
+                  Revisar las cantidades y completar el precio de cada línea.
+                </Alert>
+              )}
               <div className={classes.lineas}>
                 <LineasEditor
                   lineas={values.lineas}

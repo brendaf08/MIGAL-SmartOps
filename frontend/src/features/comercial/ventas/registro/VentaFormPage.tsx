@@ -36,6 +36,7 @@ import {
 } from './api';
 import { calcularAtencion, MODALIDADES, type ModalidadAtencion } from './atencion';
 import { crearEsquemaVenta } from './esquema';
+import { usePrecargaDocumento } from '@/features/documentos-ocr/usePrecargaDocumento';
 import classes from './VentaForm.module.css';
 
 type Origen = 'manual' | 'cotizacion' | 'documento';
@@ -90,6 +91,10 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
     validate: zod4Resolver(crearEsquemaVenta(stock)),
   });
   const { values } = form;
+  const precarga = usePrecargaDocumento((lineas) => {
+    form.setFieldValue('lineas', lineas);
+    setOrigen('documento');
+  });
 
   const pedido = values.lineas.map((l) => ({ sku: l.sku, cantidad: l.cantidad }));
   const sinCobertura = calcularAtencion(pedido, stock, null).totalPendiente > 0;
@@ -285,7 +290,7 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
             )}
             {origen === 'documento' && (
               <div>
-                <Button component={Link} to="/documentos/procesar" variant="default">
+                <Button component={Link} to="/documentos/procesar?destino=venta" variant="default">
                   Procesar un documento
                 </Button>
               </div>
@@ -293,6 +298,11 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
           </Stack>
         </Card>
         <Card title="Productos">
+          {precarga.habilitado && (
+            <Alert tone="info" title="Productos cargados desde el documento">
+              Revisar las cantidades y completar el precio de cada línea.
+            </Alert>
+          )}
           <LineasEditor
             lineas={values.lineas}
             onChange={(lineas) => form.setFieldValue('lineas', lineas)}

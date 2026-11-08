@@ -1,0 +1,4 @@
+/* Existencias del producto bajo el selector; el contenedor no se desborda en teléfono. */
+.stock {
+  min-width: 0;
+}

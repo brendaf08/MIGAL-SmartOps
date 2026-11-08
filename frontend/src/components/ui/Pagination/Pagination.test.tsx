@@ -25,8 +25,12 @@ describe('Pagination', () => {
   it('deshabilita las flechas en los extremos y cambia de página', async () => {
     const onChange = renderPagination(1);
 
-    expect(screen.getByRole('button', { name: 'Página anterior', hidden: true })).toBeDisabled();
-    await userEvent.click(screen.getByRole('button', { name: 'Página siguiente', hidden: true }));
+    expect(
+      screen.getAllByRole('button', { name: 'Página anterior', hidden: true }).at(-1)!,
+    ).toBeDisabled();
+    await userEvent.click(
+      screen.getAllByRole('button', { name: 'Página siguiente', hidden: true }).at(-1)!,
+    );
     expect(onChange).toHaveBeenCalledWith(2);
   });
 });

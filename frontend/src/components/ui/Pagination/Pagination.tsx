@@ -10,6 +10,13 @@ export interface PaginationProps {
   onChange: (page: number) => void;
 }
 
+const CONTROLES = {
+  first: 'Primera página',
+  previous: 'Página anterior',
+  next: 'Página siguiente',
+  last: 'Última página',
+} as const;
+
 /** Tablet y escritorio: resumen y números de página. Teléfono: flechas y "Página X de N". */
 export function Pagination({ page, total, pageSize = 20, onChange }: PaginationProps) {
   const pages = Math.max(1, Math.ceil(total / pageSize));
@@ -27,6 +34,8 @@ export function Pagination({ page, total, pageSize = 20, onChange }: PaginationP
         onChange={onChange}
         withEdges
         visibleFrom="sm"
+        getControlProps={(control) => ({ 'aria-label': CONTROLES[control] })}
+        getItemProps={(n) => ({ 'aria-label': `Página ${n}` })}
       />
       <Group hiddenFrom="sm" justify="space-between" wrap="nowrap" w="100%">
         <ActionIcon

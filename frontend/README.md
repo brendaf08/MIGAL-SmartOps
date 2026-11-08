@@ -138,7 +138,7 @@ La aplicación queda disponible en `http://localhost:8080`.
 
 ## Dependencias de diseño pendientes
 
-Storybook y la verificación automatizada con `axe` se incorporan conforme a ADR-002. Hasta entonces, cada componente se verifica con pruebas de Testing Library (roles, nombres accesibles y teclado) y con `eslint-plugin-jsx-a11y`.
+Storybook se incorpora conforme a ADR-002 y aún no está instalado. La accesibilidad se verifica con `vitest-axe` (`src/a11y.test.tsx`, sin la regla de contraste, que depende de los tokens y no de jsdom), pruebas de Testing Library (roles, nombres accesibles y teclado) y `eslint-plugin-jsx-a11y`.
 
 ## Verificación responsive pendiente
 

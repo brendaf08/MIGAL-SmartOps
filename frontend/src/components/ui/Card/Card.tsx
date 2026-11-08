@@ -4,7 +4,7 @@ import classes from './Card.module.css';
 
 export interface CardProps {
   title?: string;
-  /** Nivel del encabezado; 3 por omisión, ajustar para no saltar niveles. */
+  /** Nivel del encabezado; 2 por omisión (bajo el `h1` de la página), ajustar para no saltar niveles. */
   level?: 2 | 3 | 4;
   description?: string;
   /** Una o dos acciones del encabezado. */
@@ -19,7 +19,7 @@ export interface CardProps {
 /** Contenedor de una sola idea, con encabezado opcional, cuerpo y pie. */
 export function Card({
   title,
-  level = 3,
+  level = 2,
   description,
   actions,
   footer,

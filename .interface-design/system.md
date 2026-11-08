@@ -15,8 +15,8 @@ Registro de las decisiones de diseño vigentes. La versión completa, con compon
 - Ficha de existencias: el stock libre es la cifra dominante; físico y reservado acompañan.
 - Cinta métrica: regla graduada bajo la barra de stock.
 - Etiqueta de estante: marcador cuadrado verde con contorno azul en el ítem activo de navegación.
-- Rotulado de bodega: Barlow Semi Condensed para cifras, encabezados de columna y rótulos.
-- Tipografía: Bricolage Grotesque en títulos (rasgos propios, ajuste óptico), Instrument Sans en texto y controles, IBM Plex Mono en códigos.
+- Cifras de bodega: fuente condensada solo para cifras dominantes y sello.
+- Tipografía: Instrument Sans en todo el texto, los datos y los encabezados de sección; Bricolage Grotesque solo en el título de página; Barlow Semi Condensed solo en cifras grandes y sellos; IBM Plex Mono en códigos.
 - Doble línea contable en los totales de tabla; sello de doble contorno para el estado de un documento.
 
 ## Profundidad y espaciado
@@ -31,6 +31,10 @@ Registro de las decisiones de diseño vigentes. La versión completa, con compon
 - Escala cercana a 1.2 sobre 14 px: 12, 14, 16, 18, 22, 28; cifras 28 y 36 en la fuente de rotulado.
 - Tres niveles por dato: valor (600 a 700, `ink`), etiqueta (500 a 600, `ink-muted`), metadato (400, `ink-subtle`).
 - Un foco por vista: tabla en disponibilidad, líneas por revisar en recepción con OCR, totales y estado en cotización.
+
+- Dónde está: `StockLocations` (tienda y almacenes como plano esquemático) y cinta por empaque con marcas de mínimo y reposición.
+- Cierre: `Constancia` con sello estampado una vez y antes/después en doble línea; `ActionBar` fija al pie con el motivo del bloqueo visible.
+- Modo almacén por equipo: controles de 52 a 56 px y etiquetas visibles en tablet.
 
 ## Patrones de componentes
 

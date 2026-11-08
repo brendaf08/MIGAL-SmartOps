@@ -1,7 +1,8 @@
 import { Button, Skeleton, Stack, Text } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useParams } from 'react-router';
+import { useState } from 'react';
+import { Link, useParams } from 'react-router';
 import { StatusBadge } from '@/components/domain/StatusBadge/StatusBadge';
 import { PageHeader } from '@/components/layout/PageHeader/PageHeader';
 import { Alert } from '@/components/ui/Alert/Alert';
@@ -9,9 +10,10 @@ import { Card } from '@/components/ui/Card/Card';
 import { Columns } from '@/components/ui/Columns/Columns';
 import { DataTable, type Column } from '@/components/ui/DataTable/DataTable';
 import { Icon } from '@/components/ui/Icon/Icon';
+import { ConfirmDialog } from '@/components/ui/Modal/ConfirmDialog';
 import { Stepper } from '@/components/ui/Stepper/Stepper';
 import { formatCurrency, formatDate, formatNumber } from '@/lib/format';
-import { obtenerCotizacion, registrarAceptacion } from './api';
+import { obtenerCotizacion, registrarAceptacion, registrarRechazo } from './api';
 import { PASOS, pasoActual, totales } from './calculos';
 import type { LineaCotizacion } from './types';
 
@@ -36,6 +38,7 @@ export function CotizacionPage() {
     queryKey: ['cotizacion', id],
     queryFn: () => obtenerCotizacion(id),
   });
+  const [rechazando, setRechazando] = useState(false);
   const aceptar = useMutation({
     mutationFn: () => registrarAceptacion(id),
     onSuccess: () => {
@@ -53,6 +56,27 @@ export function CotizacionPage() {
         title: 'No se pudo registrar la aceptación',
         message: e.message,
       }),
+  });
+  const rechazar = useMutation({
+    mutationFn: () => registrarRechazo(id),
+    onSuccess: () => {
+      setRechazando(false);
+      void queryClient.invalidateQueries({ queryKey: ['cotizacion', id] });
+      void queryClient.invalidateQueries({ queryKey: ['cotizaciones'] });
+      notifications.show({
+        color: 'success',
+        title: 'Rechazo registrado',
+        message: `La cotización ${id} quedó rechazada por el cliente.`,
+      });
+    },
+    onError: (e) => {
+      setRechazando(false);
+      notifications.show({
+        color: 'danger',
+        title: 'No se pudo registrar el rechazo',
+        message: e.message,
+      });
+    },
   });
 
   if (isError) {
@@ -77,10 +101,7 @@ export function CotizacionPage() {
     <>
       <PageHeader
         title={`Cotización ${cotizacion.id}`}
-        breadcrumbs={[
-          { label: 'Cotizaciones', href: '/cotizaciones' },
-          { label: cotizacion.id },
-        ]}
+        breadcrumbs={[{ label: 'Cotizaciones', href: '/cotizaciones' }, { label: cotizacion.id }]}
         status={<StatusBadge entity="cotizacion" value={cotizacion.estado} variant="sello" />}
         description={`Emitida el ${formatDate(cotizacion.emision)}, vence el ${formatDate(cotizacion.vencimiento)}`}
         actions={
@@ -93,12 +114,30 @@ export function CotizacionPage() {
               Imprimir
             </Button>
             {cotizacion.estado === 'Emitida' && (
-              <Button
-                leftSection={<Icon name="check" />}
-                loading={aceptar.isPending}
-                onClick={() => aceptar.mutate()}
-              >
-                Registrar aceptación
+              <>
+                <Button variant="default" component={Link} to={`/cotizaciones/${id}/editar`}>
+                  Modificar
+                </Button>
+                <Button
+                  variant="default"
+                  color="danger"
+                  leftSection={<Icon name="x-circle" />}
+                  onClick={() => setRechazando(true)}
+                >
+                  Registrar rechazo
+                </Button>
+                <Button
+                  leftSection={<Icon name="check" />}
+                  loading={aceptar.isPending}
+                  onClick={() => aceptar.mutate()}
+                >
+                  Registrar aceptación
+                </Button>
+              </>
+            )}
+            {cotizacion.estado === 'AceptadaCliente' && (
+              <Button component={Link} to={`/ventas/nueva?cotizacion=${id}`}>
+                Convertir en venta
               </Button>
             )}
           </>
@@ -162,6 +201,17 @@ export function CotizacionPage() {
           </Stack>
         </Columns>
       </Stack>
+      <ConfirmDialog
+        open={rechazando}
+        title={`Registrar el rechazo de la cotización ${cotizacion.id}`}
+        description="El cliente no acepta la cotización. No se puede volver a aceptar."
+        consequences={['La cotización queda en estado Rechazada.']}
+        tone="danger"
+        confirmLabel="Registrar rechazo"
+        loading={rechazar.isPending}
+        onConfirm={() => rechazar.mutate()}
+        onCancel={() => setRechazando(false)}
+      />
     </>
   );
 }

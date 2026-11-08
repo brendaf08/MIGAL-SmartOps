@@ -4,7 +4,7 @@ import type { ProductoDisponibilidad } from './types';
 /** Existencia por ubicación en el orden fijo Tienda, Almacén 1, Almacén 2; el reservado es consolidado. */
 export function ubicacionesDe(p: ProductoDisponibilidad) {
   return [
-    { nombre: 'Tienda principal', cantidad: p.tienda },
+    { nombre: 'Tienda principal', nombreCorto: 'Tienda', cantidad: p.tienda },
     { nombre: 'Almacén 1', cantidad: p.almacen1 },
     { nombre: 'Almacén 2', cantidad: p.almacen2 },
   ];

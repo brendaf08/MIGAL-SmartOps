@@ -9,7 +9,7 @@
 
 .cell {
   display: flex;
-  flex: 1 1 120px;
+  flex: 1 1 96px;
   flex-direction: column;
   gap: var(--space-1);
   min-width: 0;

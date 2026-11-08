@@ -5,6 +5,8 @@ import classes from './StockLocations.module.css';
 
 export interface StockLocation {
   nombre: string;
+  /** Nombre para la variante compacta, donde el ancho de la celda es reducido. */
+  nombreCorto?: string;
   /** Existencia física de la ubicación. */
   cantidad: number;
   /** Parte reservada de esa ubicación; el reservado de la API es consolidado, por lo que suele omitirse. */
@@ -44,17 +46,21 @@ export function StockLocations({
             key={u.nombre}
             className={cx(classes.cell, vacia && classes.empty)}
             style={
-              compact ? undefined : ({ flexGrow: Math.max(u.cantidad / max, 0.25) } as CSSProperties)
+              compact
+                ? undefined
+                : ({ flexGrow: Math.max(u.cantidad / max, 0.25) } as CSSProperties)
             }
           >
-            <span className={classes.name}>{u.nombre}</span>
+            <span className={classes.name}>{compact ? (u.nombreCorto ?? u.nombre) : u.nombre}</span>
             {vacia ? (
               <span className={classes.none}>Sin stock</span>
             ) : (
               <span className={classes.figure}>
                 {formatNumber(libre)}
                 {unidad && !compact && <small> {unidad}</small>}
-                <span className={classes.sr}> libres</span>
+                <span className={classes.sr}>
+                  {u.reservado === undefined ? ' en existencia' : ' libres'}
+                </span>
               </span>
             )}
             {!compact && !vacia && (

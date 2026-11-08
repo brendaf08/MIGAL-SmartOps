@@ -63,7 +63,7 @@ export const theme = createTheme({
   luminanceThreshold: 0.4,
 
   fontFamily: '"Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif',
-  /** Fuente de rotulado para cifras y encabezados: usar var(--font-display) en los CSS Modules. */
+  /** Fuente de cifras grandes y sello de documento (nunca en datos de tabla ni etiquetas): usar var(--font-display) en los CSS Modules. */
   other: { fontFamilyDisplay: '"Barlow Semi Condensed", "Arial Narrow", "Instrument Sans", system-ui, sans-serif' },
   fontFamilyMonospace: '"IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace',
   headings: {

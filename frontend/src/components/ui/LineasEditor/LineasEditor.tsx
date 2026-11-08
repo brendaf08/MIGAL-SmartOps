@@ -127,29 +127,6 @@ export function LineasEditor({
   ];
 
   const subtotal = subtotalLineas(lineas);
-  const pie = conPrecio
-    ? [
-        { cantidad: 'Subtotal', subtotal: formatCurrency(subtotal) },
-        ...(conDescuento
-          ? [
-              {
-                cantidad: 'Descuento',
-                subtotal: (
-                  <MoneyInput
-                    aria-label="Descuento en soles"
-                    maw={150}
-                    max={subtotal}
-                    value={descuento}
-                    onChange={(v) => onDescuentoChange?.(Number(v) || 0)}
-                  />
-                ),
-              },
-            ]
-          : []),
-        { cantidad: 'Total', subtotal: formatCurrency(totalLineas(lineas, descuento)) },
-      ]
-    : undefined;
-
   return (
     <div className={classes.root}>
       <DataTable
@@ -157,9 +134,34 @@ export function LineasEditor({
         columns={columns}
         rows={lineas}
         rowKey="id"
-        footer={pie}
         empty={<p className={classes.empty}>Todavía no hay productos. Agregar el primero.</p>}
       />
+      {conPrecio && (
+        <dl className={classes.totales} aria-label="Totales del documento">
+          <div>
+            <dt>Subtotal</dt>
+            <dd>{formatCurrency(subtotal)}</dd>
+          </div>
+          {conDescuento && (
+            <div>
+              <dt id="descuento-etiqueta">Descuento</dt>
+              <dd>
+                <MoneyInput
+                  aria-label="Descuento en soles"
+                  maw={150}
+                  max={subtotal}
+                  value={descuento}
+                  onChange={(v) => onDescuentoChange?.(Number(v) || 0)}
+                />
+              </dd>
+            </div>
+          )}
+          <div>
+            <dt>Total</dt>
+            <dd>{formatCurrency(totalLineas(lineas, descuento))}</dd>
+          </div>
+        </dl>
+      )}
       {error && (
         <p className={classes.error} role="alert">
           <Icon name="alert-triangle" size={16} />

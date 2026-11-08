@@ -69,7 +69,9 @@ describe('LineasEditor', () => {
     render(<Demo />);
 
     const tabla = screen.getByRole('table', { name: 'Productos del documento' });
-    expect(within(tabla).getAllByText(/S\/\s289\.00/).length).toBeGreaterThanOrEqual(2);
+    expect(within(tabla).getByText(/S\/\s289\.00/)).toBeInTheDocument();
+    const totales = screen.getByLabelText('Totales del documento');
+    expect(within(totales).getAllByText(/S\/\s289\.00/)).toHaveLength(2);
   });
 
   it('agrega y quita líneas', async () => {

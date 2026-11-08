@@ -20,6 +20,42 @@
   font-size: 13px;
 }
 
+/* Totales como un libro contable: doble línea sobre el total y cifras tabulares. */
+.totales {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  align-self: flex-end;
+  width: min(100%, 320px);
+  margin: 0;
+
+  & > div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+  }
+
+  & dt {
+    color: var(--ink-muted);
+  }
+
+  & dd {
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+  }
+
+  & > div:last-child {
+    padding-top: var(--space-2);
+    border-top: 3px double var(--line-strong);
+    font-weight: 700;
+
+    & dt {
+      color: var(--ink);
+    }
+  }
+}
+
 .actions {
   display: flex;
   justify-content: flex-start;

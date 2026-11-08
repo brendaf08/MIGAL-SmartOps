@@ -29,7 +29,7 @@ export function Card({
   return (
     <Paper component="section" className={classes.root} aria-label={title}>
       {(title || actions) && (
-        <Group className={classes.head} justify="space-between" wrap="nowrap">
+        <Group className={classes.head} justify="space-between" wrap="wrap" gap="sm">
           <div>
             {title && (
               <Title order={level} size="h4">

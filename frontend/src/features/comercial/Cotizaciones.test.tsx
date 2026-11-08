@@ -43,6 +43,12 @@ describe('Cotizaciones', () => {
     renderApp('/cotizaciones/COT-0231', 'Vendedor');
 
     await userEvent.click(await screen.findByRole('button', { name: 'Registrar aceptación' }));
+    const dialogoAceptar = await screen.findByRole('dialog', {
+      name: /Registrar la aceptación de la cotización/,
+    });
+    await userEvent.click(
+      within(dialogoAceptar).getByRole('button', { name: 'Registrar aceptación' }),
+    );
 
     expect(await screen.findByText('Aceptación registrada')).toBeInTheDocument();
     expect(COTIZACIONES[0]!.estado).toBe('AceptadaCliente');

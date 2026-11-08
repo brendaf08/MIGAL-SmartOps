@@ -39,9 +39,11 @@ export function CotizacionPage() {
     queryFn: () => obtenerCotizacion(id),
   });
   const [rechazando, setRechazando] = useState(false);
+  const [aceptando, setAceptando] = useState(false);
   const aceptar = useMutation({
     mutationFn: () => registrarAceptacion(id),
     onSuccess: () => {
+      setAceptando(false);
       void queryClient.invalidateQueries({ queryKey: ['cotizacion', id] });
       void queryClient.invalidateQueries({ queryKey: ['cotizaciones'] });
       notifications.show({
@@ -50,12 +52,14 @@ export function CotizacionPage() {
         message: `La cotización ${id} quedó aceptada por el cliente.`,
       });
     },
-    onError: (e) =>
+    onError: (e) => {
+      setAceptando(false);
       notifications.show({
         color: 'danger',
         title: 'No se pudo registrar la aceptación',
         message: e.message,
-      }),
+      });
+    },
   });
   const rechazar = useMutation({
     mutationFn: () => registrarRechazo(id),
@@ -126,11 +130,7 @@ export function CotizacionPage() {
                 >
                   Registrar rechazo
                 </Button>
-                <Button
-                  leftSection={<Icon name="check" />}
-                  loading={aceptar.isPending}
-                  onClick={() => aceptar.mutate()}
-                >
+                <Button leftSection={<Icon name="check" />} onClick={() => setAceptando(true)}>
                   Registrar aceptación
                 </Button>
               </>
@@ -201,6 +201,19 @@ export function CotizacionPage() {
           </Stack>
         </Columns>
       </Stack>
+      <ConfirmDialog
+        open={aceptando}
+        title={`Registrar la aceptación de la cotización ${cotizacion.id}`}
+        description="El cliente acepta la propuesta. La cotización podrá convertirse en venta."
+        consequences={[
+          'La cotización queda en estado Aceptada por el cliente.',
+          'El stock no se modifica hasta registrar la venta.',
+        ]}
+        confirmLabel="Registrar aceptación"
+        loading={aceptar.isPending}
+        onConfirm={() => aceptar.mutate()}
+        onCancel={() => setAceptando(false)}
+      />
       <ConfirmDialog
         open={rechazando}
         title={`Registrar el rechazo de la cotización ${cotizacion.id}`}

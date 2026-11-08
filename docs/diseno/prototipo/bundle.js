@@ -1,4 +1,4 @@
-/* @ds-bundle: {"format":4,"namespace":"Migal","components":[{"name":"Icon"},{"name":"Button"},{"name":"IconButton"},{"name":"Badge"},{"name":"StatusBadge"},{"name":"MovementBadge"},{"name":"TextInput"},{"name":"NumberInput"},{"name":"Select"},{"name":"Textarea"},{"name":"Checkbox"},{"name":"Switch"},{"name":"SearchInput"},{"name":"Card"},{"name":"Stack"},{"name":"Columns"},{"name":"Alert"},{"name":"Notification"},{"name":"EmptyState"},{"name":"Spinner"},{"name":"Skeleton"},{"name":"Tabs"},{"name":"Stepper"},{"name":"Breadcrumbs"},{"name":"PageHeader"},{"name":"Table"},{"name":"Pagination"},{"name":"Dropzone"},{"name":"Modal"},{"name":"ConfirmDialog"},{"name":"StockSummary"},{"name":"StockBar"},{"name":"MatchConfidence"},{"name":"Stat"},{"name":"ChatMessage"},{"name":"ChatComposer"},{"name":"AppShell"}]} */
+/* @ds-bundle: {"format":4,"namespace":"Migal","components":[{"name":"Icon"},{"name":"Button"},{"name":"IconButton"},{"name":"Badge"},{"name":"StatusBadge"},{"name":"MovementBadge"},{"name":"TextInput"},{"name":"NumberInput"},{"name":"Select"},{"name":"Textarea"},{"name":"Checkbox"},{"name":"Switch"},{"name":"SearchInput"},{"name":"Card"},{"name":"Stack"},{"name":"Columns"},{"name":"ActionBar"},{"name":"StockLocations"},{"name":"Constancia"},{"name":"Alert"},{"name":"Notification"},{"name":"EmptyState"},{"name":"Spinner"},{"name":"Skeleton"},{"name":"Tabs"},{"name":"Stepper"},{"name":"Breadcrumbs"},{"name":"PageHeader"},{"name":"Table"},{"name":"Pagination"},{"name":"Dropzone"},{"name":"Modal"},{"name":"ConfirmDialog"},{"name":"StockSummary"},{"name":"StockBar"},{"name":"MatchConfidence"},{"name":"Stat"},{"name":"ChatMessage"},{"name":"ChatComposer"},{"name":"AppShell"}]} */
 (function () {
   'use strict';
   var React = window.React;
@@ -369,7 +369,7 @@
     var head = p.title || p.actions;
     return h(p.as || 'section', { className: cx('mg-card', p.flat && 'is-flat', p.className), 'aria-labelledby': p.title ? p.titleId : undefined },
       head ? h('header', { className: 'mg-card-head' },
-        h('div', { className: 'mg-card-titles' }, p.title ? h('h' + (p.level || 3), { id: p.titleId, className: 't-h3' }, p.title) : null, p.description ? h('p', { className: 't-body-sm mg-desc' }, p.description) : null),
+        h('div', { className: 'mg-card-titles' }, p.title ? h('h' + (p.level || 2), { id: p.titleId, className: 't-h3' }, p.title) : null, p.description ? h('p', { className: 't-body-sm mg-desc' }, p.description) : null),
         p.actions ? h('div', { className: 'mg-card-actions' }, p.actions) : null) : null,
       h('div', { className: cx('mg-card-body', p.padded === false && 'is-flush') }, p.children),
       p.footer ? h('footer', { className: 'mg-card-foot' }, p.footer) : null);
@@ -425,7 +425,7 @@
           className: cx('mg-tab', 't-label', active && 'is-active'),
           onClick: function () { if (p.onChange) p.onChange(it.value); },
           onKeyDown: function (e) { onKey(e, i); }
-        }, it.icon ? h(Icon, { name: it.icon, size: 18 }) : null, it.label, it.count !== undefined ? h('span', { className: 'mg-tab-count t-caption' }, it.count) : null);
+        }, it.icon ? h(Icon, { name: it.icon, size: 18 }) : null, it.label, it.count !== undefined ? h('span', { className: cx('mg-tab-count t-caption', it.tone === 'warning' && 'is-warning') }, it.count) : null);
       }));
   }
   function Stepper(p) {
@@ -469,7 +469,7 @@
     var body;
     if (p.loading) {
       body = [0, 1, 2, 3, 4].map(function (i) {
-        return h('tr', { key: 'sk' + i }, cols.map(function (c) { return h('td', { key: c.key, 'data-label': c.header, className: cx(c.align === 'right' || c.numeric ? 'is-right' : undefined, c.phone === false && 'mg-hide-phone', c.primary && 'is-primary') }, h(Skeleton, { width: c.numeric ? 56 : (i % 2 ? '70%' : '90%'), height: 14 })); }));
+        return h('tr', { key: 'sk' + i }, cols.map(function (c) { return h('td', { key: c.key, 'data-label': c.header, className: cx(c.align === 'right' || c.numeric ? 'is-right' : undefined, c.phone === false && 'mg-hide-phone', c.phoneOnly && 'mg-only-phone', c.primary && 'is-primary') }, h(Skeleton, { width: c.numeric ? 56 : (i % 2 ? '70%' : '90%'), height: 14 })); }));
       });
     } else if (!rows.length) {
       body = h('tr', null, h('td', { colSpan: cols.length, className: 'mg-table-empty' }, p.empty || h(EmptyState, { title: 'Sin resultados', description: 'No hay registros que coincidan con los filtros aplicados.' })));
@@ -478,14 +478,14 @@
         var k = key(r, i);
         var clickable = !!p.onRowClick;
         return h('tr', {
-          key: k, className: cx(clickable && 'is-clickable', p.selectedKey !== undefined && p.selectedKey === k && 'is-selected'),
+          key: k, className: cx(clickable && 'is-clickable', p.selectedKey !== undefined && p.selectedKey === k && 'is-selected', p.changedKey !== undefined && p.changedKey === k && 'is-changed'),
           onClick: clickable ? function () { p.onRowClick(r); } : undefined,
           tabIndex: clickable ? 0 : undefined,
           onKeyDown: clickable ? function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); p.onRowClick(r); } } : undefined,
           'aria-selected': p.selectedKey !== undefined ? (p.selectedKey === k ? 'true' : 'false') : undefined
         }, cols.map(function (c) {
           var right = c.align === 'right' || c.numeric;
-          return h('td', { key: c.key, 'data-label': c.header, className: cx(right && 'is-right', c.numeric && 'mg-num', c.mono && 'mg-mono t-sku', c.primary && 'is-primary', c.block && 'is-block', c.phone === false && 'mg-hide-phone') }, c.render ? c.render(r) : r[c.key]);
+          return h('td', { key: c.key, 'data-label': c.header, className: cx(right && 'is-right', c.numeric && 'mg-num', c.mono && 'mg-mono t-sku', c.primary && 'is-primary', c.block && 'is-block', c.phone === false && 'mg-hide-phone', c.phoneOnly && 'mg-only-phone') }, c.render ? c.render(r) : r[c.key]);
         }));
       });
     }
@@ -496,7 +496,7 @@
           var right = c.align === 'right' || c.numeric;
           var active = sort.key === c.key;
           var ariaSort = c.sortable ? (active ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none') : undefined;
-          return h('th', { key: c.key, scope: 'col', 'aria-sort': ariaSort, style: c.width ? { width: c.width } : undefined, className: cx(right && 'is-right', c.phone === false && 'mg-hide-phone') },
+          return h('th', { key: c.key, scope: 'col', 'aria-sort': ariaSort, style: c.width ? { width: c.width } : undefined, className: cx(right && 'is-right', c.phone === false && 'mg-hide-phone', c.phoneOnly && 'mg-only-phone') },
             c.sortable ? h('button', { type: 'button', className: cx('mg-sort t-th', active && 'is-active'), onClick: function () { if (p.onSort) p.onSort(c.key, active && sort.dir === 'asc' ? 'desc' : 'asc'); } },
               c.header, h(Icon, { name: active ? (sort.dir === 'asc' ? 'chevron-up' : 'chevron-down') : 'chevrons-up-down', size: 16 }))
               : h('span', { className: 't-th' }, c.header));
@@ -505,7 +505,7 @@
         p.footer && rows.length ? h('tfoot', null, (Array.isArray(p.footer) ? p.footer : [p.footer]).map(function (f, ri) {
           return h('tr', { key: ri }, cols.map(function (c) {
             var right = c.align === 'right' || c.numeric;
-            return h('td', { key: c.key, className: cx(right && 'is-right', c.numeric && 'mg-num', c.phone === false && 'mg-hide-phone') }, f[c.key] !== undefined ? f[c.key] : null);
+            return h('td', { key: c.key, className: cx(right && 'is-right', c.numeric && 'mg-num', c.phone === false && 'mg-hide-phone', c.phoneOnly && 'mg-only-phone') }, f[c.key] !== undefined ? f[c.key] : null);
           }));
         })) : null));
   }
@@ -660,16 +660,46 @@
       { k: 'reservado', v: reservado, label: 'Reservado' },
       { k: 'pendiente', v: pendiente, label: 'Pendiente de abastecimiento' }
     ];
-    var summary = seg.filter(function (s) { return s.v > 0 || s.k !== 'pendiente'; }).map(function (s) { return s.label + ' ' + formatNumber(s.v); }).join(', ');
-    return h('div', { className: cx('mg-bar', p.className) },
-      h('div', { className: 'mg-bar-track', role: 'img', 'aria-label': (p.label || 'Distribución de stock') + ': ' + summary },
-        seg.map(function (s) { return s.v > 0 ? h('span', { key: s.k, className: 'mg-bar-seg is-' + s.k, style: { flexGrow: s.v } }) : null; })),
-      h('div', { className: 'mg-bar-ruler', 'aria-hidden': 'true' }),
-      h('div', { className: 'mg-bar-scale t-caption', 'aria-hidden': 'true' }, h('span', null, '0'), h('span', null, formatNumber(libre + reservado + pendiente) + (p.unidad ? ' ' + p.unidad : ''))),
+    var shown = seg.filter(function (s) { return s.v > 0 || s.k !== 'pendiente'; });
+    var marks = [];
+    if (p.minimo !== undefined) marks.push({ k: 'min', v: p.minimo, label: 'Mínimo' });
+    if (p.reposicion !== undefined) marks.push({ k: 'rep', v: p.reposicion, label: 'Reposición' });
+    var summary = shown.map(function (s) { return s.label + ' ' + formatNumber(s.v); }).join(', ') + marks.map(function (m) { return ', ' + m.label + ' ' + formatNumber(m.v); }).join('');
+    var paso = p.empaque && p.empaque.paso ? p.empaque.paso : total / 10;
+    var ticks = [];
+    for (var t = paso; t < total && ticks.length < 24; t += paso) ticks.push(t);
+    var unit = p.unidad ? ' ' + p.unidad : '';
+    return h('div', { className: cx('mg-bar', p.compact && 'is-compact', p.className) },
+      h('div', { className: 'mg-bar-frame' },
+        h('div', { className: 'mg-bar-track', role: 'img', 'aria-label': (p.label || 'Distribución de stock') + ': ' + summary },
+          seg.map(function (s) { return s.v > 0 ? h('span', { key: s.k, className: 'mg-bar-seg is-' + s.k, style: { flexGrow: s.v } }) : null; })),
+        p.compact ? null : h('div', { className: 'mg-bar-ruler', 'aria-hidden': 'true' },
+          ticks.map(function (v, i) { return h('i', { key: i, style: { left: (v / total * 100) + '%' } }); })),
+        p.compact ? null : marks.map(function (m) {
+          return h('span', { key: m.k, className: 'mg-bar-mark is-' + m.k, 'aria-hidden': 'true', style: { left: Math.min(100, m.v / total * 100) + '%' } });
+        })),
+      p.compact ? null : h('div', { className: 'mg-bar-scale t-caption', 'aria-hidden': 'true' }, h('span', null, '0'), h('span', null, formatNumber(total) + unit + (p.empaque && p.empaque.unidad ? ' (marcas cada ' + formatNumber(p.empaque.paso) + ' ' + p.empaque.unidad + ')' : ''))),
       p.legend === false ? null : h('ul', { className: 'mg-bar-legend t-caption' },
-        seg.filter(function (s) { return s.v > 0 || s.k !== 'pendiente'; }).map(function (s) {
-          return h('li', { key: s.k }, h('span', { className: 'mg-swatch is-' + s.k, 'aria-hidden': 'true' }), s.label, ' ', h('b', { className: 'mg-num' }, formatNumber(s.v)), p.unidad ? ' ' + p.unidad : '');
+        shown.map(function (s) {
+          return h('li', { key: s.k }, h('span', { className: 'mg-swatch is-' + s.k, 'aria-hidden': 'true' }), s.label, ' ', h('b', { className: 'mg-num' }, formatNumber(s.v)), unit);
+        }),
+        marks.map(function (m) {
+          return h('li', { key: m.k }, h('span', { className: 'mg-swatch is-mark', 'aria-hidden': 'true' }), m.label, ' ', h('b', { className: 'mg-num' }, formatNumber(m.v)), unit);
         })));
+  }
+  function StockLocations(p) {
+    var items = p.ubicaciones || [];
+    var unit = p.unidad ? ' ' + p.unidad : '';
+    return h('ul', { className: cx('mg-locs', p.compact && 'is-compact', p.className), 'aria-label': p.label || 'Existencias por ubicación' },
+      items.map(function (u) {
+        var libre = (u.cantidad || 0) - (u.reservado || 0);
+        var empty = !u.cantidad;
+        return h('li', { key: u.nombre, className: cx('mg-loc', empty && 'is-empty'), style: { flexGrow: empty ? 0.6 : Math.max(1, Math.min(3, u.cantidad / (p.escala || 400))) } },
+          h('span', { className: 't-caption mg-loc-name' }, u.nombre),
+          h('span', { className: 't-data mg-num mg-loc-qty' }, empty ? 'Sin stock' : formatNumber(libre)),
+          empty ? null : h('span', { className: 'mg-loc-bar', 'aria-hidden': 'true' }, h('span', { style: { width: Math.round(libre / u.cantidad * 100) + '%' } })),
+          empty || p.compact ? null : h('span', { className: 't-caption mg-loc-sub' }, 'Reservado ' + formatNumber(u.reservado || 0) + unit));
+      }));
   }
   function MatchConfidence(p) {
     var th = p.thresholds || { high: 0.85, low: 0.6 };
@@ -678,10 +708,37 @@
     var tone = level === 'high' ? 'success' : level === 'mid' ? 'warning' : 'danger';
     var icon = level === 'high' ? 'status-ok' : level === 'mid' ? 'alert-triangle' : 'status-danger';
     var text = level === 'high' ? 'Coincidencia alta' : level === 'mid' ? 'Revisar coincidencia' : 'Sin coincidencia';
-    return h('div', { className: cx('mg-match', 'is-' + level, p.className) },
+    return h('div', { className: cx('mg-match', 'is-' + level, p.compact && 'is-compact', p.className) },
       h('div', { className: 'mg-match-top' }, h(Badge, { tone: tone, icon: icon }, text), h('span', { className: 't-data mg-num' }, Math.round(s * 100) + ' %')),
       h('div', { className: 'mg-progress', role: 'meter', 'aria-valuemin': 0, 'aria-valuemax': 100, 'aria-valuenow': Math.round(s * 100), 'aria-label': 'Similitud con el catálogo' }, h('span', { style: { width: Math.round(s * 100) + '%' } })),
-      level === 'low' ? h('div', { className: 't-body-sm mg-desc' }, 'Se requiere validación manual antes de continuar.') : null);
+      level === 'low' && !p.compact ? h('div', { className: 't-body-sm mg-desc' }, 'Se requiere validación manual antes de continuar.') : null);
+  }
+  function ActionBar(p) {
+    return h('div', { className: cx('mg-actionbar', p.className), role: 'region', 'aria-label': p['aria-label'] || 'Resumen y acciones' },
+      h('div', { className: 'mg-actionbar-info' },
+        p.summary ? h('div', { className: 'mg-actionbar-summary' }, p.summary) : null,
+        p.reason ? h('div', { className: 'mg-actionbar-reason t-body-sm', role: 'status' }, h(Icon, { name: 'alert-triangle', size: 16 }), h('span', null, p.reason)) : null),
+      h('div', { className: 'mg-actionbar-actions' }, p.children));
+  }
+  function Constancia(p) {
+    useEffect(function () {
+      var still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (p.vibrate !== false && !still && navigator.vibrate) { try { navigator.vibrate(30); } catch (e) { /* sin vibración */ } }
+    }, []);
+    return h('section', { className: cx('mg-receipt', p.className), 'aria-labelledby': p.titleId || 'mg-receipt-t', role: 'status' },
+      h('div', { className: 'mg-receipt-seal' }, p.sello),
+      h('h2', { id: p.titleId || 'mg-receipt-t', className: 't-h2' }, p.title),
+      p.description ? h('p', { className: 't-body mg-desc' }, p.description) : null,
+      h('table', { className: 'mg-receipt-table' },
+        h('caption', { className: 'mg-sr' }, 'Cambios de existencias'),
+        h('thead', null, h('tr', null, h('th', { scope: 'col', className: 't-th' }, 'Producto'), h('th', { scope: 'col', className: 't-th is-right' }, 'Antes'), h('th', { scope: 'col', className: 't-th is-right' }, 'Después'))),
+        h('tbody', null, (p.cambios || []).map(function (c, i) {
+          return h('tr', { key: i }, h('td', null, h('span', { className: 't-label' }, c.producto), c.ubicacion ? h('span', { className: 't-caption mg-desc mg-receipt-where' }, c.ubicacion) : null),
+            h('td', { className: 'is-right mg-num t-data' }, formatNumber(c.antes)),
+            h('td', { className: 'is-right mg-num t-data mg-receipt-after' }, h(Icon, { name: 'arrow-right', size: 14, className: 'mg-receipt-arrow' }), formatNumber(c.despues), c.unidad ? h('span', { className: 't-caption mg-desc' }, ' ' + c.unidad) : null));
+        }))),
+      p.nota ? h('p', { className: 't-body-sm mg-desc' }, p.nota) : null,
+      h('div', { className: 'mg-receipt-actions' }, p.actions));
   }
   function Stat(p) {
     var flag = { warning: 'alert-triangle', danger: 'status-danger', success: 'status-ok' }[p.tone];
@@ -734,7 +791,7 @@
     var role = p.role;
     var groups = p.nav || [];
     var user = p.user;
-    return h('div', { className: cx('mg-shell', p.collapsed && 'is-collapsed', navOpen && 'is-nav-open', p.className) },
+    return h('div', { className: cx('mg-shell', p.collapsed && 'is-collapsed', navOpen && 'is-nav-open', p.warehouse && 'is-warehouse', p.className) },
       h('a', { className: 'mg-skip t-label', href: '#contenido' }, 'Saltar al contenido'),
       h('div', { className: 'mg-scrim', 'aria-hidden': 'true', onClick: function () { navState[1](false); } }),
       h('aside', { className: 'mg-sidebar', id: 'mg-nav' },
@@ -759,6 +816,7 @@
           h(IconButton, { icon: 'menu', label: 'Abrir menú de navegación', className: 'mg-menu-btn', 'aria-expanded': navOpen ? 'true' : 'false', 'aria-controls': 'mg-nav', onClick: function () { navState[1](!navOpen); } }),
           h('div', { className: 'mg-topbar-brand t-h4' }, p.name || 'MIGAL SmartOps'),
           h('div', { className: 'mg-topbar-slot' }, p.header || null),
+          p.onToggleWarehouse ? h(IconButton, { icon: 'almacen', label: p.warehouse ? 'Desactivar modo almacén' : 'Activar modo almacén', 'aria-pressed': p.warehouse ? 'true' : 'false', variant: p.warehouse ? 'secondary' : 'subtle', onClick: p.onToggleWarehouse }) : null,
           p.onToggleTheme ? h(IconButton, { icon: p.theme === 'dark' ? 'sun' : 'moon', label: p.theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro', onClick: p.onToggleTheme }) : null,
           user ? h('div', { className: 'mg-user' },
             h('span', { className: 'mg-avatar', 'aria-hidden': 'true' }, initials(user.name)),
@@ -770,7 +828,7 @@
   var api = {
     Icon: Icon, Button: Button, IconButton: IconButton, Badge: Badge, StatusBadge: StatusBadge, MovementBadge: MovementBadge,
     Field: Field, TextInput: TextInput, NumberInput: NumberInput, Select: Select, Textarea: Textarea, Checkbox: Checkbox, Switch: Switch, SearchInput: SearchInput,
-    Card: Card, Stack: Stack, Columns: Columns, Alert: Alert, Notification: Notification, EmptyState: EmptyState, Spinner: Spinner, Skeleton: Skeleton,
+    Card: Card, Stack: Stack, Columns: Columns, ActionBar: ActionBar, StockLocations: StockLocations, Constancia: Constancia, Alert: Alert, Notification: Notification, EmptyState: EmptyState, Spinner: Spinner, Skeleton: Skeleton,
     Tabs: Tabs, Stepper: Stepper, Breadcrumbs: Breadcrumbs, PageHeader: PageHeader, Table: Table, Pagination: Pagination,
     Dropzone: Dropzone, FileItem: FileItem, Modal: Modal, ConfirmDialog: ConfirmDialog,
     StockSummary: StockSummary, StockBar: StockBar, MatchConfidence: MatchConfidence, Stat: Stat,

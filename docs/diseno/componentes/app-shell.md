@@ -7,6 +7,12 @@ Estructura general de la aplicación: barra lateral de navegación, cabecera con
 - `nav`: grupos `[{ label, items: [{ key, label, icon, roles, badge, href }] }]`; `role` (rol del usuario autenticado, filtra los ítems con `roles`); `current`; `onNavigate(key)`; `user` (`{ name, role }`); `onLogout`; `logo` (nodo); `header` (nodo en la cabecera); `collapsed`; `theme` (`light` o `dark`) y `onToggleTheme` (muestra el botón de cambio de modo en la cabecera).
 - Un ítem sin `roles` es visible para todos los usuarios (por ejemplo, Agente de IA). La visibilidad de la navegación es una ayuda de usabilidad: la autorización real la aplica el backend (RNF-09).
 
+## Modo almacén
+
+- `warehouse` y `onToggleWarehouse` muestran en la cabecera un botón con `aria-pressed` ("Activar modo almacén", "Desactivar modo almacén"). El modo es un ajuste por equipo, no por usuario, que se guarda en el dispositivo.
+- Efecto: controles de 52 a 56 px, ítems de navegación de 52 px, celdas de tabla más altas, cifras `t-data` de 17 px y, en tablet, la barra lateral de 220 px con las etiquetas visibles. Está pensado para tablets de pie y bajo tubo fluorescente, con las manos ocupadas.
+- Se presenta como un solo interruptor; combinado con el tema oscuro tenue es opcional, no obligatorio.
+
 ## Reglas
 
 - Barra lateral expandida (264 px) desde 1024 px; en tablets (menos de 1024 px) se contrae a íconos (72 px) y cada ítem conserva su `title`.

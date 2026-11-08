@@ -22,7 +22,7 @@
 <script>
 var M = window.Migal, h = React.createElement;
 function Cap(t) { return h('p', { className: 'pv-cap' }, t); }
-function Demo() { var s = React.useState('todos'); return h(M.Tabs, { value: s[0], onChange: s[1], items: [{ value: 'todos', label: 'Todos', count: 24 }, { value: 'criticos', label: 'Stock crítico', count: 3, icon: 'alert-triangle' }, { value: 'movimientos', label: 'Movimientos', icon: 'movimiento' }, { value: 'inactivos', label: 'Inactivos', disabled: true }] }); }
+function Demo() { var s = React.useState('todos'); return h(M.Tabs, { value: s[0], onChange: s[1], items: [{ value: 'todos', label: 'Todos', count: 24 }, { value: 'criticos', label: 'Stock crítico', count: 3, icon: 'alert-triangle', tone: 'warning' }, { value: 'movimientos', label: 'Movimientos', icon: 'movimiento' }, { value: 'inactivos', label: 'Inactivos', disabled: true }] }); }
 ReactDOM.createRoot(document.getElementById('root')).render(h(Demo));
 </script>
 </body>

@@ -25,14 +25,15 @@ function Cap(t) { return h('p', { className: 'pv-cap' }, t); }
 document.body.style.padding = '0';
 var LOGO_L = h('img', { src: '../progresol-logo.png', alt: 'Progresol', width: 72, height: 72 });
 function Demo() {
-  return h('div', { style: { minHeight: 580, display: 'grid', placeItems: 'center', padding: 24 } },
-    h('div', { style: { width: 420, maxWidth: '100%' } },
+  var err = React.useState(false);
+  return h('div', { style: { minHeight: '100vh', display: 'grid', placeItems: 'center', padding: 16, boxSizing: 'border-box' } },
+    h('div', { style: { width: '100%', maxWidth: 420 } },
       h('div', { style: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, marginBottom: 24, textAlign: 'center' } }, LOGO_L, h('h1', { className: 't-h1', style: { margin: 0 } }, 'MIGAL SmartOps'), h('p', { className: 't-body-lg', style: { margin: 0, color: 'var(--ink-muted)' } }, 'Ferretería Progresol Migal')),
       h(M.Card, { padded: true },
-        h('form', { onSubmit: function (e) { e.preventDefault(); } },
+        h('form', { onSubmit: function (e) { e.preventDefault(); err[1](true); } },
           h(M.Stack, { gap: 4 },
-            h(M.Alert, { tone: 'danger', title: 'Credenciales incorrectas' }, 'Verificar el usuario y la contraseña. Tras cinco intentos fallidos la cuenta se bloquea temporalmente.'),
-            h(M.TextInput, { label: 'Usuario', size: 'lg', leftIcon: 'user', autoComplete: 'username', required: true, defaultValue: 'rquispe' }),
+            err[0] ? h(M.Alert, { tone: 'danger', title: 'Credenciales incorrectas' }, 'Verificar el usuario y la contraseña. Tras cinco intentos fallidos la cuenta se bloquea temporalmente.') : null,
+            h(M.TextInput, { label: 'Usuario', size: 'lg', leftIcon: 'user', autoComplete: 'username', required: true }),
             h(M.TextInput, { label: 'Contraseña', size: 'lg', leftIcon: 'lock', type: 'password', autoComplete: 'current-password', required: true, rightSection: h(M.IconButton, { icon: 'eye', label: 'Mostrar contraseña', size: 'sm' }) }),
             h(M.Button, { type: 'submit', size: 'lg', fullWidth: true }, 'Iniciar sesión'))))));
 }

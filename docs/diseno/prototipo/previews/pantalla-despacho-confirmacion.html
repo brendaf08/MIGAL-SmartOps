@@ -48,13 +48,15 @@ var NAV = [
     { key: 'usuarios', label: 'Usuarios y roles', icon: 'rol', roles: ['Administrador'] }
   ] }
 ];
+function useWarehouse(d) { var s = React.useState(d); return [s[0], function () { s[1](!s[0]); }]; }
 function useTheme() { var s = React.useState(document.documentElement.getAttribute('data-theme') || 'light'); function toggle() { var n = s[0] === 'dark' ? 'light' : 'dark'; document.documentElement.setAttribute('data-theme', n); s[1](n); } return [s[0], toggle]; }
 var LOGO = h('img', { src: '../progresol-logo.png', alt: 'Progresol', width: 44, height: 44 });
 document.body.style.padding = '0';
 function Demo() {
   var TH = useTheme();
+  var WH = useWarehouse(false);
   return h('div', { style: { height: 520, position: 'relative', overflow: 'hidden' } },
-    h(M.AppShell, { theme: TH[0], onToggleTheme: TH[1], logo: LOGO, nav: NAV, role: 'Almacenero', current: 'despachos', user: { name: 'Rosa Quispe', role: 'Almacenero' }, onLogout: function () {} },
+    h(M.AppShell, { theme: TH[0], onToggleTheme: TH[1], warehouse: WH[0], onToggleWarehouse: WH[1], logo: LOGO, nav: NAV, role: 'Almacenero', current: 'despachos', user: { name: 'Rosa Quispe', role: 'Almacenero' }, onLogout: function () {} },
       h(M.PageHeader, { title: 'Orden de despacho D-0031', status: h(M.StatusBadge, { entity: 'guia', value: 'Emitida' }), description: 'Venta V-0038, Constructora Los Andes S.A.C., Entrega completa', actions: h(M.Button, { leftIcon: 'despacho' }, 'Confirmar salida') }),
       h(M.Alert, { tone: 'success', title: 'Todas las cantidades están reservadas' }, 'La venta puede despacharse completa.')),
     h('div', { style: { position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--overlay)' } },

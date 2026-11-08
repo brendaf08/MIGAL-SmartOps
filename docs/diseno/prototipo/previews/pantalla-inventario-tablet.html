@@ -48,11 +48,13 @@ var NAV = [
     { key: 'usuarios', label: 'Usuarios y roles', icon: 'rol', roles: ['Administrador'] }
   ] }
 ];
+function useWarehouse(d) { var s = React.useState(d); return [s[0], function () { s[1](!s[0]); }]; }
 function useTheme() { var s = React.useState(document.documentElement.getAttribute('data-theme') || 'light'); function toggle() { var n = s[0] === 'dark' ? 'light' : 'dark'; document.documentElement.setAttribute('data-theme', n); s[1](n); } return [s[0], toggle]; }
 var LOGO = h('img', { src: '../progresol-logo.png', alt: 'Progresol', width: 44, height: 44 });
 document.body.style.padding = '0';
 function Demo() {
   var TH = useTheme();
+  var WH = useWarehouse(false);
   var tab = React.useState('todos');
   var q = React.useState('');
   var rows = [
@@ -69,15 +71,15 @@ function Demo() {
     { key: 't', header: 'Tienda', numeric: true, phone: false, render: function (r) { return M.formatNumber(r.t); } },
     { key: 'a1', header: 'Almacén 1', numeric: true, phone: false, render: function (r) { return M.formatNumber(r.a1); } },
     { key: 'a2', header: 'Almacén 2', numeric: true, phone: false, render: function (r) { return M.formatNumber(r.a2); } },
-    { key: 'fisico', header: 'Físico', numeric: true, phone: false, render: function (r) { return M.formatNumber(r.fisico); } },
-    { key: 'res', header: 'Reservado', numeric: true, phone: false, render: function (r) { return M.formatNumber(r.res); } },
     { key: 'libre', header: 'Libre', numeric: true, render: function (r) { return h('b', null, M.formatNumber(r.libre)); } },
+    { key: 'reparto', header: 'Reparto', phone: false, width: 150, render: function (r) { return h(M.StockBar, { libre: r.libre, reservado: r.res, legend: false, compact: true, label: r.nombre }); } },
+    { key: 'donde', header: 'Dónde está', phoneOnly: true, block: true, render: function (r) { var f = r.fisico || 1; return h(M.StockLocations, { compact: true, escala: 1500, ubicaciones: [{ nombre: 'Tienda', cantidad: r.t, reservado: Math.round(r.res * r.t / f) }, { nombre: 'Almacén 1', cantidad: r.a1, reservado: Math.round(r.res * r.a1 / f) }, { nombre: 'Almacén 2', cantidad: r.a2, reservado: Math.round(r.res * r.a2 / f) }] }); } },
     { key: 'nivel', header: 'Nivel', render: function (r) { return h(M.StatusBadge, { entity: 'stock', value: r.nivel }); } }
   ];
-  return h('div', { style: { minHeight: '100vh' } }, h(M.AppShell, { theme: TH[0], onToggleTheme: TH[1], logo: LOGO, nav: NAV, role: 'Almacenero', current: 'disponibilidad', user: { name: 'Rosa Quispe', role: 'Almacenero' }, onLogout: function () {}, header: h(M.Breadcrumbs, { items: [{ label: 'Inicio' }, { label: 'Operación' }, { label: 'Disponibilidad' }] }) },
-    h(M.PageHeader, { title: 'Disponibilidad', description: 'Existencias físicas, reservadas y libres por ubicación.', actions: h(React.Fragment, null, h(M.Button, { variant: 'outline', leftIcon: 'download' }, 'Exportar'), h(M.Button, { leftIcon: 'movimiento' }, 'Registrar movimiento')) }),
+  return h('div', { style: { minHeight: '100vh' } }, h(M.AppShell, { theme: TH[0], onToggleTheme: TH[1], warehouse: WH[0], onToggleWarehouse: WH[1], logo: LOGO, nav: NAV, role: 'Almacenero', current: 'disponibilidad', user: { name: 'Rosa Quispe', role: 'Almacenero' }, onLogout: function () {}, header: h(M.Breadcrumbs, { items: [{ label: 'Inicio' }, { label: 'Operación' }, { label: 'Disponibilidad' }] }) },
+    h(M.PageHeader, { title: 'Disponibilidad', description: 'Existencias libres por ubicación y su reparto entre libre y reservado.', actions: h(React.Fragment, null, h(M.Button, { variant: 'outline', leftIcon: 'download' }, 'Exportar'), h(M.Button, { leftIcon: 'movimiento' }, 'Registrar movimiento')) }),
     h('div', { className: 'mg-toolbar' },
-      h(M.Tabs, { value: tab[0], onChange: tab[1], items: [{ value: 'todos', label: 'Todos', count: rows.length }, { value: 'alerta', label: 'En alerta', count: rows.filter(function (r) { return r.nivel !== 'Normal'; }).length, icon: 'alert-triangle' }] }),
+      h(M.Tabs, { value: tab[0], onChange: tab[1], items: [{ value: 'todos', label: 'Todos', count: rows.length }, { value: 'alerta', label: 'En alerta', count: rows.filter(function (r) { return r.nivel !== 'Normal'; }).length, icon: 'alert-triangle', tone: 'warning' }] }),
       h('div', { className: 'mg-toolbar-search' }, h(M.SearchInput, { value: q[0], onChange: q[1] }))),
     h(M.Table, { caption: 'Disponibilidad por producto', columns: cols, rows: shown, rowKey: 'sku', onRowClick: function () {} }),
     h(M.Pagination, { page: 1, pages: 8, total: 152, pageSize: 20, onChange: function () {} })));

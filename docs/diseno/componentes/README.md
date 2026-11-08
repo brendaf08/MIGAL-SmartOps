@@ -33,23 +33,29 @@ Catálogo de componentes y pantallas de referencia. Cada documento indica cuánd
 | Navegación | [PageHeader](page-header.md) | Cabecera estándar de cada página: ruta, título (`h1`), estado de la entidad, descripción y acciones principales. |
 | Navegación | [Stepper](stepper.md) | Indicador de avance de un proceso con pasos ordenados. |
 | Navegación | [Tabs](tabs.md) | Pestañas para alternar vistas de un mismo contexto, por ejemplo "Todos", "Stock crítico" y "Movimientos" dentro de inventario. |
+| Estructura | [ActionBar](action-bar.md) | Barra de resumen y acciones que acompaña a un flujo de confirmación. |
 | Estructura | [Card](card.md) | Contenedor de contenido relacionado, con encabezado opcional (título, descripción y acciones), cuerpo y pie. |
 | Estructura | [Columns](columns.md) | Disposición en columnas con separación de la escala `space-*`. |
+| Estructura | [Constancia](constancia.md) | Constancia que cierra una operación de inventario (recepción, despacho, ajuste, traslado). |
 | Estructura | [Stack](stack.md) | Contenedor flexible que ordena a sus hijos en columna o fila con un espaciado tomado de la escala `space-*`. |
 | Inventario | [MatchConfidence](match-confidence.md) | Indicador del grado de similitud entre un término extraído por OCR (o escrito por el usuario) y un producto del catálogo maestro. |
 | Inventario | [StockBar](stock-bar.md) | Barra segmentada que muestra de un vistazo cómo se reparte el stock de un producto: libre, reservado y, cuando existe, la cantidad solicitada sin cobertura (pendiente de abastecimiento). |
+| Inventario | [StockLocations](stock-locations.md) | Plano esquemático de dónde se encuentra un producto: una celda por ubicación (tienda principal y los dos almacenes), con la cantidad libre, una barra de la parte libre frente a la reservada y el ancho de la celda proporcional a la existencia. |
 | Inventario | [StockSummary](stock-summary.md) | Resumen de la existencia de un producto en una ubicación o de forma consolidada. |
 | Agente de IA | [ChatComposer](chat-composer.md) | Zona de entrada del chat: campo de texto, botón de envío y sugerencias de consultas frecuentes. |
 | Agente de IA | [ChatMessage](chat-message.md) | Mensaje de la conversación con el agente consultivo de IA. |
 | Pantallas | [PantallaAcceso](pantalla-acceso.md) | Pantalla de inicio de sesión (CU-01) con campos grandes (`size="lg"`) para uso táctil, aviso de error en línea y un único botón principal. |
 | Pantallas | [PantallaAccesoMovil](pantalla-acceso-movil.md) | Variante de teléfono del inicio de sesión. |
 | Pantallas | [PantallaAgenteIA](pantalla-agente-ia.md) | Pantalla del agente consultivo de IA (CU-14) con `ChatMessage` y `ChatComposer` dentro de `AppShell`. |
-| Pantallas | [PantallaAgenteIAMovil](pantalla-agente-iamovil.md) | Variante de teléfono del agente de IA. |
+| Pantallas | [PantallaAgenteIAMovil](pantalla-agente-ia-movil.md) | Variante de teléfono del agente de IA. |
 | Pantallas | [PantallaCotizacion](pantalla-cotizacion.md) | Pantalla de cotización a un cliente (CU-09) con `PageHeader` y sello de estado, `Stepper`, `Table` con pie de totales, `Alert` y tarjetas de cliente y condiciones. |
 | Pantallas | [PantallaCotizacionMovil](pantalla-cotizacion-movil.md) | Variante de teléfono de la cotización. |
 | Pantallas | [PantallaDespachoConfirmacion](pantalla-despacho-confirmacion.md) | Confirmación de la salida física de mercadería (CU-06). |
 | Pantallas | [PantallaInventario](pantalla-inventario.md) | Pantalla de consulta de disponibilidad (CU-04) que integra `AppShell`, `PageHeader`, `Stat`, `Tabs`, `SearchInput`, `Table`, `StatusBadge` y `Pagination`. |
+| Pantallas | [PantallaInventarioAlmacen](pantalla-inventario-almacen.md) | Disponibilidad con el modo almacén activo en una tablet: controles de 52 a 56 px, barra lateral con etiquetas visibles aun en tablet, cifras de 17 px y celdas más altas. |
 | Pantallas | [PantallaInventarioMovil](pantalla-inventario-movil.md) | Variante de teléfono de la pantalla de disponibilidad. |
 | Pantallas | [PantallaInventarioTablet](pantalla-inventario-tablet.md) | Variante de tablet de la pantalla de disponibilidad. |
+| Pantallas | [PantallaRecepcionCierre](pantalla-recepcion-cierre.md) | Cierre de una recepción (CU-13) con `Constancia`. |
+| Pantallas | [PantallaRecepcionCierreMovil](pantalla-recepcion-cierre-movil.md) | Variante de teléfono de la constancia de cierre: el sello, el resumen antes y después y las acciones a ancho completo, sin desplazamiento horizontal. |
 | Pantallas | [PantallaRecepcionOCR](pantalla-recepcion-ocr.md) | Pantalla de recepción de mercadería con documento procesado por OCR (CU-13 y CU-08). |
-| Pantallas | [PantallaRecepcionOCRMovil](pantalla-recepcion-ocrmovil.md) | Variante de teléfono de la recepción con OCR. |
+| Pantallas | [PantallaRecepcionOCRMovil](pantalla-recepcion-ocr-movil.md) | Variante de teléfono de la recepción con OCR. |

@@ -4,7 +4,7 @@ Contenedor de contenido relacionado, con encabezado opcional (título, descripci
 
 ## Uso
 
-- `title`, `titleId` (enlaza `aria-labelledby`), `level` (nivel del encabezado, 3 por omisión; ajustar para no saltar niveles), `description`, `actions`, `footer`, `flat` (sin sombra), `padded={false}` para contenido que ocupa todo el ancho (tablas).
+- `title`, `titleId` (enlaza `aria-labelledby`), `level` (nivel del encabezado, 2 por omisión: sigue al `h1` del `PageHeader`; usar 3 dentro de una tarjeta), `description`, `actions`, `footer`, `flat` (sin sombra), `padded={false}` para contenido que ocupa todo el ancho (tablas).
 - Es la unidad de composición de paneles de detalle y formularios; contiene `Table`, `Stack` de campos o indicadores.
 
 ## Reglas

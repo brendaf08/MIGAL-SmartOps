@@ -23,6 +23,7 @@
 var M = window.Migal, h = React.createElement;
 function Cap(t) { return h('p', { className: 'pv-cap' }, t); }
 function Demo() {
+  var ch = React.useState(undefined);
   var s = React.useState({ key: 'sku', dir: 'asc' });
   var rows = [
     { sku: 'CEM-SOL-001', nombre: 'Cemento Sol tipo I, bolsa 42.5 kg', fisico: 1240, reservado: 300, minimo: 200, precio: 28.9 },
@@ -39,8 +40,8 @@ function Demo() {
     { key: 'estado', header: 'Estado', render: function (r) { return h(M.StatusBadge, { entity: 'stock', value: M.stockLevel(r.fisico - r.reservado, r.minimo) }); } }
   ];
   return h('div', { className: 'pv-col' },
-    Cap('Con datos (ordenable por SKU, producto y físico)'),
-    h(M.Table, { caption: 'Inventario por producto', columns: cols, rows: rows, rowKey: 'sku', sort: s[0], onSort: function (k, d) { s[1]({ key: k, dir: d }); }, onRowClick: function () {}, selectedKey: 'FIE-012-009', footer: { nombre: 'Total de 4 productos', fisico: '6,566', libre: '1,172' } }),
+    Cap('Con datos (ordenable por SKU, producto y físico)'), h(M.Button, { size: 'sm', variant: 'outline', onClick: function () { ch[1]('FIE-012-009'); } }, 'Simular recepción de fierro'),
+    h(M.Table, { caption: 'Inventario por producto', columns: cols, rows: rows, rowKey: 'sku', sort: s[0], onSort: function (k, d) { s[1]({ key: k, dir: d }); }, onRowClick: function () {}, selectedKey: 'FIE-012-009', changedKey: ch[0], footer: { nombre: 'Total de 4 productos', fisico: '6,566', libre: '1,172' } }),
     Cap('Cargando'), h(M.Table, { columns: cols, rows: [], loading: true, density: 'sm' }),
     Cap('Sin resultados'), h(M.Table, { columns: cols, rows: [], empty: h(M.EmptyState, { icon: 'search', title: 'Sin resultados', description: 'No hay productos que coincidan con la búsqueda. Revisar el SKU o ampliar los filtros.' }) }));
 }

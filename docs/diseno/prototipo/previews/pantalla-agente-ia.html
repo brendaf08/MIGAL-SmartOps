@@ -48,12 +48,14 @@ var NAV = [
     { key: 'usuarios', label: 'Usuarios y roles', icon: 'rol', roles: ['Administrador'] }
   ] }
 ];
+function useWarehouse(d) { var s = React.useState(d); return [s[0], function () { s[1](!s[0]); }]; }
 function useTheme() { var s = React.useState(document.documentElement.getAttribute('data-theme') || 'light'); function toggle() { var n = s[0] === 'dark' ? 'light' : 'dark'; document.documentElement.setAttribute('data-theme', n); s[1](n); } return [s[0], toggle]; }
 var LOGO = h('img', { src: '../progresol-logo.png', alt: 'Progresol', width: 44, height: 44 });
 document.body.style.padding = '0';
 function Demo() {
   var TH = useTheme();
-  return h('div', { style: { minHeight: '100vh' } }, h(M.AppShell, { theme: TH[0], onToggleTheme: TH[1], logo: LOGO, nav: NAV, role: 'Vendedor', current: 'agente', user: { name: 'Luis Pérez', role: 'Vendedor' }, onLogout: function () {}, header: h(M.Breadcrumbs, { items: [{ label: 'Inicio' }, { label: 'Asistente' }, { label: 'Agente de IA' }] }) },
+  var WH = useWarehouse(false);
+  return h('div', { style: { minHeight: '100vh' } }, h(M.AppShell, { theme: TH[0], onToggleTheme: TH[1], warehouse: WH[0], onToggleWarehouse: WH[1], logo: LOGO, nav: NAV, role: 'Vendedor', current: 'agente', user: { name: 'Luis Pérez', role: 'Vendedor' }, onLogout: function () {}, header: h(M.Breadcrumbs, { items: [{ label: 'Inicio' }, { label: 'Asistente' }, { label: 'Agente de IA' }] }) },
     h(M.PageHeader, { title: 'Agente de IA', description: 'Consultas en lenguaje natural sobre inventario, productos y ubicación de mercadería.', status: h(M.Badge, { tone: 'info', icon: 'rol' }, 'Rol: Vendedor') }),
     h('div', { style: { maxWidth: 820, display: 'flex', flexDirection: 'column', gap: 16 } },
       h(M.ChatMessage, { role: 'user', name: 'Luis Pérez', time: '10:42' }, '¿Tengo cemento Sol disponible para una entrega de 200 bolsas?'),

@@ -17,6 +17,11 @@ Tabla de datos semántica (`table`, `th scope`, `aria-sort`) con ordenamiento, s
 
 Equivalente en Mantine: `Table` de `@mantine/core` con TanStack Table para ordenamiento y paginación del lado del servidor.
 
+## Otras propiedades
+
+- `changedKey`: la fila con esa clave pasa de `brand-soft` a transparente durante 1.2 s, para mostrar qué dato cambió tras una acción (reserva, despacho, recepción). Se resalta como máximo una fila por acción y no se anima en la carga inicial.
+- Columnas: `phoneOnly` muestra la columna solo en las fichas de teléfono (por ejemplo, la celda de ubicaciones).
+
 ## Comportamiento responsive
 
 - Teléfono: cada fila se presenta como una ficha (`stack`, activo por omisión). El título de la ficha es la columna `primary`; las columnas marcadas con `phone: false` se omiten y las marcadas con `block: true` muestran su etiqueta sobre el control, a ancho completo. Los totales de `footer` conservan su doble línea.

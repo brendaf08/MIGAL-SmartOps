@@ -57,6 +57,15 @@ export declare function Switch(props: SwitchProps): React.ReactElement;
 export interface SearchInputProps { value?: string; onChange?: (value: string) => void; onSubmit?: (value: string) => void; placeholder?: string; label?: string; size?: Size; className?: string; 'aria-label'?: string }
 export declare function SearchInput(props: SearchInputProps): React.ReactElement;
 
+export interface ActionBarProps { summary?: React.ReactNode; reason?: string; 'aria-label'?: string; className?: string; children?: React.ReactNode }
+export declare function ActionBar(props: ActionBarProps): React.ReactElement;
+
+export interface StockLocationsProps { ubicaciones: { nombre: string; cantidad: number; reservado?: number }[]; unidad?: string; compact?: boolean; escala?: number; label?: string; className?: string }
+export declare function StockLocations(props: StockLocationsProps): React.ReactElement;
+
+export interface ConstanciaProps { title: string; description?: string; sello?: React.ReactNode; cambios: { producto: string; ubicacion?: string; antes: number; despues: number; unidad?: string }[]; nota?: string; actions?: React.ReactNode; vibrate?: boolean; titleId?: string; className?: string }
+export declare function Constancia(props: ConstanciaProps): React.ReactElement;
+
 export interface ColumnsProps { layout?: 'two' | 'three' | 'main-aside' | 'aside-main'; gap?: 1 | 2 | 3 | 4 | 5 | 6 | 8; as?: string; className?: string; children?: React.ReactNode }
 export declare function Columns(props: ColumnsProps): React.ReactElement;
 
@@ -81,7 +90,7 @@ export declare function Spinner(props: SpinnerProps): React.ReactElement;
 export interface SkeletonProps { width?: number | string; height?: number | string; radius?: number | string; className?: string }
 export declare function Skeleton(props: SkeletonProps): React.ReactElement;
 
-export interface TabItem { value: string; label: string; count?: number; icon?: IconName; disabled?: boolean }
+export interface TabItem { value: string; label: string; tone?: 'warning'; count?: number; icon?: IconName; disabled?: boolean }
 export interface TabsProps { items: TabItem[]; value: string; onChange?: (value: string) => void; idPrefix?: string; 'aria-label'?: string; className?: string }
 export declare function Tabs(props: TabsProps): React.ReactElement;
 
@@ -94,12 +103,12 @@ export declare function Breadcrumbs(props: BreadcrumbsProps): React.ReactElement
 export interface PageHeaderProps { title: string; description?: string; breadcrumbs?: BreadcrumbsProps['items']; status?: React.ReactNode; actions?: React.ReactNode; className?: string }
 export declare function PageHeader(props: PageHeaderProps): React.ReactElement;
 
-export interface TableColumn<T = any> { key: string; header: string; primary?: boolean; block?: boolean; phone?: false; align?: 'left' | 'right' | 'center'; width?: number | string; numeric?: boolean; mono?: boolean; sortable?: boolean; render?: (row: T) => React.ReactNode }
+export interface TableColumn<T = any> { key: string; header: string; primary?: boolean; block?: boolean; phone?: false; phoneOnly?: boolean; align?: 'left' | 'right' | 'center'; width?: number | string; numeric?: boolean; mono?: boolean; sortable?: boolean; render?: (row: T) => React.ReactNode }
 export interface TableProps<T = any> {
   columns: TableColumn<T>[]; rows: T[]; rowKey?: string | ((row: T) => string | number);
   sort?: { key: string; dir: 'asc' | 'desc' }; onSort?: (key: string, dir: 'asc' | 'desc') => void;
   loading?: boolean; empty?: React.ReactNode; onRowClick?: (row: T) => void; selectedKey?: string | number; footer?: Record<string, React.ReactNode> | Record<string, React.ReactNode>[];
-  density?: 'md' | 'sm'; stack?: boolean; stickyHeader?: boolean; caption?: string; className?: string;
+  density?: 'md' | 'sm'; stack?: boolean; changedKey?: string | number; stickyHeader?: boolean; caption?: string; className?: string;
 }
 export declare function Table<T = any>(props: TableProps<T>): React.ReactElement;
 
@@ -127,10 +136,10 @@ export declare function ConfirmDialog(props: ConfirmDialogProps): React.ReactEle
 export interface StockSummaryProps { fisico: number; reservado?: number; libre?: number; minimo?: number; unidad?: string; compact?: boolean; hideLevel?: boolean; className?: string }
 export declare function StockSummary(props: StockSummaryProps): React.ReactElement;
 
-export interface StockBarProps { libre?: number; reservado?: number; pendiente?: number; unidad?: string; label?: string; legend?: boolean; className?: string }
+export interface StockBarProps { libre?: number; reservado?: number; pendiente?: number; minimo?: number; reposicion?: number; empaque?: { paso: number; unidad: string }; compact?: boolean; unidad?: string; label?: string; legend?: boolean; className?: string }
 export declare function StockBar(props: StockBarProps): React.ReactElement;
 
-export interface MatchConfidenceProps { score: number; thresholds?: { high: number; low: number }; className?: string }
+export interface MatchConfidenceProps { score: number; compact?: boolean; thresholds?: { high: number; low: number }; className?: string }
 export declare function MatchConfidence(props: MatchConfidenceProps): React.ReactElement;
 
 export interface StatProps { label: string; value: React.ReactNode; hint?: string; tone?: 'warning' | 'danger' | 'success'; className?: string }
@@ -145,7 +154,7 @@ export declare function ChatComposer(props: ChatComposerProps): React.ReactEleme
 export interface NavItem { key: string; label: string; icon: IconName; roles?: string[]; badge?: string | number; href?: string }
 export interface AppShellProps {
   nav: { label?: string; items: NavItem[] }[]; role?: string; current?: string; onNavigate?: (key: string) => void;
-  user?: { name: string; role: string }; onLogout?: () => void; logo?: React.ReactNode; name?: string; subtitle?: string; header?: React.ReactNode; collapsed?: boolean; theme?: 'light' | 'dark'; onToggleTheme?: () => void; className?: string; children?: React.ReactNode;
+  user?: { name: string; role: string }; onLogout?: () => void; logo?: React.ReactNode; name?: string; subtitle?: string; header?: React.ReactNode; collapsed?: boolean; theme?: 'light' | 'dark'; onToggleTheme?: () => void; warehouse?: boolean; onToggleWarehouse?: () => void; className?: string; children?: React.ReactNode;
 }
 export declare function AppShell(props: AppShellProps): React.ReactElement;
 

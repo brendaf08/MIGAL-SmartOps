@@ -7,7 +7,7 @@
 <script src="../bundle.js"></script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>PantallaAgenteIAMovil - vista previa</title>
+<title>PantallaRecepcionCierreMovil - vista previa</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400..700&family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Barlow+Semi+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
   body { padding: 16px; }
@@ -48,19 +48,21 @@ var NAV = [
     { key: 'usuarios', label: 'Usuarios y roles', icon: 'rol', roles: ['Administrador'] }
   ] }
 ];
+function useWarehouse(d) { var s = React.useState(d); return [s[0], function () { s[1](!s[0]); }]; }
 function useTheme() { var s = React.useState(document.documentElement.getAttribute('data-theme') || 'light'); function toggle() { var n = s[0] === 'dark' ? 'light' : 'dark'; document.documentElement.setAttribute('data-theme', n); s[1](n); } return [s[0], toggle]; }
 var LOGO = h('img', { src: '../progresol-logo.png', alt: 'Progresol', width: 44, height: 44 });
 document.body.style.padding = '0';
 function Demo() {
   var TH = useTheme();
-  return h('div', { style: { minHeight: '100vh' } }, h(M.AppShell, { theme: TH[0], onToggleTheme: TH[1], logo: LOGO, nav: NAV, role: 'Vendedor', current: 'agente', user: { name: 'Luis Pérez', role: 'Vendedor' }, onLogout: function () {}, header: h(M.Breadcrumbs, { items: [{ label: 'Inicio' }, { label: 'Asistente' }, { label: 'Agente de IA' }] }) },
-    h(M.PageHeader, { title: 'Agente de IA', description: 'Consultas en lenguaje natural sobre inventario, productos y ubicación de mercadería.', status: h(M.Badge, { tone: 'info', icon: 'rol' }, 'Rol: Vendedor') }),
-    h('div', { style: { maxWidth: 820, display: 'flex', flexDirection: 'column', gap: 16 } },
-      h(M.ChatMessage, { role: 'user', name: 'Luis Pérez', time: '10:42' }, '¿Tengo cemento Sol disponible para una entrega de 200 bolsas?'),
-      h(M.ChatMessage, { role: 'agent', time: '10:42', tools: [{ label: 'Consultó disponibilidad de CEM-SOL-001', status: 'done' }, { label: 'Consultó ubicaciones', status: 'done' }] }, 'Hay 940 bolsas libres de Cemento Sol tipo I, suficientes para 200 bolsas. Están en Almacén 1 (600), Almacén 2 (240) y la tienda principal (100).'),
-      h(M.ChatMessage, { role: 'user', name: 'Luis Pérez', time: '10:43' }, '¿Y fierro de 1/2 pulgada?'),
-      h(M.ChatMessage, { role: 'agent', time: '10:43', tools: [{ label: 'Consultando disponibilidad de FIE-012-009', status: 'running' }] }, 'Revisando existencias…'),
-      h(M.ChatComposer, { suggestions: ['Productos en stock crítico', 'Disponibilidad de ladrillo King Kong'], onSend: function () {} }))));
+  var WH = useWarehouse(false);
+  return h('div', { style: { minHeight: '100vh' } }, h(M.AppShell, { theme: TH[0], onToggleTheme: TH[1], warehouse: WH[0], onToggleWarehouse: WH[1], logo: LOGO, nav: NAV, role: 'Almacenero', current: 'recepciones', user: { name: 'Rosa Quispe', role: 'Almacenero' }, onLogout: function () {}, header: h(M.Breadcrumbs, { items: [{ label: 'Abastecimiento' }, { label: 'Recepciones' }, { label: 'RC-0045' }] }) },
+    h('div', { style: { paddingTop: 16 } }, h(M.Constancia, {
+      sello: h(M.StatusBadge, { entity: 'recepcion', value: 'Validada', variant: 'sello' }),
+      title: 'Recepción RC-0045 confirmada',
+      description: 'Orden de compra OC-0087, Distribuidora Andina S.A.C. Se registraron 2 movimientos de entrada en el Kardex del Almacén 1.',
+      cambios: [{ producto: 'Cemento Sol tipo I', ubicacion: 'Almacén 1', antes: 600, despues: 700, unidad: 'bolsas' }, { producto: 'Fierro corrugado 1/2 in x 9 m', ubicacion: 'Almacén 1', antes: 70, despues: 110, unidad: 'varillas' }],
+      nota: 'Quedan 20 varillas de fierro pendientes de la orden OC-0087. Registrar otra recepción cuando llegue el resto.',
+      actions: h(React.Fragment, null, h(M.Button, { leftIcon: 'kardex' }, 'Ver movimientos en el Kardex'), h(M.Button, { variant: 'outline', leftIcon: 'plus' }, 'Registrar otra recepción')) }))));
 }
 ReactDOM.createRoot(document.getElementById('root')).render(h(Demo));
 </script>

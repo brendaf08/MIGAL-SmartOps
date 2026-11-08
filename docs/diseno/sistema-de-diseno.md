@@ -26,11 +26,15 @@ El sistema toma su lenguaje visual del lugar donde se usa: el mostrador, el esta
 
 - **Señalización industrial para los estados.** Correcto = cuadrado con marca, atención = triángulo, crítico = octógono, información = círculo. El estado se lee por la forma antes que por el color (`StatusBadge`, `Alert`, `Stat`).
 - **Ficha de existencias.** En `StockSummary` la cantidad libre, la que se puede vender, es la cifra dominante; el stock físico y el reservado acompañan en un nivel menor.
-- **Cinta métrica.** `StockBar` incorpora una regla graduada de 0 al total bajo la barra.
+- **Cinta por empaque.** `StockBar` incorpora una regla graduada cuyas marcas caen en múltiplos de la unidad de venta (cada 100 bolsas, cada millar, cada varilla) y dos marcas con forma de marcador de estante para el stock mínimo y el punto de reposición.
+- **Dónde está.** `StockLocations` muestra la tienda y los dos almacenes como celdas de un plano esquemático, de ancho proporcional a su existencia y con el vacío dibujado con borde punteado. En teléfono es la respuesta a "¿hay y dónde?" dentro de cada ficha.
+- **Constancia de cierre.** `Constancia` cierra las operaciones de inventario con el sello estampado una vez, la existencia antes y después de cada producto en doble línea contable y el siguiente paso; en teléfono agrega una vibración de 30 ms.
+- **Cambio visible.** La fila afectada por una acción pasa de `brand-soft` a transparente durante 1.2 s (`changedKey` en `Table`); nada se anima en la carga.
+- **Barra de confirmación.** `ActionBar` fija al pie reúne el resumen por estado, el motivo del bloqueo y las acciones; la acción principal solo se deshabilita junto con una explicación visible.
 - **Etiqueta de estante.** El ítem activo de la navegación se marca con un cuadrado verde de contorno azul, como la etiqueta de un estante; es el único uso del verde de marca sobre fondo claro.
 - **Rotulado de códigos.** SKU, documentos y RUC se escriben en monoespaciada (`t-sku`), como en un rótulo de bodega.
 - **Plano y tinta.** El concepto central es el libro de existencias dibujado sobre papel de plano: en el tema claro, fondo azul pálido (`page`) con tarjetas casi blancas de matiz azul (`surface`), texto en tinta azul marino (`ink`), reglas de tinta translúcida (`line`) y una barra lateral en el azul profundo de la marca; en el tema oscuro, grises pizarra tenues en lugar de negros. Los colores del logo estructuran la interfaz sin saturarla: azul Progresol para barra lateral y acciones, verde neón solo como marcador y sello de marca.
-- **Rotulado de bodega.** Las cifras, los encabezados de columna y los rótulos de grupo usan una fuente condensada de rotulado (Barlow Semi Condensed), como los números de las bodegas y las etiquetas de estante; los títulos usan Bricolage Grotesque y el resto del texto, Instrument Sans.
+- **Cifras de bodega.** Solo las cifras dominantes (el stock libre de una ficha, los indicadores) y el sello de documento usan una fuente condensada, como los números de las bodegas y las etiquetas de estante.
 - **Doble línea contable.** Los totales de una tabla (`footer`) se cierran con doble línea superior y el total en peso 700, como en un libro contable.
 - **Sello de documento.** El estado de una cotización, venta o guía se presenta en su encabezado como sello: doble contorno y fuente de rotulado (`StatusBadge` con `variant="sello"`).
 
@@ -62,8 +66,8 @@ El sistema toma su lenguaje visual del lugar donde se usa: el mostrador, el esta
 
 ## Tipografía
 
-- Familias: Bricolage Grotesque (títulos `t-h1` a `t-h4`, de rasgos propios y ajuste óptico por tamaño), Instrument Sans (texto, controles y navegación, sobria y de proporciones estrechas), Barlow Semi Condensed (`t-stat`, `t-numeral`, `t-data`, `t-th`, `t-overline`: cifras, encabezados de columna y rótulos) e IBM Plex Mono (`t-sku`). Se cargan desde Google Fonts en este sistema; en la aplicación se recomienda autoalojarlas con `@fontsource-variable/bricolage-grotesque`, `@fontsource-variable/instrument-sans`, `@fontsource/barlow-semi-condensed` y `@fontsource/ibm-plex-mono` para no depender de la red en la ferretería.
-- La fuente de rotulado se reserva para cifras y rótulos; nunca se usa en párrafos ni en etiquetas de formulario. Cada cifra va con cifras tabulares y, en columnas, alineada a la derecha.
+- Familias y papeles: Instrument Sans para todo el texto, los controles, las tablas, los encabezados de columna y los títulos de sección (`t-h2` a `t-h4`, `t-th`, `t-overline`, `t-data`); Bricolage Grotesque únicamente en el título de página (`t-h1`); Barlow Semi Condensed únicamente en las cifras grandes (`t-stat`, `t-numeral`) y en el sello de documento; IBM Plex Mono para códigos (`t-sku`). Se cargan desde Google Fonts en este sistema; en la aplicación se recomienda autoalojarlas con `@fontsource-variable/bricolage-grotesque`, `@fontsource-variable/instrument-sans`, `@fontsource/barlow-semi-condensed` y `@fontsource/ibm-plex-mono` para no depender de la red en la ferretería.
+- Las fuentes de acento no se usan en datos corrientes, etiquetas, botones ni encabezados de columna: una interfaz de trabajo debe sentirse familiar, y las cifras de una tabla se leen mejor en la misma fuente que el resto del texto, con cifras tabulares y alineadas a la derecha.
 - Escala: `t-h1` 28/36, `t-h2` 22/30, `t-h3` 18/26, `t-h4` 16/24; texto `t-body-lg` 16/24, `t-body` 14/20 (base), `t-body-sm` 13/18, `t-caption` 12/16 (mínimo permitido); controles `t-button-sm|md|lg`; datos `t-stat` 36/40, `t-numeral` 28/32, `t-data` 15/20, `t-th` 12/16, `t-sku` 13/18.
 - Reglas: un solo `t-h1` por vista; `t-body` en escritorio y `t-body-lg` en tablets y campos `lg`; cantidades, precios y totales con cifras tabulares y alineación a la derecha; evitar más de tres tamaños distintos en una misma pantalla.
 - Jerarquía: peso y color trabajan junto con el tamaño. Un dato se compone en tres niveles: valor (600 a 700, `ink`), etiqueta (500 a 600, `ink-muted`) y metadato (400, `ink-subtle`). La escala sigue una razón cercana a 1.2 sobre la base de 14 px.
@@ -102,7 +106,7 @@ Principios:
 - **Tarea primero.** En teléfono se prioriza la tarea del momento: lo secundario se omite (`phone: false` en columnas de tabla) o se traslada al detalle.
 - **Zona del pulgar.** Las acciones principales se ubican al pie o a ancho completo; las entradas de mensajes quedan fijas al pie.
 - **Sin desplazamiento horizontal de la página.** Solo las tablas de comparación (`stack` desactivado) se desplazan dentro de su contenedor.
-- **Objetivos táctiles.** 44 px como mínimo en teléfono y en cualquier pantalla táctil; campos con 16 px de fuente para evitar el acercamiento automático de iOS.
+- **Objetivos táctiles.** 44 px como mínimo en teléfono y en cualquier pantalla táctil, 48 px en tablet y 52 a 56 px en el modo almacén; campos con 16 px de fuente para evitar el acercamiento automático de iOS; enlaces de las migas con objetivo de 44 px.
 - **Cámara como entrada.** `Dropzone` con `camera` abre la cámara trasera para fotografiar notas, pedidos y guías de proveedores.
 - **Áreas seguras y altura dinámica.** Declarar `viewport-fit=cover` y usar `env(safe-area-inset-*)` y unidades `dvh` en superficies que ocupan toda la pantalla (panel, hoja inferior).
 - **Zoom y orientación.** La interfaz admite el zoom del navegador al 200 % sin desplazamiento horizontal y funciona en vertical y horizontal.
@@ -155,6 +159,20 @@ Reglas de reutilización:
 - Las propiedades siguen un vocabulario común: `variant`, `size` (`sm|md|lg`), `tone`, `label`, `description`, `error`, `loading`, `disabled`, `onChange(valor)`.
 - Ningún componente declara valores literales de color, tamaño o sombra: todo proviene de los tokens.
 
+## Pantallas de trabajo
+
+Reglas que se derivan de la crítica de las pantallas de almacén y rigen todo flujo de confirmación (recepción, despacho, venta, traslado):
+
+- **Una respuesta antes que una tabla.** La pantalla de consulta responde primero lo que el usuario necesita saber: cuánto hay libre y dónde está (`StockSummary`, `StockLocations`, `StockBar`). El detalle numérico va debajo o en el detalle del producto.
+- **Prevención visible.** Un error posible se muestra antes de confirmar, junto al dato: la diferencia entre lo pedido y lo recibido ("Faltan 20", "Sobran 5"), la línea sin producto asociado y el nivel de coincidencia. `ActionBar` resume el recuento y explica por qué la acción principal no está disponible; nunca queda un botón apagado sin motivo.
+- **Bloquear solo lo que el negocio exige.** Una línea sin producto asociado impide confirmar; una recepción parcial (RF-COM-11) no. Esta regla es un supuesto pendiente de confirmar con el negocio.
+- **Acciones masivas y atajos de una acción.** "Igualar coincidencias altas" y "Igual al pedido" evitan teclear cada cantidad; no se usan en líneas de coincidencia baja.
+- **Acción principal al pie.** En teléfono y tablet la confirmación vive en `ActionBar`, en la zona del pulgar.
+- **Cierre.** Toda confirmación termina en una `Constancia` que dice qué cambió y qué sigue.
+- **Un solo lugar para cada estado.** El estado de un documento se muestra una vez como sello; el ciclo de vida, como `Stepper`, solo cuando se necesita para decidir.
+- **Avisos breves.** Un `Alert` informativo ocupa como máximo dos líneas.
+- **Modo almacén.** Un interruptor por equipo (`AppShell`, `warehouse`) que sube los controles a 52 a 56 px, muestra las etiquetas de la barra lateral en tablet y agranda las cifras.
+
 ## Integración con el stack
 
 - **Mantine.** `frontend/src/theme/theme.ts` traduce los tokens a `createTheme` (paletas `brand` y `gray`, `primaryShade` 7 en claro y 2 en oscuro, radios, espaciado, familias tipográficas, sombras y puntos de quiebre). Cada componente de este sistema tiene un equivalente indicado en su README; los componentes del sistema que no existen en Mantine (`StatusBadge`, `StockSummary`, `StockBar`, `MatchConfidence`, `ChatMessage`, `PageHeader`, `EmptyState`) se implementan como componentes propios sobre los de Mantine.
@@ -201,6 +219,9 @@ Propuesta derivada de los actores de los casos de uso. La visibilidad es una ayu
 - El Administrador accede a todos los módulos: los requerimientos no lo establecen de forma expresa.
 - El nivel de alerta de stock se calcula sobre el stock libre; confirmar si debe calcularse sobre el stock físico.
 - RNF-05 contempla computadoras de escritorio y tablets. La compatibilidad con teléfonos se incorpora por decisión del equipo y debe registrarse en los requerimientos.
+- La confirmación de una recepción se bloquea mientras exista una línea sin producto asociado y admite cantidades menores a las pedidas (recepción parcial). Confirmar la regla con el negocio.
+- La tabla de Disponibilidad reemplaza las columnas Físico y Reservado por el reparto (`StockBar`) y por las ubicaciones; los valores exactos se consultan en el detalle del producto. Confirmar con RF-KAR-02 y RF-PRO-05 si deben mantenerse como columnas.
+- El modo almacén se guarda por equipo; falta definir quién puede activarlo y si se guarda en el dispositivo o en el servidor.
 - Los umbrales de `MatchConfidence` (0.85 y 0.60) son valores de ejemplo hasta que se definan en el servicio Python.
 - Los nombres definitivos de los estados de cotización, venta y guía deben armonizarse con los casos de uso (tabla de limitaciones de la metodología); el mapa `STATUS` se actualiza una sola vez cuando se confirmen.
 - La atención parcial de ventas (RF-VEN-12) difiere de la reserva parcial con despacho completo del modelo vigente; las pantallas de venta se ajustan cuando se resuelva.

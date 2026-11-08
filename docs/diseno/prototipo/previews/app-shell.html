@@ -48,16 +48,18 @@ var NAV = [
     { key: 'usuarios', label: 'Usuarios y roles', icon: 'rol', roles: ['Administrador'] }
   ] }
 ];
+function useWarehouse(d) { var s = React.useState(d); return [s[0], function () { s[1](!s[0]); }]; }
 function useTheme() { var s = React.useState(document.documentElement.getAttribute('data-theme') || 'light'); function toggle() { var n = s[0] === 'dark' ? 'light' : 'dark'; document.documentElement.setAttribute('data-theme', n); s[1](n); } return [s[0], toggle]; }
 var LOGO = h('img', { src: '../progresol-logo.png', alt: 'Progresol', width: 44, height: 44 });
 function Demo() {
   var TH = useTheme();
+  var WH = useWarehouse(false);
   var s = React.useState('disponibilidad');
   var r = React.useState('Almacenero');
   return h('div', { className: 'pv-col' },
     h(M.Select, { label: 'Rol (cambia la navegación visible)', value: r[0], onChange: r[1], options: ['Administrador', 'Vendedor', 'Almacenero', 'Reponedor'].map(function (x) { return { value: x, label: x }; }) }),
     h('div', { style: { height: 440, border: '1px solid var(--line)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' } },
-      h(M.AppShell, { theme: TH[0], onToggleTheme: TH[1], logo: LOGO, nav: NAV, role: r[0], current: s[0], onNavigate: s[1], user: { name: 'Rosa Quispe', role: r[0] }, onLogout: function () {}, header: h(M.Breadcrumbs, { items: [{ label: 'Inicio' }, { label: 'Operación' }] }) },
+      h(M.AppShell, { theme: TH[0], onToggleTheme: TH[1], warehouse: WH[0], onToggleWarehouse: WH[1], logo: LOGO, nav: NAV, role: r[0], current: s[0], onNavigate: s[1], user: { name: 'Rosa Quispe', role: r[0] }, onLogout: function () {}, header: h(M.Breadcrumbs, { items: [{ label: 'Inicio' }, { label: 'Operación' }] }) },
         h(M.PageHeader, { title: 'Disponibilidad', description: 'Existencias por producto y almacén.' }))));
 }
 ReactDOM.createRoot(document.getElementById('root')).render(h(Demo));

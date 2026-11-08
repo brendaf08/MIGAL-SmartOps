@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="es" data-theme="light">
+<head>
+<link rel="stylesheet" href="../tokens.css"><link rel="stylesheet" href="../bundle.css">
+<script src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script src="../bundle.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Constancia - vista previa</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400..700&family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Barlow+Semi+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  body { padding: 16px; }
+  .pv-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  .pv-col { display: flex; flex-direction: column; gap: 12px; }
+  .pv-grid { display: grid; gap: 16px; }
+  .pv-cap { font-size: 12px; line-height: 16px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-muted); margin: 0 0 8px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+var M = window.Migal, h = React.createElement;
+function Cap(t) { return h('p', { className: 'pv-cap' }, t); }
+ReactDOM.createRoot(document.getElementById('root')).render(h(M.Constancia, {
+  sello: h(M.StatusBadge, { entity: 'guia', value: 'SalidaConfirmada', variant: 'sello' }), vibrate: false,
+  title: 'Salida D-0031 confirmada', description: 'Venta V-0038, Constructora Los Andes S.A.C. Se registraron 2 movimientos de salida en el Kardex.',
+  cambios: [{ producto: 'Cemento Sol tipo I', ubicacion: 'Almacén 1', antes: 700, despues: 500, unidad: 'bolsas' }, { producto: 'Ladrillo King Kong 18 huecos', ubicacion: 'Almacén 2', antes: 1000, despues: 400, unidad: 'unid.' }],
+  nota: 'La venta pasa a "Despachada". La reserva asociada queda consumida.',
+  actions: h(React.Fragment, null, h(M.Button, { leftIcon: 'kardex' }, 'Ver movimientos en el Kardex'), h(M.Button, { variant: 'outline' }, 'Volver a despachos')) }));
+</script>
+</body>
+</html>

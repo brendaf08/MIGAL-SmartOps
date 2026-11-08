@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
 import * as matchers from 'vitest-axe/matchers';
@@ -11,12 +11,29 @@ afterEach(() => window.sessionStorage.clear());
 
 const guia = new File(['x'], 'guia-proveedor.jpg', { type: 'image/jpeg' });
 
-/** Carga la guía y espera las líneas precargadas por el OCR simulado. */
+/** Continúa desde el paso de la orden de compra cuando la orden ya está cargada. */
+async function continuar() {
+  const boton = await screen.findByRole('button', { name: 'Continuar' });
+  await waitFor(() => expect(boton).toBeEnabled());
+  await userEvent.click(boton);
+}
+
+/** Elige la orden OC-0087 y carga la guía; espera las líneas precargadas por el OCR simulado. */
 async function cargarDocumento() {
-  renderApp('/recepciones/nueva', 'Almacenero');
+  renderApp('/recepciones/nueva?oc=OC-0087', 'Almacenero');
+  await continuar();
   const input = document.querySelector<HTMLInputElement>('input[type="file"]:not([capture])')!;
   await userEvent.upload(input, guia);
   await screen.findByRole('table', { name: 'Líneas extraídas' }, { timeout: 4000 });
+}
+
+/** Asocia el producto de la línea sin coincidencia (ALAMBRE REC. N16) con el SKU indicado. */
+async function asociarAlambre(sku: RegExp) {
+  const select = screen.getByRole('combobox', { name: 'Producto para ALAMBRE REC. N16' });
+  await userEvent.click(select);
+  // Cada Select monta su propia lista; se elige la opción de la lista de este campo.
+  const lista = document.getElementById(select.getAttribute('aria-controls')!)!;
+  await userEvent.click(await within(lista).findByRole('option', { name: sku, hidden: true }));
 }
 
 describe('Recepciones', () => {
@@ -30,29 +47,28 @@ describe('Recepciones', () => {
     ).toBeInTheDocument();
   });
 
-  it('precarga las líneas, marca la sin coincidencia y bloquea la confirmación hasta asociarla', async () => {
+  it('precarga las líneas de la guía y bloquea el uso de los datos hasta asociar la sin coincidencia', async () => {
     await cargarDocumento();
 
     expect(screen.getByText('Datos precargados desde el documento')).toBeInTheDocument();
     expect(screen.getByText('Sin coincidencia')).toBeInTheDocument();
     expect(screen.getByText('Asociar un producto.')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Confirmar recepción' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Usar datos de la guía' })).toBeDisabled();
   });
 
-  it('explica el bloqueo en la barra de acciones y resume las líneas por estado', async () => {
+  it('explica el bloqueo en la barra de acciones y resume las líneas', async () => {
     await cargarDocumento();
 
-    const barra = screen.getByRole('region', { name: 'Resumen y confirmación de la recepción' });
+    const barra = screen.getByRole('region', { name: 'Documento de la recepción' });
     expect(within(barra).getByRole('status')).toHaveTextContent(
       'Falta asociar 1 línea a un producto del catálogo.',
     );
     expect(barra).toHaveTextContent('3 líneas');
     expect(barra).toHaveTextContent('1 sin asociar');
-    expect(within(barra).getByRole('button', { name: 'Confirmar recepción' })).toBeDisabled();
-    expect(screen.getByText('Sin asociar')).toBeInTheDocument();
+    expect(within(barra).getByRole('button', { name: 'Usar datos de la guía' })).toBeDisabled();
   });
 
-  it('la revisión con la barra de acciones no tiene violaciones de accesibilidad', async () => {
+  it('el paso del documento no tiene violaciones de accesibilidad', async () => {
     await cargarDocumento();
 
     expect(
@@ -62,31 +78,31 @@ describe('Recepciones', () => {
 
   it('iguala lo recibido al pedido de una línea con su botón', async () => {
     await cargarDocumento();
+    await asociarAlambre(/CLA-008/);
+    await userEvent.click(screen.getByRole('button', { name: 'Usar datos de la guía' }));
 
-    expect(screen.getByText('Faltan 20')).toBeInTheDocument();
-    expect(screen.getAllByText('Completa')).toHaveLength(1);
-
-    // Solo la línea con diferencia y producto asociado admite igualar al pedido.
-    const habilitados = screen
-      .getAllByRole('button', { name: /^Igual al pedido/ })
-      .filter((b) => !(b as HTMLButtonElement).disabled);
-    expect(habilitados).toHaveLength(1);
-    await userEvent.click(habilitados[0]!);
-
-    expect(screen.queryByText('Faltan 20')).not.toBeInTheDocument();
+    // Pendiente: PIN-005 (60) sin recibir; FIE-003 no está en la orden y sobra 40.
+    expect(screen.getByText('Faltan 60')).toBeInTheDocument();
+    expect(screen.getByText('Sobran 40')).toBeInTheDocument();
     expect(screen.getAllByText('Completa')).toHaveLength(2);
+
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Igual al pedido, Pintura látex blanco, balde 4 L' }),
+    );
+
+    expect(screen.queryByText('Faltan 60')).not.toBeInTheDocument();
+    expect(screen.getAllByText('Completa')).toHaveLength(3);
   });
 
-  it('confirma la recepción tras asociar el producto y aceptar las consecuencias', async () => {
+  it('confirma la recepción tras asociar el producto, anotar el sobrante y aceptar las consecuencias', async () => {
     await cargarDocumento();
     const antes = RECEPCIONES.length;
 
-    const select = screen.getByRole('combobox', { name: 'Producto para ALAMBRE REC. N16' });
-    await userEvent.click(select);
-    // Cada Select monta su propia lista; se elige la opción de la lista de este campo.
-    const lista = document.getElementById(select.getAttribute('aria-controls')!)!;
-    await userEvent.click(
-      await within(lista).findByRole('option', { name: /CLA-008/, hidden: true }),
+    await asociarAlambre(/CLA-008/);
+    await userEvent.click(screen.getByRole('button', { name: 'Usar datos de la guía' }));
+    await userEvent.type(
+      screen.getByRole('textbox', { name: 'Nota del sobrante' }),
+      'Material de otra obra',
     );
     await userEvent.click(screen.getByRole('button', { name: 'Confirmar recepción' }));
 
@@ -98,11 +114,13 @@ describe('Recepciones', () => {
     const constancia = await screen.findByRole('status', { name: /Recepción R-\d+ registrada/ });
     expect(within(constancia).getByText('Validada')).toBeInTheDocument();
     const tabla = within(constancia).getByRole('table', { name: 'Existencia antes y después' });
-    // Fierro: se esperaban 60 y se recibieron 40, de modo que quedan 20 por recibir.
     expect(tabla).toHaveTextContent('Cemento Sol tipo I');
-    expect(constancia).toHaveTextContent('quedan por recibir 20 unidades en 1 línea');
-    expect(within(constancia).getByRole('button', { name: 'Ver movimientos en el Kardex' })).toBeEnabled();
+    // Pintura: se esperaban 60 y no se recibió nada, de modo que queda una línea por recibir.
+    expect(constancia).toHaveTextContent('quedan por recibir 60 unidades en 1 línea');
+    expect(
+      within(constancia).getByRole('button', { name: 'Ver movimientos en el Kardex' }),
+    ).toBeEnabled();
     expect(RECEPCIONES).toHaveLength(antes + 1);
     RECEPCIONES.shift();
-  });
+  }, 15000);
 });

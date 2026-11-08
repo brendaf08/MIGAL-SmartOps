@@ -8,9 +8,9 @@ import { QueryTable } from '@/components/ui/QueryTable/QueryTable';
 import { Icon } from '@/components/ui/Icon/Icon';
 import { formatDate } from '@/lib/format';
 import { listarRecepciones } from './api';
-import type { Recepcion } from './types';
+import type { RecepcionListada } from './types';
 
-const columns: Column<Recepcion>[] = [
+const columns: Column<RecepcionListada>[] = [
   { key: 'id', header: 'Recepción', mono: true, primary: true },
   { key: 'orden', header: 'Orden de compra', mono: true },
   { key: 'proveedor', header: 'Proveedor' },
@@ -20,6 +20,12 @@ const columns: Column<Recepcion>[] = [
     key: 'estado',
     header: 'Estado',
     render: (r) => <StatusBadge entity="recepcion" value={r.estado} />,
+  },
+  {
+    key: 'estadoOrden',
+    header: 'Estado de la orden',
+    phone: false,
+    render: (r) => <StatusBadge entity="compra" value={r.estadoOrden} />,
   },
 ];
 

@@ -1,7 +1,11 @@
 import { mockRequest } from '@/api/mock';
 import { resumen } from './calculos';
 import { MOVIMIENTOS, PRODUCTOS } from './fixtures';
-import type { ConsultaDisponibilidad, RespuestaDisponibilidad } from './types';
+import type {
+  ConsultaDisponibilidad,
+  ProductoDisponibilidad,
+  RespuestaDisponibilidad,
+} from './types';
 
 const enAlerta = (nivel: string) => nivel !== 'Normal';
 
@@ -29,3 +33,23 @@ export const consultarDisponibilidad = ({
 
 /** CU-05 y CU-07. Movimientos de Kardex, del más reciente al más antiguo. */
 export const listarMovimientos = () => mockRequest(() => [...MOVIMIENTOS]);
+
+/** Producto en alerta: nivel según el stock libre y cantidad que falta para llegar al mínimo (P12). */
+export interface Alerta extends ProductoDisponibilidad {
+  libre: number;
+  nivel: 'Critico' | 'Minimo';
+  faltante: number;
+}
+
+/** P12. Productos en nivel crítico o en el mínimo, del más grave al menos grave y, dentro de cada nivel, del mayor faltante. */
+export const listarAlertas = () =>
+  mockRequest<Alerta[]>(() =>
+    PRODUCTOS.flatMap((p) => {
+      const { libre, nivel } = resumen(p);
+      if (nivel === 'Normal') return [];
+      return [{ ...p, libre, nivel, faltante: p.minimo - libre }];
+    }).sort((a, b) => {
+      if (a.nivel !== b.nivel) return a.nivel === 'Critico' ? -1 : 1;
+      return b.faltante - a.faltante || a.sku.localeCompare(b.sku);
+    }),
+  );

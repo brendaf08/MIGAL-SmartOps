@@ -9,6 +9,7 @@ Esta carpeta contiene la instantánea versionada del sistema de diseño de MIGAL
 | [sistema-de-diseno.md](sistema-de-diseno.md) | Fundamentos, principios, color, tipografía, espaciado, iconografía, composición, integración con el stack y supuestos pendientes. |
 | [tokens.json](tokens.json) | Valores normativos de color (temas claro y oscuro), tipografía, espaciado, radios, sombras, tamaños, puntos de quiebre y capas. |
 | [componentes/](componentes/README.md) | Un documento por componente y por pantalla de referencia, con su uso, sus reglas y su equivalente en Mantine. |
+| [plan-de-implementacion.md](plan-de-implementacion.md) | Fases de implementación en `frontend/`, con tareas, criterios de aceptación y procedimiento por fase. |
 | [prototipo/](prototipo/README.md) | Prototipo ejecutable de referencia, con las vistas previas de todos los componentes y pantallas. |
 
 Los valores aplicados al código se encuentran en `frontend/src/theme/` (`tokens.css` y `theme.ts`) y el logo, en `frontend/src/assets/`.

@@ -1,0 +1,39 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-5);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+/* Teléfono: título de 24 px y acciones apiladas debajo, a ancho completo. */
+@mixin smaller-than $mantine-breakpoint-sm {
+  .root {
+    margin-bottom: var(--space-4);
+  }
+
+  .row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .title {
+    font-size: 24px;
+    line-height: 32px;
+  }
+
+  .actions {
+    width: 100%;
+
+    & > * {
+      flex: 1 1 auto;
+    }
+  }
+}

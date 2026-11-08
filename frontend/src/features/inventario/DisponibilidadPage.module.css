@@ -16,6 +16,10 @@
   color: var(--ink-muted);
 }
 
+.reparto {
+  min-width: 120px;
+}
+
 .pager {
   margin-top: var(--space-3);
 }

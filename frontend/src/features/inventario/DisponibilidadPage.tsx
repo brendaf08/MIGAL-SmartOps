@@ -3,6 +3,8 @@ import { useDebouncedValue } from '@mantine/hooks';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { StatusBadge } from '@/components/domain/StatusBadge/StatusBadge';
+import { StockBar } from '@/components/domain/StockBar/StockBar';
+import { StockLocations } from '@/components/domain/StockLocations/StockLocations';
 import { PageHeader } from '@/components/layout/PageHeader/PageHeader';
 import { DataTable, type Column } from '@/components/ui/DataTable/DataTable';
 import { EmptyState } from '@/components/ui/EmptyState/EmptyState';
@@ -11,7 +13,7 @@ import { SearchInput } from '@/components/ui/SearchInput/SearchInput';
 import { Tabs } from '@/components/ui/Tabs/Tabs';
 import { formatNumber } from '@/lib/format';
 import { consultarDisponibilidad } from './api';
-import { resumen } from './calculos';
+import { resumen, ubicacionesDe } from './calculos';
 import classes from './DisponibilidadPage.module.css';
 import { ProductoDetalle } from './ProductoDetalle';
 import type { ProductoDisponibilidad } from './types';
@@ -47,14 +49,30 @@ const columns: Column<ProductoDisponibilidad>[] = [
   cantidad('tienda', 'Tienda'),
   cantidad('almacen1', 'Almacén 1'),
   cantidad('almacen2', 'Almacén 2'),
-  {
-    key: 'fisico',
-    header: 'Físico',
-    numeric: true,
-    phone: false,
-    render: (p) => formatNumber(resumen(p).fisico),
-  },
   cantidad('reservado', 'Reservado'),
+  {
+    key: 'reparto',
+    header: 'Reparto',
+    phone: false,
+    render: (p) => (
+      <div className={classes.reparto}>
+        <StockBar
+          compact
+          libre={Math.max(resumen(p).libre, 0)}
+          reservado={p.reservado}
+          unidad={p.unidad}
+          label={`Reparto de ${p.nombre}`}
+        />
+      </div>
+    ),
+  },
+  {
+    key: 'donde',
+    header: 'Dónde está',
+    phoneOnly: true,
+    block: true,
+    render: (p) => <StockLocations compact ubicaciones={ubicacionesDe(p)} unidad={p.unidad} />,
+  },
   {
     key: 'libre',
     header: 'Libre',

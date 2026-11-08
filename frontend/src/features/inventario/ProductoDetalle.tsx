@@ -1,10 +1,9 @@
 import { Stack, Text } from '@mantine/core';
 import { StockBar } from '@/components/domain/StockBar/StockBar';
+import { StockLocations } from '@/components/domain/StockLocations/StockLocations';
 import { StockSummary } from '@/components/domain/StockSummary/StockSummary';
 import { Modal } from '@/components/ui/Modal/Modal';
-import { formatNumber } from '@/lib/format';
-import { resumen } from './calculos';
-import classes from './ProductoDetalle.module.css';
+import { resumen, ubicacionesDe } from './calculos';
 import type { ProductoDisponibilidad } from './types';
 
 interface ProductoDetalleProps {
@@ -33,21 +32,9 @@ export function ProductoDetalle({ producto, onClose }: ProductoDetalleProps) {
             libre={Math.max(r.libre, 0)}
             reservado={producto.reservado}
             unidad={producto.unidad}
+            minimo={producto.minimo}
           />
-          <dl className={classes.locations}>
-            {(
-              [
-                ['Tienda principal', producto.tienda],
-                ['Almacén 1', producto.almacen1],
-                ['Almacén 2', producto.almacen2],
-              ] as const
-            ).map(([ubicacion, cantidad]) => (
-              <div key={ubicacion}>
-                <dt>{ubicacion}</dt>
-                <dd>{formatNumber(cantidad)}</dd>
-              </div>
-            ))}
-          </dl>
+          <StockLocations ubicaciones={ubicacionesDe(producto)} unidad={producto.unidad} />
         </Stack>
       )}
     </Modal>

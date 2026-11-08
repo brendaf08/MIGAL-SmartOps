@@ -51,70 +51,91 @@ async function llenarFormulario(datos: {
 
 const sinContraste = { rules: { 'color-contrast': { enabled: false } } };
 
+/** Las pruebas que completan formularios escriben varios campos; con la carga de la suite completa superan el límite por omisión de 5 s. */
+const TIEMPO_FORMULARIO = 15000;
+
 describe('ClientePicker', () => {
-  it('registra un cliente desde el selector y lo deja seleccionado', async () => {
-    render(<Selector />);
+  it(
+    'registra un cliente desde el selector y lo deja seleccionado',
+    async () => {
+      render(<Selector />);
 
-    await userEvent.click(screen.getByRole('button', { name: 'Registrar cliente nuevo' }));
-    const dialogo = await screen.findByRole('dialog', { name: 'Registrar cliente' });
-    await llenarFormulario({ documento: '71234567', nombre: 'Ferretería Nueva Sol' });
-    await userEvent.click(within(dialogo).getByRole('button', { name: 'Registrar cliente' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Registrar cliente nuevo' }));
+      const dialogo = await screen.findByRole('dialog', { name: 'Registrar cliente' });
+      await llenarFormulario({ documento: '71234567', nombre: 'Ferretería Nueva Sol' });
+      await userEvent.click(within(dialogo).getByRole('button', { name: 'Registrar cliente' }));
 
-    await waitFor(() =>
-      expect(screen.getByRole('combobox', { name: 'Cliente' })).toHaveValue(
-        'Ferretería Nueva Sol (71234567)',
-      ),
-    );
-    expect(screen.getByTestId('elegido')).not.toHaveTextContent('ninguno');
-  });
+      await waitFor(() =>
+        expect(screen.getByRole('combobox', { name: 'Cliente' })).toHaveValue(
+          'Ferretería Nueva Sol (71234567)',
+        ),
+      );
+      expect(screen.getByTestId('elegido')).not.toHaveTextContent('ninguno');
+    },
+    TIEMPO_FORMULARIO,
+  );
 
-  it('valida el número de documento según el tipo', async () => {
-    render(<Selector />);
+  it(
+    'valida el número de documento según el tipo',
+    async () => {
+      render(<Selector />);
 
-    await userEvent.click(screen.getByRole('button', { name: 'Registrar cliente nuevo' }));
-    await llenarFormulario({ documento: '1234', nombre: 'Prueba de validación' });
-    await userEvent.click(screen.getByRole('button', { name: 'Registrar cliente' }));
-    expect(await screen.findByText('El DNI tiene 8 dígitos.')).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', { name: 'Registrar cliente nuevo' }));
+      await llenarFormulario({ documento: '1234', nombre: 'Prueba de validación' });
+      await userEvent.click(screen.getByRole('button', { name: 'Registrar cliente' }));
+      expect(await screen.findByText('El DNI tiene 8 dígitos.')).toBeInTheDocument();
 
-    await elegirOpcion('Tipo de documento', 'RUC');
-    await userEvent.clear(screen.getByRole('textbox', { name: /^Documento/ }));
-    await userEvent.type(screen.getByRole('textbox', { name: /^Documento/ }), '30123456789');
-    await userEvent.click(screen.getByRole('button', { name: 'Registrar cliente' }));
-    expect(
-      await screen.findByText('El RUC tiene 11 dígitos y empieza en 10 o 20.'),
-    ).toBeInTheDocument();
-  });
+      await elegirOpcion('Tipo de documento', 'RUC');
+      await userEvent.clear(screen.getByRole('textbox', { name: /^Documento/ }));
+      await userEvent.type(screen.getByRole('textbox', { name: /^Documento/ }), '30123456789');
+      await userEvent.click(screen.getByRole('button', { name: 'Registrar cliente' }));
+      expect(
+        await screen.findByText('El RUC tiene 11 dígitos y empieza en 10 o 20.'),
+      ).toBeInTheDocument();
+    },
+    TIEMPO_FORMULARIO,
+  );
 
-  it('valida el teléfono y el correo cuando se escriben', async () => {
-    render(<Selector />);
+  it(
+    'valida el teléfono y el correo cuando se escriben',
+    async () => {
+      render(<Selector />);
 
-    await userEvent.click(screen.getByRole('button', { name: 'Registrar cliente nuevo' }));
-    await llenarFormulario({
-      documento: '71234568',
-      nombre: 'Taller de prueba',
-      telefono: '12345',
-      correo: 'correo-invalido',
-    });
-    await userEvent.click(screen.getByRole('button', { name: 'Registrar cliente' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Registrar cliente nuevo' }));
+      await llenarFormulario({
+        documento: '71234568',
+        nombre: 'Taller de prueba',
+        telefono: '12345',
+        correo: 'correo-invalido',
+      });
+      await userEvent.click(screen.getByRole('button', { name: 'Registrar cliente' }));
 
-    expect(await screen.findByText('El teléfono tiene 9 dígitos.')).toBeInTheDocument();
-    expect(
-      screen.getByText('Ingresar un correo válido, por ejemplo nombre@dominio.pe.'),
-    ).toBeInTheDocument();
-  });
+      expect(await screen.findByText('El teléfono tiene 9 dígitos.')).toBeInTheDocument();
+      expect(
+        screen.getByText('Ingresar un correo válido, por ejemplo nombre@dominio.pe.'),
+      ).toBeInTheDocument();
+    },
+    TIEMPO_FORMULARIO,
+  );
 
-  it('informa un documento repetido y ofrece seleccionar al cliente existente', async () => {
-    render(<Selector />);
+  it(
+    'informa un documento repetido y ofrece seleccionar al cliente existente',
+    async () => {
+      render(<Selector />);
 
-    await userEvent.click(screen.getByRole('button', { name: 'Registrar cliente nuevo' }));
-    await llenarFormulario({ documento: '41234567', nombre: 'Otro nombre' });
-    await userEvent.click(screen.getByRole('button', { name: 'Registrar cliente' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Registrar cliente nuevo' }));
+      await llenarFormulario({ documento: '41234567', nombre: 'Otro nombre' });
+      await userEvent.click(screen.getByRole('button', { name: 'Registrar cliente' }));
 
-    expect(await screen.findByText('Ya existe un cliente con este documento.')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Seleccionar cliente existente' }));
+      expect(
+        await screen.findByText('Ya existe un cliente con este documento.'),
+      ).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', { name: 'Seleccionar cliente existente' }));
 
-    expect(screen.getByTestId('elegido')).toHaveTextContent('CLI-003');
-  });
+      expect(screen.getByTestId('elegido')).toHaveTextContent('CLI-003');
+    },
+    TIEMPO_FORMULARIO,
+  );
 
   it('permite continuar sin cliente', async () => {
     render(<Selector />);
@@ -140,23 +161,27 @@ describe('ClientePicker', () => {
 });
 
 describe('ClientesPage', () => {
-  it('registra un cliente desde la lista y aparece en activos', async () => {
-    renderApp('/clientes', 'Vendedor');
+  it(
+    'registra un cliente desde la lista y aparece en activos',
+    async () => {
+      renderApp('/clientes', 'Vendedor');
 
-    await userEvent.click(await screen.findByRole('button', { name: 'Registrar cliente' }));
-    const dialogo = await screen.findByRole('dialog', { name: 'Registrar cliente' });
-    await llenarFormulario({
-      tipo: 'DNI',
-      documento: '46112233',
-      nombre: 'Ana Quispe Rojas',
-      telefono: '988777666',
-      correo: 'aquispe@correo.example',
-    });
-    await userEvent.click(within(dialogo).getByRole('button', { name: 'Registrar cliente' }));
+      await userEvent.click(await screen.findByRole('button', { name: 'Registrar cliente' }));
+      const dialogo = await screen.findByRole('dialog', { name: 'Registrar cliente' });
+      await llenarFormulario({
+        tipo: 'DNI',
+        documento: '46112233',
+        nombre: 'Ana Quispe Rojas',
+        telefono: '988777666',
+        correo: 'aquispe@correo.example',
+      });
+      await userEvent.click(within(dialogo).getByRole('button', { name: 'Registrar cliente' }));
 
-    expect(await screen.findByText('Ana Quispe Rojas')).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /Activos/ })).toBeInTheDocument();
-  });
+      expect(await screen.findByText('Ana Quispe Rojas')).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: /Activos/ })).toBeInTheDocument();
+    },
+    TIEMPO_FORMULARIO,
+  );
 
   it('busca por nombre o por documento', async () => {
     renderApp('/clientes', 'Vendedor');
@@ -171,20 +196,26 @@ describe('ClientesPage', () => {
     expect(screen.getByText('Constructora Los Andes S.A.C.')).toBeInTheDocument();
   });
 
-  it('desactiva un cliente tras confirmar y lo muestra en inactivos', async () => {
-    renderApp('/clientes', 'Vendedor');
+  it(
+    'desactiva un cliente tras confirmar y lo muestra en inactivos',
+    async () => {
+      renderApp('/clientes', 'Vendedor');
 
-    await userEvent.click(await screen.findByText('Roberto Salas Ccama'));
-    await userEvent.click(await screen.findByRole('button', { name: 'Desactivar cliente' }));
-    const confirmar = await screen.findByRole('dialog', {
-      name: 'Desactivar al cliente Roberto Salas Ccama',
-    });
-    await userEvent.click(within(confirmar).getByRole('button', { name: 'Desactivar cliente' }));
+      await userEvent.click(await screen.findByText('Roberto Salas Ccama'));
+      await userEvent.click(await screen.findByRole('button', { name: 'Desactivar cliente' }));
+      const confirmar = await screen.findByRole('dialog', {
+        name: 'Desactivar al cliente Roberto Salas Ccama',
+      });
+      await userEvent.click(within(confirmar).getByRole('button', { name: 'Desactivar cliente' }));
 
-    await waitFor(() => expect(screen.queryByText('Roberto Salas Ccama')).not.toBeInTheDocument());
-    await userEvent.click(screen.getByRole('tab', { name: /Inactivos/ }));
-    expect(await screen.findByText('Roberto Salas Ccama')).toBeInTheDocument();
-  });
+      await waitFor(() =>
+        expect(screen.queryByText('Roberto Salas Ccama')).not.toBeInTheDocument(),
+      );
+      await userEvent.click(screen.getByRole('tab', { name: /Inactivos/ }));
+      expect(await screen.findByText('Roberto Salas Ccama')).toBeInTheDocument();
+    },
+    TIEMPO_FORMULARIO,
+  );
 
   it('no permite el acceso a un Almacenero', async () => {
     renderApp('/clientes', 'Almacenero');

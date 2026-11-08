@@ -1,7 +1,5 @@
 import type { NavGroup } from '@/components/layout/AppShell/NavMenu';
 
-export type Role = 'Administrador' | 'Vendedor' | 'Almacenero' | 'Reponedor';
-
 /**
  * Navegación por módulo y rol, derivada de los actores de los casos de uso (docs/diseno/sistema-de-diseno.md).
  * Es una ayuda de usabilidad: la autorización real la aplica el backend. Pendiente de confirmar si el Administrador

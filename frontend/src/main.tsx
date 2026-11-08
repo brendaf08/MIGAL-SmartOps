@@ -7,6 +7,7 @@ import '@/theme/fonts';
 
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { BrowserRouter } from 'react-router';
 import { App } from '@/App';
 import { AppProviders } from '@/app/AppProviders';
 
@@ -18,7 +19,9 @@ if (!container) {
 createRoot(container).render(
   <StrictMode>
     <AppProviders>
-      <App />
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
     </AppProviders>
   </StrictMode>,
 );

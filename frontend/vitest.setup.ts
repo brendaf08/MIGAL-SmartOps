@@ -16,6 +16,9 @@ Object.defineProperty(window, 'matchMedia', {
   }),
 });
 
+/* jsdom no implementa scrollIntoView, que usan las listas de opciones de Mantine. */
+Element.prototype.scrollIntoView = vi.fn();
+
 class ResizeObserverMock {
   observe = vi.fn();
   unobserve = vi.fn();

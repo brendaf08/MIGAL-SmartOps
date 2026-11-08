@@ -5,6 +5,8 @@ import { CotizacionesPage } from '@/features/comercial/CotizacionesPage';
 import { CotizacionPage } from '@/features/comercial/CotizacionPage';
 import { DespachoPage } from '@/features/despacho/DespachoPage';
 import { DespachosPage } from '@/features/despacho/DespachosPage';
+import { RecepcionesPage } from '@/features/recepcion/RecepcionesPage';
+import { RecepcionOCRPage } from '@/features/recepcion/RecepcionOCRPage';
 import { AgenteIAPage } from '@/features/agente-ia/AgenteIAPage';
 import { DisponibilidadPage } from '@/features/inventario/DisponibilidadPage';
 import { RequireAuth, RequireRole } from '@/features/seguridad/guards';
@@ -22,12 +24,14 @@ const PAGES: Record<string, ReactElement> = {
   'agente-ia': <AgenteIAPage />,
   ventas: <CotizacionesPage />,
   despachos: <DespachosPage />,
+  recepciones: <RecepcionesPage />,
 };
 
-/** Pantallas de detalle (`/<módulo>/:id`) por clave de navegación. */
-const DETAILS: Record<string, ReactElement> = {
-  ventas: <CotizacionPage />,
-  despachos: <DespachoPage />,
+/** Pantallas secundarias (`/<módulo>/<ruta>`) por clave de navegación. */
+const DETAILS: Record<string, { path: string; element: ReactElement }> = {
+  ventas: { path: ':id', element: <CotizacionPage /> },
+  despachos: { path: ':id', element: <DespachoPage /> },
+  recepciones: { path: 'nueva', element: <RecepcionOCRPage /> },
 };
 
 /** Lleva al primer módulo visible para el rol del usuario. */
@@ -45,15 +49,18 @@ export function AppRoutes() {
       <Route element={<RequireAuth />}>
         <Route element={<ShellLayout />}>
           <Route index element={<Home />} />
-          {ITEMS.map((item) => (
-            <Route key={item.key} element={<RequireRole roles={item.roles} />}>
-              <Route
-                path={item.key}
-                element={PAGES[item.key] ?? <PendientePage title={item.label} />}
-              />
-              {DETAILS[item.key] && <Route path={`${item.key}/:id`} element={DETAILS[item.key]} />}
-            </Route>
-          ))}
+          {ITEMS.map((item) => {
+            const detail = DETAILS[item.key];
+            return (
+              <Route key={item.key} element={<RequireRole roles={item.roles} />}>
+                <Route
+                  path={item.key}
+                  element={PAGES[item.key] ?? <PendientePage title={item.label} />}
+                />
+                {detail && <Route path={`${item.key}/${detail.path}`} element={detail.element} />}
+              </Route>
+            );
+          })}
           <Route
             path="*"
             element={

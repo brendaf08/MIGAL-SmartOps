@@ -219,6 +219,7 @@ entity Reserva_Stock {
   --
   * id_detalle_venta <<FK>>
   * id_inventario <<FK>>
+  * id_producto <<FK>>
   * cantidad_reservada
   * estado
   * fecha_reserva

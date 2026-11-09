@@ -160,17 +160,19 @@ Los escenarios representan verificaciones previstas para el diseño. Su definici
 
 ## 7. Limitaciones y aspectos pendientes de integración
 
-La actualización de los entregables considera las reglas comerciales validadas durante el análisis de MIGAL. Sin embargo, permanecen algunas diferencias con los requerimientos y casos de uso incorporados durante las correcciones de PC2.
+La actualización de los entregables se alinea con el [ADR-003](adr/adr-003-reglas-ventas-reservas-despacho.md), que resuelve las diferencias identificadas durante las correcciones de PC2 en los siguientes aspectos:
 
-La principal diferencia corresponde a la atención de ventas con stock insuficiente. Mientras que determinados requerimientos contemplan atención y entrega parcial, el modelo operativo propuesto considera la **reserva parcial de existencias disponibles y un despacho completo posterior**.
+- Salida de Kardex: se registra únicamente al confirmar el despacho físico. La aprobación de una venta solo genera reservas.
+- Cliente: la asociación de un cliente registrado es obligatoria en cotizaciones y ventas. Las operaciones de mostrador utilizan un registro de cliente con documento opcional.
+- Origen de la venta: toda venta se origina en una cotización aceptada por el cliente y validada por MIGAL.
+- Stock insuficiente: se reserva la cantidad disponible por ubicación y se registra el resto como pendiente de abastecimiento. El despacho es único y completo, y la entrega escalonada se resuelve dividiendo la cotización.
+- Cancelación: se admite antes del despacho, con motivo obligatorio, con liberación de reservas y sin movimientos de Kardex.
+- Ajustes manuales: no provienen de ventas, requieren motivo y solo afectan el stock libre.
 
-Ambas operaciones deben distinguirse: reservar parcialmente permite comprometer unidades existentes sin entregarlas todavía; despachar parcialmente supone realizar una salida física de una parte del pedido.
+Permanecen pendientes los siguientes puntos:
 
-Por ello, será necesario confirmar que la modalidad propuesta satisface las observaciones del docente y actualizar los requerimientos afectados cuando corresponda.
-
-También deberá armonizarse la obligatoriedad de asociar clientes a cotizaciones y ventas, así como los estados definitivos de las operaciones comerciales.
-
-Estas diferencias se mantienen identificadas en la matriz de trazabilidad para facilitar su revisión y evitar que se consideren resueltas sin la correspondiente validación.
+- Confirmación con el docente de la reserva parcial sin entrega parcial, a partir de las observaciones de PC2. Si la interpretación se rechaza, se registrará un nuevo ADR que reemplace la decisión 3 del ADR-003.
+- Regla de viabilidad de abastecimiento por categoría de producto, que el ADR-003 no regula y que debe incorporarse a los requerimientos correspondientes.
 
 ## 8. Criterios de aceptación de los entregables
 

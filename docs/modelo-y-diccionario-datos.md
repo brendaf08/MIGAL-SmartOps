@@ -64,7 +64,7 @@ La desactivación de un usuario no elimina su participación histórica en las o
 | `estado_activo` | Simple | Indicador de vigencia del registro del cliente. |
 | `fecha_registro` | Simple | Fecha y hora de incorporación del cliente. |
 
-El modelo propuesto establece que toda cotización y venta se encuentra asociada a un cliente identificado. La obligatoriedad de esta relación deberá conciliarse con los requisitos actuales que permiten registrar operaciones sin cliente asociado.
+Toda cotización y venta se encuentra asociada a un cliente registrado, conforme al [ADR-003](adr/adr-003-reglas-ventas-reservas-despacho.md). Las operaciones de mostrador utilizan un registro de cliente cuyo documento de identificación es opcional.
 
 ### Almacen
 
@@ -428,4 +428,4 @@ Las reglas de unicidad, claves foráneas, restricciones de cantidad y validacion
 
 La autorización de cancelaciones requiere conservar evidencia del usuario autorizante, la fecha, la operación y el motivo. El esquema de auditoría persistente correspondiente deberá precisarse antes de considerar completamente implementada esta responsabilidad.
 
-Finalmente, se mantiene pendiente la conciliación de las reglas de atención parcial y obligatoriedad del cliente con los requerimientos funcionales actualmente documentados. Estas diferencias deberán resolverse para garantizar la consistencia entre el modelo de datos, el modelo de clases, los casos de uso y la matriz de trazabilidad.
+Las reglas de reserva parcial, despacho único y completo, obligatoriedad del cliente, origen de la venta y salida de Kardex se establecen en el [ADR-003](adr/adr-003-reglas-ventas-reservas-despacho.md). Los requerimientos, los casos de uso y la matriz de trazabilidad se alinean con dicho ADR. Permanece pendiente únicamente la confirmación de la reserva parcial con el docente.

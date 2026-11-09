@@ -60,8 +60,8 @@ El diagrama comprende los siguientes casos de uso:
 El diagrama comprende los siguientes casos de uso:
 
 - **CU-08:** Procesar documento con OCR.
-- **CU-09:** Gestionar cotización.
-- **CU-10:** Registrar venta.
+- **CU-09:** Gestionar cotización, con cliente obligatorio y origen de toda venta.
+- **CU-10:** Registrar venta, que reserva existencias sin generar salidas de Kardex.
 
 ### 5. Abastecimiento
 

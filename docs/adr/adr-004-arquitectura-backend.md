@@ -2,7 +2,7 @@
 
 ## Contexto
 
-El [ADR-001](adr-001-stack-frontend.md) define el frontend como una Single Page Application que consume la API REST del backend. La [Arquitectura tecnológica](../arquitectura-tecnologica.md) define el backend principal como núcleo transaccional implementado en Java con Spring Boot, responsable de aplicar las reglas de negocio, de consistenciar el inventario y de persistir la información en PostgreSQL.
+El [ADR-001](adr-001-stack-frontend.md) define el frontend como una Single Page Application que consume la API REST del backend. La [Arquitectura tecnológica](../arquitectura-tecnologica.md) define el backend principal como núcleo transaccional implementado en Java con Spring Boot, responsable de aplicar las reglas de negocio, de mantener la consistencia del inventario y de persistir la información en PostgreSQL.
 
 Quedan pendientes la plataforma de ejecución, el gestor de construcción, la organización interna del código, el acceso a datos, la seguridad, la estrategia de pruebas y la integración continua del backend. Los requerimientos que intervienen son los siguientes:
 
@@ -20,7 +20,7 @@ Quedan pendientes la plataforma de ejecución, el gestor de construcción, la or
 
 Los criterios para evaluar las opciones son el cumplimiento de los requerimientos citados, la integridad transaccional del inventario, el desacoplamiento entre módulos, la simplicidad y convención del ecosistema elegido, y la correspondencia con las clases definidas en el [Modelo y diccionario de clases](../modelo-y-diccionario-clases.md).
 
-Las reglas de inventario, venta y despacho se establecen en el ADR-003, que aún no forma parte del repositorio. Los requerimientos RF-KAR-04 y RF-VEN-04 describen la salida de Kardex al confirmar la venta, RF-VEN-12 y RF-VEN-14 contemplan atención parcial, y RF-CLI-03 y RF-CLI-06 admiten ventas sin cliente. Estos puntos se resuelven en el ADR-003 y no se modifican en el presente registro.
+Las reglas de inventario, venta y despacho se establecen en el [ADR-003](adr-003-reglas-ventas-reservas-despacho.md). Los requerimientos RF-KAR-04 y RF-VEN-04 describen la salida de Kardex al confirmar la venta, RF-VEN-12 y RF-VEN-14 contemplan atención parcial, y RF-CLI-03 y RF-CLI-06 admiten ventas sin cliente. Estos puntos se resuelven en el ADR-003, y la actualización de los requerimientos se realiza en un cambio independiente.
 
 ## Decisión
 
@@ -80,7 +80,7 @@ El mecanismo de bloqueo que evita reservas duplicadas, cantidades negativas y mo
 
 ### Reglas de negocio fijadas por el ADR-003
 
-Se mencionan a continuación las reglas establecidas en el ADR-003, que el backend debe respetar:
+Se mencionan a continuación las reglas establecidas en el [ADR-003](adr-003-reglas-ventas-reservas-despacho.md), que el backend debe respetar:
 
 - La salida de Kardex se registra únicamente al confirmar el despacho.
 - La venta solo reserva existencias y no genera movimientos de salida.
@@ -156,6 +156,7 @@ El flujo `verificar-backend` se activa en los pull requests hacia `main` que mod
 ## Referencias
 
 - [ADR-001: Stack tecnológico del frontend](adr-001-stack-frontend.md)
+- [ADR-003: Reglas de ventas, reservas, Kardex y despacho](adr-003-reglas-ventas-reservas-despacho.md)
 - [Arquitectura tecnológica](../arquitectura-tecnologica.md)
 - [Diagramas de paquetes](../diagramas-paquetes.md)
 - [Modelo y diccionario de clases](../modelo-y-diccionario-clases.md)

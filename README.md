@@ -77,7 +77,8 @@ MIGAL-SmartOps/
 ├── entregas/
 └── .github/
     ├── CODEOWNERS
-    └── pull_request_template.md
+    ├── pull_request_template.md
+    └── workflows/
 ```
 
 | Carpeta o archivo | Finalidad |
@@ -92,7 +93,7 @@ MIGAL-SmartOps/
 | `scripts/` | Herramientas de automatización del repositorio. |
 | `requirements.txt` | Dependencias de Python para las herramientas generales del repositorio. |
 | `backend/` | Backend principal. |
-| `frontend/` | Aplicación web. |
+| `frontend/` | Aplicación web en React + TypeScript. Instalación, scripts y estructura en [frontend/README.md](frontend/README.md). |
 | `servicio-python/` | Servicio especializado de OCR e IA. |
 | `database/` | Archivos y migraciones de la base de datos. |
 | `entregas/` | Informes y archivos correspondientes a cada hito. |

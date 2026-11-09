@@ -142,6 +142,8 @@ MIGAL-TIPO-IDENTIFICADOR-descripcion.extension
 | `ACT` | Actividades | `MIGAL-ACT-CU-01-iniciar-sesion.png` |
 | `DFD` | Flujo de datos | `MIGAL-DFD-N0-contexto.png` |
 | `PAQ` | Paquetes | `MIGAL-PAQ-01-componentes-y-capas.png` |
+| `WF` | Wireframe de una pantalla del frontend | `MIGAL-WF-P20-registrar-venta.png` |
+| `AF` | Diseño de alta fidelidad de una pantalla del frontend | `MIGAL-AF-P20-registrar-venta.png` |
 
 Reglas:
 

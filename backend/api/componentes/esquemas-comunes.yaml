@@ -1,0 +1,43 @@
+# Esquemas comunes del contrato: paginación, importes, cantidades, identificadores y fechas.
+
+Pagina:
+  description: Sobre genérico de paginación por desplazamiento. Cada listado paginado amplía items con allOf.
+  type: object
+  required: [items, total, page, pageSize]
+  properties:
+    items: {type: array, items: {}}
+    total: {type: integer, minimum: 0}
+    page: {type: integer, minimum: 1}
+    pageSize: {type: integer, minimum: 1, maximum: 100}
+
+Importe:
+  type: number
+  multipleOf: 0.01
+  description: Importe monetario con dos decimales. El servidor lo redondea a céntimos.
+
+Cantidad:
+  type: number
+  multipleOf: 0.001
+  description: Cantidad con hasta tres decimales.
+
+Identificador:
+  type: string
+  description: Identificador técnico opaco. Se trata como cadena y no se utiliza como clave de ruta cuando existe un código de negocio.
+
+Codigo:
+  type: string
+  description: Código de negocio visible para el usuario, por ejemplo OC-0087, R-0012 o CLI-001.
+
+Sku:
+  type: string
+  description: Clave natural del producto en el catálogo.
+
+Fecha:
+  type: string
+  format: date
+  description: Fecha de negocio en formato aaaa-mm-dd.
+
+FechaHora:
+  type: string
+  format: date-time
+  description: Marca de tiempo RFC 3339 con desplazamiento explícito.

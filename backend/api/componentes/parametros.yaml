@@ -1,0 +1,46 @@
+# Parámetros reutilizables (ADR-006, seccion "Paginacion, filtrado y ordenamiento").
+# Se referencian con $ref desde las operaciones, por ejemplo:
+#   $ref: '../componentes/parametros.yaml#/page'
+
+page:
+  name: page
+  in: query
+  description: Número de página, en base 1.
+  schema: {type: integer, minimum: 1, default: 1}
+
+pageSize:
+  name: pageSize
+  in: query
+  description: Elementos por página. El máximo es 100.
+  schema: {type: integer, minimum: 1, maximum: 100, default: 20}
+
+orden:
+  name: orden
+  in: query
+  description: Ordenamiento con la forma campo:direccion separados por coma. Cada operación declara sus campos ordenables.
+  schema: {type: string, pattern: '^[A-Za-z]+:(asc|desc)(,[A-Za-z]+:(asc|desc))*$'}
+
+q:
+  name: q
+  in: query
+  description: Búsqueda de texto libre.
+  schema: {type: string}
+
+desde:
+  name: desde
+  in: query
+  description: Inicio del rango de fechas, inclusivo.
+  schema: {$ref: 'esquemas-comunes.yaml#/Fecha'}
+
+hasta:
+  name: hasta
+  in: query
+  description: Fin del rango de fechas, inclusivo.
+  schema: {$ref: 'esquemas-comunes.yaml#/Fecha'}
+
+IdempotencyKey:
+  name: Idempotency-Key
+  in: header
+  required: true
+  description: Clave UUID que identifica la operación para reintentos seguros (ADR-006).
+  schema: {type: string, format: uuid}

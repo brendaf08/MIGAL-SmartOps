@@ -1,0 +1,51 @@
+# Formato de error conforme a RFC 9457 (application/problem+json) y respuestas
+# comunes (ADR-006, seccion "Formato de errores y catalogo de codigos").
+
+CodigoError:
+  type: string
+  description: Código de negocio estable del error. Su valor no cambia entre versiones.
+  enum: [NO_AUTENTICADO, PERMISO_INSUFICIENTE, RECURSO_NO_ENCONTRADO, SOLICITUD_MAL_FORMADA, VALIDACION_FALLIDA, SKU_DUPLICADO, RUC_DUPLICADO, DOCUMENTO_CLIENTE_DUPLICADO, USUARIO_DUPLICADO, CLIENTE_INACTIVO, CLIENTE_REQUERIDO, PROVEEDOR_INACTIVO, STOCK_INSUFICIENTE, VIABILIDAD_NO_CONFIRMADA, COTIZACION_NO_EDITABLE, COTIZACION_VENCIDA, COTIZACION_NO_CONVERTIBLE, COTIZACION_YA_CONVERTIDA, VENTA_NO_CANCELABLE, VENTA_NO_DESPACHABLE, GUIA_EXISTENTE, RESERVA_INCOMPLETA, SALIDA_NO_CONFIRMABLE, ORDEN_COMPRA_CERRADA, RECEPCION_NO_CONFIRMABLE, SOBRANTE_SIN_NOTA, MOTIVO_REQUERIDO, IDEMPOTENCIA_CONFLICTO, PETICION_CONCURRENTE, DOCUMENTO_ILEGIBLE, DOCUMENTO_NO_VALIDABLE, SERVICIO_NO_DISPONIBLE]
+
+Problema:
+  type: object
+  description: Detalle del error. Se serializa como application/problem+json. El campo detail se muestra al usuario.
+  required: [type, title, status, detail, instance, code]
+  properties:
+    type: {type: string, format: uri, description: Identificador del tipo de problema. El dominio definitivo queda pendiente (ADR-006).}
+    title: {type: string, description: Resumen breve del tipo de problema.}
+    status: {type: integer, minimum: 400, maximum: 599}
+    detail: {type: string, description: Explicación en español dirigida al usuario.}
+    instance: {type: string, description: Ruta de la operación que produjo el error.}
+    code: {$ref: '#/CodigoError'}
+    errores: {type: array, items: {$ref: '#/ErrorCampo'}, description: Presente en VALIDACION_FALLIDA.}
+    proveedorId: {type: string, description: Presente en RUC_DUPLICADO.}
+    clienteId: {type: string, description: Presente en DOCUMENTO_CLIENTE_DUPLICADO.}
+
+ErrorCampo:
+  type: object
+  required: [campo, codigo, mensaje]
+  properties:
+    campo: {type: string}
+    codigo: {type: string}
+    mensaje: {type: string}
+
+ProblemaInterno:
+  type: object
+  description: Error interno no catalogado. El código ERROR_INTERNO no figura en el catálogo de ADR-006 y queda pendiente de registro.
+  required: [type, title, status, detail, instance, code]
+  properties:
+    type: {type: string, format: uri}
+    title: {type: string}
+    status: {const: 500}
+    detail: {type: string}
+    instance: {type: string}
+    code: {const: ERROR_INTERNO}
+
+Error400: {description: Solicitud mal formada (SOLICITUD_MAL_FORMADA)., content: {application/problem+json: {schema: {$ref: '#/Problema'}}}}
+Error401: {description: Token ausente o no válido (NO_AUTENTICADO)., content: {application/problem+json: {schema: {$ref: '#/Problema'}}}}
+Error403: {description: El rol del usuario no permite la operación (PERMISO_INSUFICIENTE)., content: {application/problem+json: {schema: {$ref: '#/Problema'}}}}
+Error404: {description: El identificador no existe (RECURSO_NO_ENCONTRADO)., content: {application/problem+json: {schema: {$ref: '#/Problema'}}}}
+Error409: {description: Conflicto con el estado o con datos existentes. Los códigos aplicables se describen en cada operación., content: {application/problem+json: {schema: {$ref: '#/Problema'}}}}
+Error422: {description: Regla de negocio o de validación no cumplida. Incluye VALIDACION_FALLIDA con la lista errores cuando corresponde., content: {application/problem+json: {schema: {$ref: '#/Problema'}}}}
+Error500: {description: Error interno del servidor., content: {application/problem+json: {schema: {$ref: '#/ProblemaInterno'}}}}
+Error503: {description: Servicio no disponible (SERVICIO_NO_DISPONIBLE). Respuesta adicional al conjunto básico que figura en el catálogo., content: {application/problem+json: {schema: {$ref: '#/Problema'}}}}

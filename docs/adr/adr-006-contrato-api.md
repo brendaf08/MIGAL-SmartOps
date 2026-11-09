@@ -14,7 +14,7 @@ Los requerimientos que condicionan el contrato son los siguientes:
 | RNF-14 | Los módulos se comunican mediante interfaces definidas, sin acoplamiento directo. |
 | RNF-04 | Los servicios se despliegan en contenedores; el contrato no depende del entorno. |
 | RF-COT-08 | Crear, emitir, rechazar o vencer una cotización no modifica ni reserva existencias. |
-| RF-CLI-04 | El cliente es opcional en la cotización. |
+| RF-CLI-04 | Redacción vigente: el cliente es opcional en la cotización. El ADR-003 lo establece como obligatorio y la redacción se corrige en un cambio independiente. |
 | RF-FUZ-05 | Las coincidencias de fuzzy matching por debajo del umbral requieren validación manual. |
 | RF-IA-08, RF-IA-09 | El agente indica falta de información sin inventar datos y respeta los permisos del usuario autenticado. |
 
@@ -191,7 +191,7 @@ Catálogo inicial de códigos:
 | `DOCUMENTO_CLIENTE_DUPLICADO` | 409 | El tipo y número de documento ya pertenecen a un cliente. Incluye `clienteId`. |
 | `USUARIO_DUPLICADO` | 409 | El nombre de usuario ya existe. |
 | `CLIENTE_INACTIVO` | 422 | El cliente está inactivo y no puede asociarse a una cotización o venta. |
-| `CLIENTE_REQUERIDO` | 422 | La conversión de una cotización no tiene cliente asociado. |
+| `CLIENTE_REQUERIDO` | 422 | La cotización o venta no tiene cliente asociado. |
 | `PROVEEDOR_INACTIVO` | 422 | La orden de compra se dirige a un proveedor inactivo. |
 | `STOCK_INSUFICIENTE` | 409 | Una salida o un traslado manual supera la existencia física del origen. |
 | `VIABILIDAD_NO_CONFIRMADA` | 409 | La conversión requiere viabilidad confirmada por la propietaria de abastecimiento y no la tiene. |
@@ -232,11 +232,11 @@ Catálogo inicial de códigos:
 
 ### Reglas de negocio reflejadas en el contrato
 
-Las reglas siguientes provienen del ADR-003, que aún no se encuentra integrado en el repositorio. Se citan como texto y el contrato las aplica de la siguiente manera:
+Las reglas siguientes provienen del [ADR-003](adr-003-reglas-ventas-reservas-despacho.md). El contrato las aplica de la siguiente manera:
 
 - **Salida de Kardex solo al confirmar el despacho.** La salida por despacho se registra únicamente en `POST /guias-despacho/{id}/salida`. La generación de la guía y su reimpresión no producen movimientos. Los movimientos manuales de salida se registran con origen `Ajuste`, lo cual requiere confirmar la excepción con el ADR-003.
 - **La venta solo reserva.** La atención de la venta (`POST /ventas/{id}/atencion`) reserva existencias libres y no genera movimientos de Kardex. Las cantidades no atendidas permanecen pendientes de abastecimiento.
-- **Cliente obligatorio.** La conversión de cotización exige un cliente activo. La cotización puede emitirse sin cliente, de acuerdo con RF-CLI-04, pero no se convierte sin él.
+- **Cliente obligatorio.** La conversión de cotización exige un cliente activo. La cotización también exige un cliente desde su creación; el contrato prevalece sobre la redacción vigente de RF-CLI-04, que se corrige en un cambio independiente.
 - **Despacho único y completo.** Una venta tiene como máximo una guía de despacho (`GUIA_EXISTENTE`). La salida solo se confirma si todas las líneas tienen reservada la cantidad completa (`RESERVA_INCOMPLETA`).
 
 Además, el contrato aplica las siguientes reglas del modelo:
@@ -342,6 +342,6 @@ Además, el contrato aplica las siguientes reglas del modelo:
 - [Modelo y diccionario de datos](../modelo-y-diccionario-datos.md)
 - [Requerimientos](../requerimientos.md)
 - [ADR-001: Stack tecnológico del frontend](adr-001-stack-frontend.md)
-- ADR-003: reglas de Kardex, reservas, cliente obligatorio y despacho único (documento pendiente de integración, citado como texto)
+- [ADR-003: Reglas de ventas, reservas, Kardex y despacho](adr-003-reglas-ventas-reservas-despacho.md)
 - RFC 9457: Problem Details for HTTP APIs
 - OpenAPI Specification 3.1

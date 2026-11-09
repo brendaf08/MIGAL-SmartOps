@@ -1,0 +1,7 @@
+/* Teléfono: zona compacta; el arrastre queda como alternativa a la cámara. */
+@mixin smaller-than $mantine-breakpoint-sm {
+  .root {
+    min-height: 160px;
+    padding: var(--space-6) var(--space-4);
+  }
+}

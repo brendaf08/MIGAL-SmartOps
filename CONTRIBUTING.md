@@ -7,6 +7,8 @@ Estas reglas se aplican a todos los integrantes y a los cambios de documentació
 | Ubicación | Contenido |
 | --- | --- |
 | `docs/` | Definiciones técnicas del sistema. |
+| `docs/adr/` | Registros de decisiones de arquitectura (ADR). |
+| `docs/diseno/` | Sistema de diseño del frontend: fundamentos, tokens, componentes y prototipo de referencia. |
 | `docs/fuentes/` | Fuentes editables de diagramas mantenidos en el repositorio. |
 | `docs/imagenes/` | Imágenes utilizadas en la documentación. |
 | `scripts/` | Herramientas de automatización. |

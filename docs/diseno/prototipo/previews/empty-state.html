@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="es" data-theme="light">
+<head>
+<link rel="stylesheet" href="../tokens.css"><link rel="stylesheet" href="../bundle.css">
+<script src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script src="../bundle.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>EmptyState - vista previa</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400..700&family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Barlow+Semi+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  body { padding: 16px; }
+  .pv-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  .pv-col { display: flex; flex-direction: column; gap: 12px; }
+  .pv-grid { display: grid; gap: 16px; }
+  .pv-cap { font-size: 12px; line-height: 16px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-muted); margin: 0 0 8px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+var M = window.Migal, h = React.createElement;
+function Cap(t) { return h('p', { className: 'pv-cap' }, t); }
+ReactDOM.createRoot(document.getElementById('root')).render(h('div', { className: 'pv-grid', style: { gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' } },
+  h(M.Card, null, h(M.EmptyState, { icon: 'search', title: 'Sin resultados', description: 'No hay productos que coincidan con la búsqueda.', action: h(M.Button, { variant: 'outline' }, 'Limpiar filtros') })),
+  h(M.Card, null, h(M.EmptyState, { icon: 'proveedor', title: 'Aún no hay proveedores', description: 'Registrar un proveedor para poder crear órdenes de compra.', action: h(M.Button, { leftIcon: 'plus' }, 'Registrar proveedor') }))));
+</script>
+</body>
+</html>

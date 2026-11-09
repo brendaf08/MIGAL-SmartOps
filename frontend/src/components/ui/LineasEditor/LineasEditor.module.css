@@ -1,0 +1,69 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.empty {
+  margin: 0;
+  padding: var(--space-5);
+  color: var(--ink-muted);
+  text-align: center;
+}
+
+.error {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--danger-ink);
+  font-size: 13px;
+}
+
+/* Totales como un libro contable: doble línea sobre el total y cifras tabulares. */
+.totales {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  align-self: flex-end;
+  width: min(100%, 320px);
+  margin: 0;
+
+  & > div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+  }
+
+  & dt {
+    color: var(--ink-muted);
+  }
+
+  & dd {
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+  }
+
+  & > div:last-child {
+    padding-top: var(--space-2);
+    border-top: 3px double var(--line-strong);
+    font-weight: 700;
+
+    & dt {
+      color: var(--ink);
+    }
+  }
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-start;
+}
+
+/* Teléfono: el botón de agregar ocupa todo el ancho para el toque. */
+@mixin smaller-than $mantine-breakpoint-sm {
+  .actions > * {
+    width: 100%;
+  }
+}

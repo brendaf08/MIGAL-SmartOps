@@ -1,108 +1,156 @@
-# Frontend de MIGAL SmartOps
+# Frontend
 
-Aplicación web de MIGAL SmartOps. React + TypeScript + Vite, Tailwind CSS, React Router y lucide-react. Por ahora no hay backend: los datos de prueba están en `src/shared/data/semillas.ts`, con los nombres del [modelo y diccionario de datos](../docs/modelo-y-diccionario-datos.md).
+Aplicación web de MIGAL SmartOps (SPA en React). La decisión de stack se encuentra en [ADR-001](../docs/adr/adr-001-stack-frontend.md) y la del sistema de diseño en [ADR-002](../docs/adr/adr-002-sistema-de-diseno.md).
 
-## Instalar y ejecutar
+## Estado
 
-Requiere Node.js LTS (20.19 o superior). Todos los comandos se ejecutan dentro de `frontend/`.
+Incluye la configuración base, el tema claro y oscuro, el layout responsive (teléfono, tablet y escritorio), los primitivos y componentes de dominio del sistema de diseño, la sesión con rutas protegidas por rol y las pantallas de todos los módulos de la navegación: disponibilidad, catálogo, alertas de stock, Kardex con registro de movimientos, despachos con orden imprimible, recepciones y documentos con OCR, cotizaciones, ventas, clientes, proveedores, órdenes de compra, agente de IA y usuarios. Cada módulo cubre sus flujos de punta a punta (listado, formulario, detalle y confirmación) y se documenta en [docs/diseno/pantallas](../docs/diseno/pantallas/README.md).
 
-```bash
-cd frontend
+El backend aún no existe (la carpeta `backend/` solo contiene su README). Los datos provienen de una capa simulada, descrita en [Datos simulados](#datos-simulados-y-usuarios-de-prueba).
+
+## Requisitos
+
+- Node.js 22.22 o posterior (se utiliza la versión 24 en la imagen Docker).
+- npm 10 o posterior.
+
+## Instalación y ejecución
+
+Abrir una terminal en esta carpeta y ejecutar:
+
+```sh
 npm install
-npm run dev      # abre http://localhost:5173
-npm run build    # comprueba que todo compila
+npm run dev
 ```
 
-Usuarios de prueba (contraseña `migal123`): `admin`, `vendedor`, `almacenero`, `reponedor`.
+La aplicación queda disponible en `http://localhost:5173`.
 
-## Módulos y responsables
+## Scripts
 
-| Integrante | Carpeta (lo único que toca) | Pantallas | Prompt para AI Studio |
-| --- | --- | --- | --- |
-| Gabriel | `frontend/src/modules/usuarios/` | P01–P07 | `frontend/docs/ai-studio/usuarios.md` |
-| Brenda | `frontend/src/modules/productos/` | P08–P11, P25–P26 | `frontend/docs/ai-studio/productos.md` |
-| Nuñez | `frontend/src/modules/inventario/` | P12–P16 | `frontend/docs/ai-studio/inventario.md` |
-| Pinedo | `frontend/src/modules/ventas/` | P19–P22 | `frontend/docs/ai-studio/ventas.md` |
-| Alexander | `frontend/src/modules/cotizaciones/` | P17–P18, P23–P24, P27 | `frontend/docs/ai-studio/cotizaciones.md` |
+| Comando | Función |
+| --- | --- |
+| `npm run dev` | Inicia el servidor de desarrollo. |
+| `npm run build` | Comprueba los tipos y genera los archivos estáticos en `dist/`. |
+| `npm run preview` | Sirve localmente el resultado de `build`. |
+| `npm run typecheck` | Comprueba los tipos de TypeScript. |
+| `npm run lint` | Ejecuta ESLint, incluidas las reglas de accesibilidad de `jsx-a11y`. |
+| `npm run format` | Aplica el formato de Prettier. |
+| `npm run format:check` | Verifica el formato sin modificar archivos. |
+| `npm test` | Ejecuta las pruebas con Vitest y Testing Library. |
+| `npm run test:watch` | Ejecuta las pruebas en modo interactivo. |
+| `npm run storybook` | Inicia el catálogo de componentes en `http://localhost:6006`. |
+| `npm run build-storybook` | Genera el catálogo estático en `storybook-static/`. |
 
-## Cómo trabaja cada integrante
+Antes de abrir un pull request, ejecutar `npm run lint`, `npm run typecheck`, `npm test` y `npm run build`, y registrar los resultados en la descripción.
 
-1. **Genera en AI Studio.** Copia **todo** tu archivo de `frontend/docs/ai-studio/` y pégalo como primer mensaje en un proyecto nuevo de Google AI Studio. Ya trae el diseño, los tipos, los datos y tus pantallas.
-2. **Guarda las capturas** en `docs/imagenes/` (en la raíz del repo), según las reglas de nomenclatura de [CONTRIBUTING.md](../CONTRIBUTING.md):
-   - Primera versión: `MIGAL-WF-P20-registrar-venta.png`
-   - Versión final: `MIGAL-AF-P20-registrar-venta.png`
-3. **Copia solo tu carpeta.** Descarga el proyecto de AI Studio como .zip. De ahí solo te sirve `src/modules/<tu-modulo>/`: reemplaza con ella `frontend/src/modules/<tu-modulo>/`. Lo demás se descarta.
-4. **Prueba y sube** en una rama nueva, siguiendo las convenciones del repo:
+## Tecnologías y versiones
 
-```bash
-git checkout main
-git pull
-git checkout -b feat/frontend-<tu-modulo>
-cd frontend && npm install && npm run build && cd ..
-git add frontend/src/modules/<tu-modulo> docs/imagenes
-git commit -m "feat: agregar pantallas de <tu-modulo>"
-git push -u origin feat/frontend-<tu-modulo>
-```
+| Elemento | Tecnología |
+| --- | --- |
+| Construcción | Vite 8 |
+| Lenguaje | TypeScript 6 en modo estricto |
+| Interfaz | React 19 y Mantine 9 (formularios, modales, notificaciones y carga de archivos) |
+| Navegación | React Router 8 |
+| Estado del servidor | TanStack Query 5 |
+| Validación | Zod 4 |
+| Pruebas | Vitest 5, Testing Library y jsdom |
+| Calidad | ESLint 9 con `eslint-plugin-jsx-a11y` y Prettier |
 
-5. **Abre el Pull Request** hacia `main` con la plantilla del repo. Se integra con **Squash and merge** y luego se borra la rama. Para la siguiente entrega, crea una rama nueva desde `main` actualizado.
-
-## Reglas
-
-1. Solo tocas `frontend/src/modules/<tu-modulo>/` y tus capturas `MIGAL-WF-…` y `MIGAL-AF-…` en `docs/imagenes/`.
-2. Tu `index.tsx` exporta `rutas` con los **mismos códigos, rutas y `enMenu`** que ya tiene. Así tu pantalla aparece sola en el menú y con sus permisos.
-3. Nunca importas de otro módulo. Para ir a otra pantalla usas su ruta (`<Link to="/compras/nueva">`).
-4. Campos con los nombres de `src/shared/tipos.ts`. Montos con `formatearSoles()` y fechas con `formatearFecha()`.
-5. Componentes de `src/shared/components/ui.tsx` y colores del tema (`bg-primario`, `text-secundario`…), nunca colores sueltos.
-6. No instalas librerías nuevas. Si necesitas algo en `src/shared/`, lo pides al responsable del frontend.
-
-## Verificación automática
-
-Cada PR que toca `frontend/` pasa por **Verificar frontend** (GitHub Actions). Falla si cambia archivos fuera de un único módulo y sus capturas, o si el proyecto no compila. Si sale ❌, abre el detalle del check: dice qué archivo sobra o qué error hay.
-
-Los cambios de base (`src/shared/`, `App.tsx`, `routes.tsx`, configuración) los hace el responsable del frontend y llevan la etiqueta `frontend-base` en el PR.
+TypeScript se mantiene en la serie 6 y ESLint en la serie 9 porque `typescript-eslint` y `eslint-plugin-jsx-a11y` aún no admiten TypeScript 7 ni ESLint 10. Actualizar ambas series cuando los paquetes mencionados las admitan.
 
 ## Estructura
 
-```
+```text
 frontend/
-  src/
-    index.css            paleta y fuentes (Tailwind @theme)
-    App.tsx              menú por rol, barra superior y rutas protegidas
-    routes.tsx           une los 5 módulos
-    shared/
-      tipos.ts           tipos de entidades y estados (diccionario de datos)
-      formato.ts         formatearSoles, formatearFecha, hoyISO
-      navegacion.ts      grupos e iconos del menú
-      data/semillas.ts   datos de prueba compartidos
-      auth/              useAuth() y permisos por rol
-      components/        ui.tsx, Logo, EnConstruccion
-    modules/<modulo>/
-      index.tsx          exporta `rutas`
-      pages/  components/  data/
-  docs/ai-studio/        un prompt completo por integrante
-  scripts/               generador de prompts
-  public/logo.png        logo (opcional)
+├── index.html
+├── vite.config.ts
+├── postcss.config.js         Mixins de Mantine y puntos de quiebre para CSS Modules.
+├── vitest.setup.ts
+├── Dockerfile
+├── nginx.conf
+└── src/
+    ├── main.tsx              Punto de entrada, estilos globales y enrutador.
+    ├── App.tsx
+    ├── app/                  Proveedores globales y cliente de consultas.
+    ├── theme/                Tokens, tema de Mantine, fuentes y modo claro u oscuro.
+    ├── components/
+    │   ├── ui/               Primitivos genéricos (DataTable, Modal, Tabs, Stepper, Dropzone, ...).
+    │   ├── domain/           StatusBadge, StockSummary, StockBar, MatchConfidence y chat.
+    │   └── layout/           AppShell y PageHeader.
+    ├── features/             Un directorio por módulo funcional (pantallas, consultas y tipos).
+    ├── routes/               Rutas, navegación por rol y marco de las pantallas internas.
+    ├── api/                  Utilidades de la capa de datos simulada.
+    ├── lib/                  Formatos es-PE y utilidades.
+    ├── test/                 Utilidades de prueba.
+    └── assets/               Logo y recursos estáticos.
 ```
 
-## Estilo
+El alias `@/` equivale a `src/`. Las dependencias fluyen en una sola dirección: `features` usa `components`, `components/domain` usa `components/ui`, y `components/ui` no conoce el negocio. Los componentes visuales no llaman a la API: reciben datos por propiedades o mediante hooks de `features`.
 
-Verde profesional. Fuentes: Inter (texto) y Plus Jakarta Sans (títulos). Todo está en `src/index.css`.
+## Rutas y roles
 
-| Clase | Uso | Hex |
-| --- | --- | --- |
-| primario | Botones principales, enlaces, foco | #15803D |
-| primario-oscuro | Hover, títulos de marca | #166534 |
-| primario-suave | Fondos de selección | #DCFCE7 |
-| lateral | Menú lateral | #0B3B24 |
-| secundario | Descripciones, texto secundario | #64748B |
-| tenue | Metadatos no esenciales | #94A3B8 |
-| fondo | Lienzo de página | #F8FAF9 |
-| superficie | Tarjetas, modales | #FFFFFF |
-| borde | Divisores sutiles | #EEF2EF |
-| borde-campo | Borde de campos de formulario | #858F9C |
-| texto | Títulos y texto principal | #0F1A14 |
-| exito / info / alerta / error | Estados | #15803D / #1D4ED8 / #B45309 / #B91C1C |
+La navegación y las rutas protegidas se definen una sola vez en `src/routes/navigation.ts`. Un módulo oculto para un rol equivale a una ruta no accesible; la autorización real corresponde al backend (RNF-09). La clave de cada ítem es su ruta (`/disponibilidad`, `/ventas`, `/despachos`, etc.) y las pantallas secundarias se registran en `src/routes/AppRoutes.tsx` (`/ventas/:id`, `/despachos/:id`, `/recepciones/nueva`).
 
-## Para el responsable del frontend
+## Datos simulados y usuarios de prueba
 
-Si cambias algo de `src/shared/` o `src/index.css`, ejecuta `npm run prompts` dentro de `frontend/` para regenerar `docs/ai-studio/` y avisa al equipo.
+Cada módulo expone sus consultas en un archivo `api.ts` con firmas tipadas que devuelven datos de prueba mediante `mockRequest` (`src/api/mock.ts`), con latencia simulada. Al disponer de la API REST, cada función se sustituye por una llamada HTTP sin modificar su firma ni las pantallas. Las operaciones que modifican datos (aceptar una cotización, confirmar una salida o una recepción) actualizan los datos en memoria y se reinician al recargar la página.
+
+Usuarios de prueba para desarrollo (contraseña `demo1234` en todos los casos):
+
+| Usuario | Rol |
+| --- | --- |
+| `admin` | Administrador |
+| `vendedor` | Vendedor |
+| `rquispe` | Almacenero |
+| `reponedor` | Reponedor |
+
+Estos usuarios se eliminan al integrar la autenticación del backend (`src/features/seguridad/fixtures.ts`).
+
+## Tema y modo claro u oscuro
+
+| Archivo | Contenido |
+| --- | --- |
+| `src/theme/tokens.css` | Variables CSS de los temas claro y oscuro, derivadas de [tokens.json](../docs/diseno/tokens.json). Archivo generado: no se edita a mano. |
+| `src/theme/theme.ts` | Tema de Mantine con las paletas, la tipografía, los radios, el espaciado y los valores predeterminados de los componentes. |
+| `src/theme/cssVariablesResolver.ts` | Enlace de las variables de color y de fuente de Mantine con los tokens. |
+| `src/theme/global.css` | Estilos globales que consumen únicamente tokens. |
+| `src/theme/fonts.ts` | Fuentes autoalojadas mediante paquetes `@fontsource`. |
+| `src/theme/ThemeSync.tsx` | Sincronización del atributo `data-theme` con el esquema de color de Mantine. |
+| `src/theme/useThemeMode.ts` | Hook para consultar y alternar el modo. |
+
+El modo inicial proviene de `prefers-color-scheme` y la elección del usuario se conserva en `localStorage` con la clave `migal-color-scheme`. Un script en línea de `index.html` aplica el modo antes de renderizar para evitar un destello de tema.
+
+Los paquetes `@fontsource-variable` registran las familias "Bricolage Grotesque Variable" e "Instrument Sans Variable". `global.css` las antepone a los nombres definidos en `tokens.css`, que se conserva sin cambios.
+
+## Docker
+
+La imagen se construye en dos etapas: compilación con Node y servicio de los archivos estáticos con nginx, que redirige las rutas de la SPA a `index.html`.
+
+```sh
+docker build -t migal-frontend .
+docker run --rm -p 8080:80 migal-frontend
+```
+
+La aplicación queda disponible en `http://localhost:8080`.
+
+## Documentación de diseño
+
+- [Sistema de diseño](../docs/diseno/sistema-de-diseno.md).
+- [Componentes y pantallas de referencia](../docs/diseno/componentes/README.md).
+- [Prototipo de referencia](../docs/diseno/prototipo/README.md).
+
+## Catálogo de componentes y accesibilidad
+
+El catálogo vive en Storybook (`.storybook/`) y contiene una historia por componente de `components/ui/`, `components/domain/` y `components/layout/`, en archivos `*.stories.tsx` junto a cada componente. La barra de herramientas permite alternar entre el tema claro y el oscuro tenue, y el complemento de accesibilidad de Storybook ejecuta `axe` sobre cada historia. La telemetría de Storybook está desactivada.
+
+La accesibilidad se verifica en cuatro niveles:
+
+- `eslint-plugin-jsx-a11y` durante `npm run lint`.
+- Pruebas de Testing Library con roles, nombres accesibles y teclado.
+- `vitest-axe` por pantalla (`src/a11y.test.tsx`) y por historia (`src/historias.a11y.test.tsx`), sin la regla de contraste, que depende de los tokens y no de jsdom, ni la de regiones, que corresponde a páginas completas.
+- El complemento de accesibilidad de Storybook, de forma interactiva.
+
+Una historia nueva se agrega junto al componente y la prueba de `src/historias.a11y.test.tsx` la recoge sin cambios adicionales.
+
+## Verificación responsive pendiente
+
+Las composiciones de teléfono, tablet y escritorio se implementan con CSS Modules y los puntos de quiebre del tema, y las pruebas automatizadas no evalúan la maquetación. Antes de integrar, comprobar manualmente cada pantalla en 390, 768 y 1280 px, en tema claro y oscuro y con el zoom al 200 %.

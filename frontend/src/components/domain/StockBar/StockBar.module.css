@@ -1,0 +1,113 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.trackWrap {
+  position: relative;
+}
+
+.track {
+  display: flex;
+  height: 12px;
+  overflow: hidden;
+  border-radius: var(--radius-full);
+  background: var(--surface-sunken);
+  box-shadow: inset 0 0 0 1px var(--line);
+
+  & > span {
+    flex-basis: 0;
+    box-shadow: inset -2px 0 0 var(--surface);
+  }
+}
+
+.compact .track {
+  height: 8px;
+}
+
+/* Regla graduada, como una cinta métrica; `--tick` fija la distancia entre marcas (múltiplos del empaque). */
+.scale {
+  display: flex;
+  justify-content: space-between;
+  height: 14px;
+  color: var(--ink-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  background: repeating-linear-gradient(
+      90deg,
+      var(--line-strong) 0 1px,
+      transparent 1px var(--tick, 10%)
+    )
+    top / 100% 6px no-repeat;
+}
+
+.libre {
+  background: var(--success);
+}
+
+.reservado {
+  background: var(--brand);
+}
+
+/* Las rayas distinguen lo pendiente sin depender solo del color. */
+.pendiente {
+  background: repeating-linear-gradient(45deg, var(--warning) 0 3px, var(--warning-soft) 3px 6px);
+}
+
+/* Marcadores de estante: la forma (cuadrado o círculo) los distingue sin depender del color. */
+.marker {
+  position: absolute;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--surface);
+  background: var(--ink);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.marker.minimo {
+  border-radius: 2px;
+}
+
+.marker.reposicion {
+  border-radius: var(--radius-full);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--ink-muted);
+  font-size: 12px;
+
+  & li {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  & b {
+    color: var(--ink);
+  }
+}
+
+.swatch {
+  width: 10px;
+  height: 10px;
+  flex: none;
+  border-radius: 3px;
+}
+
+.minimoSwatch,
+.reposicionSwatch {
+  background: var(--ink);
+}
+
+.reposicionSwatch {
+  border-radius: var(--radius-full);
+}

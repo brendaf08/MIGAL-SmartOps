@@ -1,0 +1,92 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+  align-items: end;
+  margin: 0;
+
+  & dt {
+    color: var(--ink-muted);
+    font-size: 12px;
+  }
+
+  & dd {
+    margin: 2px 0 0;
+    color: var(--ink-muted);
+    font-size: 16px;
+    line-height: 24px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* La cantidad libre es el foco, separada por un filete. */
+.free {
+  padding-right: var(--space-4);
+  border-right: 1px solid var(--line);
+
+  & dt {
+    color: var(--ink);
+    font-weight: 600;
+  }
+
+  /* Cifra grande: única parte de StockSummary con fuente de cifras. */
+  & dd {
+    color: var(--ink);
+    font-family: var(--font-display);
+    font-size: 28px;
+    line-height: 32px;
+    font-weight: 600;
+  }
+}
+
+.unit {
+  margin-left: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.level {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.compact {
+  & .grid {
+    gap: var(--space-3);
+
+    & dd {
+      font-size: 14px;
+      line-height: 20px;
+    }
+  }
+
+  /* En filas de tabla la cantidad es un dato corriente: vuelve a la fuente de texto. */
+  & .free dd {
+    font-family: var(--font-sans);
+    font-size: 18px;
+    line-height: 24px;
+  }
+}
+
+/* Teléfono: libre en la fila superior y físico y reservado debajo, en dos columnas. */
+@mixin smaller-than $mantine-breakpoint-sm {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .free {
+    grid-column: 1 / -1;
+    padding-right: 0;
+    padding-bottom: var(--space-2);
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+}

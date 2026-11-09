@@ -1,0 +1,60 @@
+import { Badge, Group, Progress, Text, VisuallyHidden } from '@mantine/core';
+import { useId } from 'react';
+import { Icon } from '../../ui/Icon/Icon';
+
+export interface MatchConfidenceProps {
+  /** Similitud de 0 a 1. */
+  score: number;
+  /** Umbrales de ejemplo, pendientes de definir en el servicio Python. */
+  thresholds?: { high: number; low: number };
+  /** Versión para celdas de tabla: sin el texto de validación, que ya expone la fila. */
+  compact?: boolean;
+}
+
+const LEVELS = {
+  high: { color: 'success', icon: 'status-ok', text: 'Coincidencia alta' },
+  mid: { color: 'warning', icon: 'alert-triangle', text: 'Revisar coincidencia' },
+  low: { color: 'danger', icon: 'status-danger', text: 'Sin coincidencia' },
+} as const;
+
+/** Sugiere, no decide: aun con coincidencia alta el usuario confirma la asociación (RF-FUZ-06). */
+export function MatchConfidence({
+  score,
+  thresholds = { high: 0.85, low: 0.6 },
+  compact = false,
+}: MatchConfidenceProps) {
+  const level = score >= thresholds.high ? 'high' : score >= thresholds.low ? 'mid' : 'low';
+  const { color, icon, text } = LEVELS[level];
+  const percent = Math.round(score * 100);
+  const labelId = useId();
+
+  return (
+    <div>
+      <Group justify="space-between" wrap="nowrap" mb={4}>
+        <Badge flex="none" color={color} leftSection={<Icon name={icon} size={16} />}>
+          {text}
+        </Badge>
+        <Text fw={600} style={{ fontVariantNumeric: 'tabular-nums' }}>
+          {percent} %
+        </Text>
+      </Group>
+      <Progress
+        value={percent}
+        color={color}
+        size="sm"
+        role="meter"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={percent}
+        aria-label="Similitud con el catálogo"
+        aria-labelledby={labelId}
+      />
+      <VisuallyHidden id={labelId}>Similitud con el catálogo</VisuallyHidden>
+      {level === 'low' && !compact && (
+        <Text size="sm" c="dimmed" mt={4}>
+          Se requiere validación manual antes de continuar.
+        </Text>
+      )}
+    </div>
+  );
+}

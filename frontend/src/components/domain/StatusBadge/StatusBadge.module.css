@@ -1,0 +1,61 @@
+/* Cada tono toma su fondo suave y su tinta de los tokens; el estado se distingue también por forma y texto. */
+.root {
+  height: auto;
+  min-height: 24px;
+  padding-block: 2px;
+  text-transform: none;
+  font-weight: 600;
+  /* El texto del estado nunca se recorta: es parte de la señal (forma y texto). */
+  max-width: none;
+  overflow: visible;
+  flex: none;
+  background: var(--tone-bg);
+  color: var(--tone-ink);
+
+  & :global(.mantine-Badge-label) {
+    overflow: visible;
+    text-overflow: clip;
+  }
+
+  &[data-tone='success'] {
+    --tone-bg: var(--success-soft);
+    --tone-ink: var(--success-ink);
+  }
+
+  &[data-tone='warning'] {
+    --tone-bg: var(--warning-soft);
+    --tone-ink: var(--warning-ink);
+  }
+
+  &[data-tone='danger'] {
+    --tone-bg: var(--danger-soft);
+    --tone-ink: var(--danger-ink);
+  }
+
+  &[data-tone='info'] {
+    --tone-bg: var(--info-soft);
+    --tone-ink: var(--info-ink);
+  }
+
+  &[data-tone='brand'] {
+    --tone-bg: var(--brand-soft);
+    --tone-ink: var(--brand-soft-ink);
+  }
+
+  &[data-tone='neutral'] {
+    --tone-bg: var(--surface-sunken);
+    --tone-ink: var(--ink-muted);
+  }
+}
+
+/* Sello de documento: doble contorno y fuente de rotulado, sin ícono. */
+.sello {
+  margin: 3px;
+  padding: 3px 10px;
+  border: 1.5px solid currentcolor;
+  outline: 1px solid currentcolor;
+  outline-offset: 2px;
+  background: transparent;
+  color: var(--tone-ink);
+  font-family: var(--font-display);
+}

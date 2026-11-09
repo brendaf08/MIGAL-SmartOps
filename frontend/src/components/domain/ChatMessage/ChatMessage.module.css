@@ -1,0 +1,79 @@
+.root {
+  display: flex;
+  gap: var(--space-3);
+  max-width: 85%;
+}
+
+.user {
+  flex-direction: row-reverse;
+  align-self: flex-end;
+  text-align: right;
+}
+
+.avatar {
+  display: grid;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border-radius: var(--radius-full);
+  background: var(--brand-8);
+  color: var(--accent);
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.user .main {
+  align-items: flex-end;
+}
+
+.tools {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--ink-muted);
+  font-size: 12px;
+
+  & li {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+}
+
+.bubble {
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  text-align: left;
+}
+
+.user .bubble {
+  border-color: transparent;
+  background: var(--brand-soft);
+  color: var(--brand-soft-ink);
+}
+
+.uncertain {
+  border-color: var(--warning);
+  background: var(--warning-soft);
+  color: var(--warning-ink);
+}
+
+/* Teléfono: los mensajes ocupan todo el ancho disponible. */
+@mixin smaller-than $mantine-breakpoint-sm {
+  .root {
+    max-width: 100%;
+  }
+}

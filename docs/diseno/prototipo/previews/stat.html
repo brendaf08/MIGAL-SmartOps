@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="es" data-theme="light">
+<head>
+<link rel="stylesheet" href="../tokens.css"><link rel="stylesheet" href="../bundle.css">
+<script src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script src="../bundle.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Stat - vista previa</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400..700&family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Barlow+Semi+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  body { padding: 16px; }
+  .pv-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  .pv-col { display: flex; flex-direction: column; gap: 12px; }
+  .pv-grid { display: grid; gap: 16px; }
+  .pv-cap { font-size: 12px; line-height: 16px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-muted); margin: 0 0 8px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+var M = window.Migal, h = React.createElement;
+function Cap(t) { return h('p', { className: 'pv-cap' }, t); }
+ReactDOM.createRoot(document.getElementById('root')).render(h('div', { className: 'pv-grid', style: { gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' } },
+  h(M.Stat, { label: 'Productos en stock crítico', value: '12', hint: 'Libre menor o igual al mínimo', tone: 'danger' }),
+  h(M.Stat, { label: 'Ventas pendientes de abastecimiento', value: '5', hint: 'Cantidades sin reservar', tone: 'warning' }),
+  h(M.Stat, { label: 'Recepciones por validar', value: '3' }),
+  h(M.Stat, { label: 'Despachos listos', value: '8', tone: 'success' })));
+</script>
+</body>
+</html>

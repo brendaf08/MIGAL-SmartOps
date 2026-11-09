@@ -1,10 +1,30 @@
 <!doctype html>
-<html lang="es">
+<html lang="es" data-theme="light">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#E8EDF7" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#2B303A" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" type="image/png" href="/src/assets/progresol-logo.png" />
     <title>MIGAL SmartOps</title>
+    <script>
+      /* Aplica el modo guardado antes de renderizar para evitar un destello de tema. */
+      (function () {
+        try {
+          var stored = localStorage.getItem('migal-color-scheme');
+          var dark =
+            stored === 'dark' ||
+            ((stored === null || stored === 'auto') &&
+              window.matchMedia('(prefers-color-scheme: dark)').matches);
+          var scheme = dark ? 'dark' : 'light';
+          document.documentElement.setAttribute('data-theme', scheme);
+          document.documentElement.setAttribute('data-mantine-color-scheme', scheme);
+        } catch (error) {
+          /* Sin acceso a localStorage: se mantiene el modo claro. */
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

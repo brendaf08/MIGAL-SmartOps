@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="es" data-theme="light">
+<head>
+<link rel="stylesheet" href="../tokens.css"><link rel="stylesheet" href="../bundle.css">
+<script src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script src="../bundle.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Portada</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400..700&family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Barlow+Semi+Condensed:wght@500;600;700&display=swap">
+<style>
+  body { margin: 0; padding: 0; }
+  svg { display: block; width: 960px; height: 336px; }
+  .b7 { fill: var(--brand-7); }
+  [data-theme="dark"] .b7 { fill: var(--brand-5); }
+  .b5 { fill: var(--brand-5); }
+  .b3 { fill: var(--brand-3); }
+  .ac { fill: var(--accent); }
+  .ink { fill: var(--ink); }
+  rect:not(.pill) { rx: var(--radius-lg); }
+  .name { font-family: var(--font-heading); font-weight: 800; font-size: 88px; letter-spacing: -0.03em; fill: var(--ink); }
+  .tag { font-family: var(--font-sans); font-weight: 500; font-size: 14px; fill: var(--ink-muted); }
+</style>
+</head>
+<body>
+<svg viewBox="0 0 960 336" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="MIGAL SmartOps">
+  <!-- Derivacion
+    Bloques: brand-7 (azul Progresol, 3 losas grandes), accent (verde del logo, 3 losas medianas), brand-3 y brand-5 (apoyos), ink (relieve oscuro/claro segun tema).
+    Disposicion: rejilla modular flush de 10 x 7 modulos de space-12 (48 px) con separacion space-2, a la derecha de x = 480; losas de 1 a 4 modulos.
+    Patron: geometrica, modular y densa (interfaz operativa de inventario): losas cortadas con radius-lg, algunas fusionadas a doble ancho como las filas de una tabla y otras en pastilla (radius-full) como las insignias de estado.
+    Pasos y radios: space-12, space-2, radius-lg, radius-full. -->
+  <g>
+    <rect class="b7" x="484" y="4" width="184" height="136"/>
+    <rect class="ac" x="676" y="4" width="88" height="88"/>
+    <rect class="b3 pill" x="772" y="4" width="184" height="40" rx="20"/>
+    <rect class="ink" x="772" y="52" width="88" height="40"/>
+    <rect class="b5" x="868" y="52" width="88" height="88"/>
+    <rect class="b3 pill" x="676" y="100" width="88" height="40" rx="20"/>
+    <rect class="b7" x="772" y="100" width="88" height="40"/>
+    <rect class="ac" x="484" y="148" width="88" height="88"/>
+    <rect class="ink pill" x="580" y="148" width="136" height="40" rx="20"/>
+    <rect class="b7" x="724" y="148" width="136" height="88"/>
+    <rect class="b3 pill" x="868" y="148" width="88" height="40" rx="20"/>
+    <rect class="b5 pill" x="580" y="196" width="136" height="40" rx="20"/>
+    <rect class="ac" x="868" y="196" width="88" height="136"/>
+    <rect class="b5" x="484" y="244" width="88" height="88"/>
+    <rect class="b3" x="580" y="244" width="136" height="88"/>
+    <rect class="ink pill" x="724" y="244" width="136" height="40" rx="20"/>
+    <rect class="b7 pill" x="724" y="292" width="136" height="40" rx="20"/>
+  </g>
+  <text class="name" x="32" y="186"><tspan x="32" dy="0">MIGAL</tspan><tspan x="32" dy="82">SmartOps</tspan></text>
+  <text class="tag" x="32" y="304">Sistema de diseño de operación e inventario</text>
+</svg>
+</body>
+</html>

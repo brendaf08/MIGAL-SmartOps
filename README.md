@@ -31,6 +31,8 @@ La documentación de `docs/` contiene las definiciones técnicas acordadas del s
 | [Diagramas de actividades](docs/diagramas-actividades.md) | Flujos de ejecución correspondientes a cada caso de uso. |
 | [Diagramas de paquetes](docs/diagramas-paquetes.md) | Organización del sistema en componentes, capas y módulos funcionales. |
 | [Matriz de trazabilidad](docs/matriz-trazabilidad.md) | Correspondencias entre requerimientos y artefactos. |
+| [Decisiones de arquitectura](docs/adr/README.md) | Registros de decisiones técnicas, sus alternativas y consecuencias. |
+| [Sistema de diseño](docs/diseno/README.md) | Fundamentos visuales, tokens, componentes, pantallas de referencia y prototipo del frontend. |
 
 Todas las imágenes de los diagramas se almacenan en `docs/imagenes/`. Los documentos las muestran mediante enlaces relativos.
 
@@ -59,6 +61,8 @@ MIGAL-SmartOps/
 │   ├── diagramas-actividades.md
 │   ├── diagramas-paquetes.md
 │   ├── matriz-trazabilidad.md
+│   ├── adr/
+│   ├── diseno/
 │   ├── fuentes/
 │   │   ├── paquetes/
 │   │   └── secuencia/
@@ -80,6 +84,8 @@ MIGAL-SmartOps/
 | Carpeta o archivo | Finalidad |
 | --- | --- |
 | `docs/` | Documentación técnica del sistema. |
+| `docs/adr/` | Registros de decisiones de arquitectura y su plantilla. |
+| `docs/diseno/` | Sistema de diseño: documento de fundamentos, tokens, componentes y prototipo de referencia. |
 | `docs/fuentes/` | Fuentes editables de los diagramas mantenidos en el repositorio. |
 | `docs/fuentes/paquetes/` | Código de los diagramas de paquetes en sintaxis de PlantUML. |
 | `docs/fuentes/secuencia/` | Código de los diagramas de secuencia en sintaxis de SequenceDiagram.org. |
@@ -87,7 +93,7 @@ MIGAL-SmartOps/
 | `scripts/` | Herramientas de automatización del repositorio. |
 | `requirements.txt` | Dependencias de Python para las herramientas generales del repositorio. |
 | `backend/` | Backend principal. |
-| `frontend/` | Aplicación web en React + TypeScript. Instalación, reglas de trabajo y prompts en [frontend/README.md](frontend/README.md). |
+| `frontend/` | Aplicación web en React + TypeScript. Instalación, scripts y estructura en [frontend/README.md](frontend/README.md). |
 | `servicio-python/` | Servicio especializado de OCR e IA. |
 | `database/` | Archivos y migraciones de la base de datos. |
 | `entregas/` | Informes y archivos correspondientes a cada hito. |

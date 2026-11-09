@@ -1,0 +1,33 @@
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.search {
+  width: 320px;
+  max-width: 100%;
+}
+
+.category {
+  color: var(--ink-muted);
+}
+
+.reparto {
+  min-width: 120px;
+}
+
+.pager {
+  margin-top: var(--space-3);
+}
+
+/* Teléfono: búsqueda y pestañas a ancho completo. */
+@mixin smaller-than $mantine-breakpoint-sm {
+  .toolbar > *,
+  .search {
+    width: 100%;
+  }
+}

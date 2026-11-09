@@ -1,0 +1,121 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: 560px;
+  margin-inline: auto;
+  padding: var(--space-6);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+}
+
+/* El sello se estampa una sola vez; con movimiento reducido aparece fijo. */
+.sello {
+  align-self: flex-start;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .sello {
+    animation: estampar 200ms ease-out both;
+  }
+}
+
+@keyframes estampar {
+  from {
+    opacity: 0;
+    transform: scale(1.04);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.title {
+  margin: 0;
+}
+
+/* Resumen como un libro contable: doble línea bajo el encabezado y cifras tabulares. */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+
+  & caption {
+    padding-bottom: var(--space-2);
+    color: var(--ink-muted);
+    font-size: 12px;
+    text-align: start;
+  }
+
+  & th,
+  & td {
+    padding: var(--space-2) var(--space-2);
+    border-bottom: 1px solid var(--line);
+    text-align: start;
+    vertical-align: top;
+  }
+
+  & thead th {
+    border-bottom: 3px double var(--line-strong);
+    color: var(--ink-muted);
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  & tbody th {
+    font-weight: 500;
+
+    & span,
+    & small {
+      display: block;
+    }
+  }
+
+  & small {
+    color: var(--ink-muted);
+    font-size: 12px;
+    font-weight: 400;
+  }
+}
+
+.numeric {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.table td.after {
+  font-weight: 700;
+}
+
+.note {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 14px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  justify-content: flex-end;
+}
+
+/* Teléfono: relleno de 16 px y acciones apiladas a ancho completo. */
+@mixin smaller-than $mantine-breakpoint-sm {
+  .root {
+    padding: var(--space-4);
+  }
+
+  .actions {
+    flex-direction: column-reverse;
+
+    & > * {
+      width: 100%;
+    }
+  }
+}

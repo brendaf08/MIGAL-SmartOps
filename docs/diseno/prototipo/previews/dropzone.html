@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="es" data-theme="light">
+<head>
+<link rel="stylesheet" href="../tokens.css"><link rel="stylesheet" href="../bundle.css">
+<script src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script src="../bundle.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dropzone - vista previa</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400..700&family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Barlow+Semi+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  body { padding: 16px; }
+  .pv-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  .pv-col { display: flex; flex-direction: column; gap: 12px; }
+  .pv-grid { display: grid; gap: 16px; }
+  .pv-cap { font-size: 12px; line-height: 16px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-muted); margin: 0 0 8px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+var M = window.Migal, h = React.createElement;
+function Cap(t) { return h('p', { className: 'pv-cap' }, t); }
+function Demo() {
+  var files = React.useState([{ name: 'nota-pedido-cliente.jpg', size: 845000, status: 'done', processed: true }, { name: 'guia-proveedor.pdf', size: 2200000, status: 'uploading', progress: 62 }]);
+  return h('div', { className: 'pv-col' },
+    h('div', { className: 'pv-grid', style: { gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))' } },
+      h('div', null, Cap('Reposo (interactivo)'), h(M.Dropzone, { onDrop: function (f) { files[1](f.map(function (x) { return { name: x.name, size: x.size, status: 'done' }; }).concat(files[0])); } })),
+      h('div', null, Cap('Archivo sobre la zona'), h(M.Dropzone, { state: 'dragover' })),
+      h('div', null, Cap('Procesando'), h(M.Dropzone, { state: 'processing', busyTitle: 'Procesando documento' })),
+      h('div', null, Cap('Error'), h(M.Dropzone, { error: 'Formato no admitido. Cargar archivos JPG, PNG o PDF.' })),
+      h('div', null, Cap('Con cámara (teléfono y tablet)'), h(M.Dropzone, { camera: true, title: 'Arrastrar o fotografiar un documento' }))),
+    Cap('Archivos cargados'),
+    h('ul', { className: 'mg-files' }, files[0].map(function (f, i) { return h(M.FileItem, Object.assign({ key: f.name + i, onRemove: function () { files[1](files[0].filter(function (_, j) { return j !== i; })); } }, f)); }).concat(h(M.FileItem, { key: 'e', name: 'foto-borrosa.png', size: 4100000, status: 'error', error: 'No se detectó texto legible' }))));
+}
+ReactDOM.createRoot(document.getElementById('root')).render(h(Demo));
+</script>
+</body>
+</html>

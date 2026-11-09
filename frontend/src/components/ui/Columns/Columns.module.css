@@ -1,0 +1,29 @@
+.root {
+  display: grid;
+  gap: var(--gap);
+  align-items: start;
+  grid-template-columns: minmax(0, 1fr);
+
+  /* Tablet: dos columnas iguales; los paneles laterales siguen apilados. */
+  @mixin larger-than $mantine-breakpoint-sm {
+    &[data-layout='two'],
+    &[data-layout='three'] {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  /* Escritorio: disposición completa. */
+  @mixin larger-than $mantine-breakpoint-md {
+    &[data-layout='three'] {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    &[data-layout='main-aside'] {
+      grid-template-columns: minmax(0, 1fr) 300px;
+    }
+
+    &[data-layout='aside-main'] {
+      grid-template-columns: 300px minmax(0, 1fr);
+    }
+  }
+}

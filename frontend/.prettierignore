@@ -1,0 +1,7 @@
+dist
+coverage
+storybook-static
+package-lock.json
+*.md
+src/theme/tokens.css
+src/theme/theme.ts

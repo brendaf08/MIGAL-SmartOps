@@ -1,0 +1,169 @@
+.skip {
+  position: absolute;
+  z-index: var(--z-modal);
+  padding: var(--space-2) var(--space-4);
+  background: var(--surface-raised);
+  transform: translateY(-120%);
+
+  &:focus {
+    transform: none;
+  }
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-inline: max(var(--space-3), env(safe-area-inset-left))
+    max(var(--space-3), env(safe-area-inset-right));
+  background: var(--surface);
+}
+
+.burger {
+  min-width: var(--touch-min);
+  min-height: var(--touch-min);
+}
+
+.appName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* El espacio se reparte a la derecha de la ruta; en teléfono lo ocupa el nombre del sistema. */
+.slot {
+  flex: 1;
+  min-width: 0;
+
+  @mixin smaller-than $mantine-breakpoint-sm {
+    display: none;
+  }
+}
+
+.userText {
+  @mixin smaller-than $mantine-breakpoint-sm {
+    display: none;
+  }
+}
+
+/* Barra lateral y panel del teléfono: azul profundo de la marca (gris pizarra en el tema oscuro). */
+.navbar,
+.drawer {
+  background: var(--nav-bg);
+  color: var(--nav-ink);
+}
+
+.drawer {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.drawerBody {
+  padding: 0;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+}
+
+.subtitle {
+  color: var(--nav-ink-muted);
+  font-size: 12px;
+}
+
+.group {
+  padding: var(--space-2) var(--space-3);
+}
+
+.groupLabel {
+  padding: var(--space-2) var(--space-3);
+  color: var(--nav-ink-muted);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.link {
+  position: relative;
+  min-height: var(--touch-min);
+  border-radius: var(--radius-md);
+  color: var(--nav-ink-muted);
+
+  &:hover,
+  &[data-active] {
+    background: var(--nav-active);
+    color: var(--nav-ink);
+  }
+
+  /* Marcador cuadrado verde con contorno azul, como la etiqueta de un estante. */
+  &[data-active]::before {
+    content: '';
+    position: absolute;
+    left: 4px;
+    width: 8px;
+    height: 8px;
+    border: 1px solid var(--brand-7);
+    border-radius: var(--radius-xs);
+    background: var(--accent);
+  }
+}
+
+.linkSection {
+  margin-inline-end: var(--space-3);
+}
+
+/* Tablet: ítems de 48 px (--control-lg) para el toque; 56 px con el modo almacén. */
+@mixin smaller-than $mantine-breakpoint-md {
+  .link {
+    min-height: var(--control-lg);
+  }
+
+  .navbar[data-warehouse] .link {
+    min-height: var(--control-xl);
+  }
+}
+
+/* Tablet: barra de íconos; cada ítem conserva su `title`. Con el modo almacén las etiquetas se muestran. */
+@mixin smaller-than $mantine-breakpoint-md {
+  .navbar:not([data-warehouse]) {
+    & .groupLabel,
+    & .linkLabel,
+    & .brand > div {
+      display: none;
+    }
+
+    & .linkSection {
+      margin-inline: auto;
+    }
+  }
+}
+
+/*
+ * El relleno se expresa por lado para conservar los desplazamientos que Mantine calcula para la barra lateral y la
+ * cabecera; un `padding` abreviado los anularía y dejaría el contenido bajo ambas.
+ */
+.main {
+  --main-pad-x: var(--space-4);
+  --main-pad-y: var(--space-4);
+
+  padding-inline-start: calc(
+    var(--app-shell-navbar-offset, 0rem) + max(var(--main-pad-x), env(safe-area-inset-left))
+  );
+  padding-inline-end: max(var(--main-pad-x), env(safe-area-inset-right));
+  padding-top: calc(var(--app-shell-header-offset, 0rem) + var(--main-pad-y));
+  padding-bottom: calc(var(--space-6) + env(safe-area-inset-bottom));
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    --main-pad-x: var(--space-6);
+    --main-pad-y: var(--space-5);
+  }
+}
+
+.content {
+  max-width: var(--content-max);
+  margin-inline: auto;
+}

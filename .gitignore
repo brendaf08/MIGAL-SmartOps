@@ -22,6 +22,7 @@ Thumbs.db
 # Frontend
 node_modules/
 dist/
+storybook-static/
 coverage/
 
 # Python
@@ -39,3 +40,8 @@ __pycache__/
 # Datos y archivos operativos locales
 database/backups/
 uploads/
+# Herramientas de asistencia con IA (no forman parte del producto)
+.claude/
+.interface-design/
+.impeccable/
+frontend/CLAUDE.md

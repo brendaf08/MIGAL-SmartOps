@@ -1,0 +1,171 @@
+.wrap {
+  overflow-x: auto; /* tablet: desplazamiento horizontal dentro del contenedor */
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.caption {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.table th,
+.table td {
+  white-space: nowrap;
+}
+
+/* Totales como un libro contable: doble línea sobre el pie y la última fila (el total) en negrita. */
+.table tfoot {
+  & tr:first-child td {
+    border-top: 3px double var(--line-strong);
+  }
+
+  & tr:last-child td {
+    font-weight: 700;
+  }
+}
+
+.numeric {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.mono {
+  font-family: var(--mantine-font-family-monospace);
+}
+
+.sortButton {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font: inherit;
+  color: inherit;
+}
+
+.clickable {
+  cursor: pointer;
+
+  &[data-selected] {
+    background: var(--brand-soft);
+  }
+}
+
+/* Fila cuyo dato cambió: de brand-soft a transparente en 1.2 s. */
+.changed {
+  animation: highlight 1.2s ease-out;
+}
+
+@keyframes highlight {
+  from {
+    background: var(--brand-soft);
+  }
+
+  to {
+    background: transparent;
+  }
+}
+
+/* Columna exclusiva de las fichas del teléfono. */
+.phoneOnly {
+  display: none;
+}
+
+/* Teléfono: una ficha por fila; el encabezado queda solo para lectores de pantalla. */
+@mixin smaller-than $mantine-breakpoint-sm {
+  .stack {
+    overflow: visible;
+    border: 0;
+    background: transparent;
+
+    & .table,
+    & tbody,
+    & tfoot {
+      display: block;
+    }
+
+    & thead {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+    }
+
+    & tr {
+      display: flex;
+      flex-direction: column;
+      margin-bottom: var(--space-3);
+      padding: var(--space-3) var(--space-4);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      background: var(--surface);
+    }
+
+    & tfoot tr {
+      flex-direction: row;
+      justify-content: space-between;
+      margin-bottom: var(--space-2);
+      background: var(--surface-sunken);
+    }
+
+    & td {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: var(--space-3);
+      padding: var(--space-1) 0;
+      border: 0;
+      text-align: right;
+      white-space: normal;
+    }
+
+    & td::before {
+      content: attr(data-label);
+      flex: none;
+      color: var(--ink-muted);
+      font-weight: 600;
+      text-align: left;
+    }
+
+    & tfoot td::before {
+      display: none;
+    }
+
+    & td:empty,
+    & .hidePhone {
+      display: none;
+    }
+
+    & .phoneOnly {
+      display: flex;
+    }
+
+    & .primary {
+      order: -1;
+      display: block;
+      margin-bottom: var(--space-1);
+      padding-bottom: var(--space-2);
+      border-bottom: 1px solid var(--line);
+      font-weight: 600;
+      text-align: left;
+    }
+
+    & .block {
+      display: block;
+      text-align: left;
+    }
+
+    & .primary::before {
+      display: none;
+    }
+
+    & .block::before {
+      display: block;
+      margin-bottom: var(--space-1);
+    }
+  }
+}

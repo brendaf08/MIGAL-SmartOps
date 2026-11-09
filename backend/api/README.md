@@ -11,6 +11,7 @@ Este directorio contiene el contrato OpenAPI 3.1 de la API REST de MIGAL SmartOp
 | `componentes/parametros.yaml` | Parámetros de paginación, ordenamiento, rango de fechas e `Idempotency-Key`. |
 | `componentes/esquemas-comunes.yaml` | Sobre de paginación, importes, cantidades, identificadores y fechas. |
 | `modulos/*.yaml` | Un documento OpenAPI independiente por módulo funcional. |
+| `modulos/ventas.yaml` | Módulo de ventas (CU-10): listado, registro desde cotización, venta directa, cobertura y cancelación. |
 | `.redocly.yaml` | Configuración del lint y excepciones documentadas. |
 | `openapi.yaml` | Documento unico generado mediante `join`. No se edita a mano. |
 

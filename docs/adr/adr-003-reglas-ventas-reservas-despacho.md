@@ -24,6 +24,7 @@ El negocio es una ferretería de materiales de construcción con tienda principa
 5. **Origen único de la venta.** Toda venta se origina en una cotización aceptada por el cliente y validada por MIGAL. El flujo de venta directa de la interfaz registra la cotización, su aceptación y su validación como un solo paso transaccional, sin exigir digitación duplicada.
 6. **Cancelación.** Una venta puede cancelarse antes del despacho con motivo obligatorio. La cancelación libera las reservas activas y no genera movimientos de Kardex.
 7. **Estados de la venta.** Pendiente de abastecimiento, pendiente de despacho, lista para despacho, despachada y cancelada, como define el modelo de datos.
+8. **Ajustes manuales de inventario.** Las mermas, correcciones y traslados registrados mediante el movimiento manual de Kardex (CU-05) no provienen de una venta. Requieren motivo obligatorio y usuario responsable, y solo pueden reducir el stock libre, es decir, el stock físico que no se encuentra reservado. La regla 1 se aplica a las salidas de origen comercial: ninguna venta genera salidas fuera del despacho.
 
 ## Justificación
 

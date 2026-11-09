@@ -446,7 +446,7 @@ paths:
       tags: [Ventas]
       security:
         - bearerAuth: []
-      x-roles: [Almacenero, Vendedor]
+      x-roles: [almacenero, vendedor]
       x-herramienta-agente: true
       parameters:
         - $ref: ../componentes/parametros.yaml#/page
@@ -489,7 +489,7 @@ paths:
       tags: [Ventas]
       security:
         - bearerAuth: []
-      x-roles: [Vendedor]
+      x-roles: [vendedor]
       parameters:
         - $ref: ../componentes/parametros.yaml#/IdempotencyKey
       requestBody:
@@ -542,7 +542,7 @@ paths:
       tags: [Ventas]
       security:
         - bearerAuth: []
-      x-roles: [Vendedor, Administrador]
+      x-roles: [vendedor, administrador]
       parameters:
         - $ref: ../componentes/parametros.yaml#/IdempotencyKey
       requestBody:
@@ -590,7 +590,7 @@ paths:
       tags: [Ventas]
       security:
         - bearerAuth: []
-      x-roles: [Almacenero, Vendedor]
+      x-roles: [almacenero, vendedor]
       x-herramienta-agente: true
       responses:
         '200':
@@ -625,7 +625,7 @@ paths:
       tags: [Ventas]
       security:
         - bearerAuth: []
-      x-roles: [Almacenero, Vendedor]
+      x-roles: [almacenero, vendedor]
       parameters:
         - $ref: ../componentes/parametros.yaml#/IdempotencyKey
       responses:
@@ -669,7 +669,7 @@ paths:
       tags: [Ventas]
       security:
         - bearerAuth: []
-      x-roles: [Vendedor]
+      x-roles: [vendedor]
       parameters:
         - $ref: ../componentes/parametros.yaml#/IdempotencyKey
       requestBody:

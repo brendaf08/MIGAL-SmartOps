@@ -62,7 +62,7 @@ paths:
         Un token ausente o no válido responde NO_AUTENTICADO (401).
       security:
         - bearerAuth: []
-      x-roles: [Administrador, Vendedor, Almacenero, Reponedor]
+      x-roles: [administrador, vendedor, almacenero, reponedor]
       responses:
         '200':
           description: Usuario y rol de la sesión actual.
@@ -87,7 +87,7 @@ paths:
         Orden predeterminado: apellidos:asc,nombres:asc. Un campo fuera de esta lista responde VALIDACION_FALLIDA (422).
       security:
         - bearerAuth: []
-      x-roles: [Administrador]
+      x-roles: [administrador]
       parameters:
         - $ref: ../componentes/parametros.yaml#/page
         - $ref: ../componentes/parametros.yaml#/pageSize
@@ -121,7 +121,7 @@ paths:
         La clave temporal se recibe solo en la solicitud y nunca se devuelve. El usuario creado queda activo.
       security:
         - bearerAuth: []
-      x-roles: [Administrador]
+      x-roles: [administrador]
       requestBody:
         required: true
         content:
@@ -159,7 +159,7 @@ paths:
         responde RECURSO_NO_ENCONTRADO (404). El cambio de rol no altera el historial de operaciones del usuario.
       security:
         - bearerAuth: []
-      x-roles: [Administrador]
+      x-roles: [administrador]
       parameters:
         - $ref: '#/components/parameters/IdUsuario'
       requestBody:
@@ -199,7 +199,7 @@ paths:
         se conserva. Si el identificador no existe, responde RECURSO_NO_ENCONTRADO (404).
       security:
         - bearerAuth: []
-      x-roles: [Administrador]
+      x-roles: [administrador]
       parameters:
         - $ref: '#/components/parameters/IdUsuario'
       requestBody:

@@ -3,7 +3,7 @@
 #
 # Extensión x-roles: se declara en el nivel de cada operación con la lista de
 # valores de RolUsuario que pueden invocarla, por ejemplo:
-#   x-roles: [Almacenero, Administrador]
+#   x-roles: [almacenero, administrador]
 # El backend aplica la misma lista mediante autorización centralizada. La
 # operación POST /sesiones es pública y no declara x-roles. Las operaciones abiertas a
 # todos los usuarios autenticados declaran los cuatro roles. Las operaciones exclusivas del
@@ -29,4 +29,4 @@ serviceAuth:
 RolUsuario:
   type: string
   description: Rol del usuario autenticado. La lista es cerrada en la versión 1.
-  enum: [Administrador, Vendedor, Almacenero, Reponedor]
+  enum: [administrador, vendedor, almacenero, reponedor]

@@ -1,11 +1,11 @@
 # Entorno de desarrollo de la base de datos del proyecto MIGAL SmartOps.
-# Versión de PostgreSQL fijada según el ADR-005. No se utilizan etiquetas flotantes.
+# Versión de PostgreSQL fijada según el ADR-005 y alineada con la versión de Supabase (ADR-007). No se utilizan etiquetas flotantes.
 # Las variables se leen del archivo .env de la raíz (plantilla: .env.example).
 # Ejecución: docker compose up -d --wait
 
 services:
   postgres:
-    image: postgres:18.6-alpine
+    image: postgres:17.11-alpine
     container_name: migal-postgres
     restart: unless-stopped
     environment:
@@ -17,8 +17,7 @@ services:
       # Publicación restringida a la interfaz de bucle local para evitar el acceso desde la red.
       - "127.0.0.1:${POSTGRES_PUERTO:-5432}:5432"
     volumes:
-      # A partir de PostgreSQL 18, la imagen almacena los datos en un subdirectorio de /var/lib/postgresql.
-      - migal-postgres-datos:/var/lib/postgresql
+      - migal-postgres-datos:/var/lib/postgresql/data
     healthcheck:
       # Las variables se expanden dentro del contenedor; el doble signo de dólar evita la interpolación de Compose.
       test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]

@@ -2,16 +2,427 @@ openapi: 3.1.0
 info:
   title: MIGAL SmartOps - Autenticación y usuarios
   version: 1.0.0
-  description: Documento base del módulo de autenticación y usuarios (CU-01, CU-02). Sus operaciones se definen en el pull request del módulo.
+  description: >-
+    Contrato del módulo de autenticación y usuarios de la API REST de MIGAL SmartOps.
+    Cubre el inicio de sesión (CU-01) y la gestión de usuarios, roles y estado de acceso (CU-02).
+    Se define según el ADR-006, con los ajustes del ADR-008.
 servers:
   - url: /api/v1
 security:
   - bearerAuth: []
 tags:
-  - name: Autenticación y usuarios
-    description: Sesiones, usuarios y roles.
+  - name: Sesiones
+    description: Inicio de sesión y consulta de la sesión activa (CU-01).
+  - name: Usuarios
+    description: Administración de usuarios, roles y estado de acceso (CU-02).
+paths:
+  /sesiones:
+    post:
+      tags:
+        - Sesiones
+      operationId: iniciarSesion
+      summary: Iniciar sesión
+      description: >-
+        Valida las credenciales personales y devuelve un JWT de acceso junto con el usuario autenticado y su rol.
+        Es la única operación pública del módulo. Las credenciales incorrectas responden NO_AUTENTICADO (401)
+        con un detalle que no indica cuál de los dos datos es erróneo. Una cuenta desactivada responde
+        NO_AUTENTICADO (401) solo cuando las credenciales son correctas, con un detalle que indica contactar
+        al Administrador. La duración del token y su renovación quedan pendientes (ADR-006).
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CredencialesSesion'
+      responses:
+        '200':
+          description: Sesión iniciada. Devuelve el token de acceso y el usuario autenticado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SesionIniciada'
+        '400':
+          $ref: ../componentes/errores.yaml#/Error400
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '422':
+          $ref: ../componentes/errores.yaml#/Error422
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500
+  /sesiones/actual:
+    get:
+      tags:
+        - Sesiones
+      operationId: obtenerSesionActual
+      summary: Obtener la sesión actual
+      description: >-
+        Devuelve el usuario y el rol asociados al token de acceso de la cabecera Authorization.
+        El frontend lo utiliza para restringir las funciones disponibles tras el inicio de sesión.
+        Un token ausente o no válido responde NO_AUTENTICADO (401).
+      security:
+        - bearerAuth: []
+      x-roles: [Administrador, Vendedor, Almacenero, Reponedor]
+      responses:
+        '200':
+          description: Usuario y rol de la sesión actual.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsuarioRegistrado'
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500
+  /usuarios:
+    get:
+      tags:
+        - Usuarios
+      operationId: listarUsuarios
+      summary: Listar usuarios
+      description: >-
+        Devuelve una página de usuarios registrados, con o sin cuenta activa (CU-02). Admite búsqueda libre
+        por nombres, apellidos o nombre de usuario (q), y filtros por rol y por estado de acceso.
+        Campos ordenables en el parámetro orden: apellidos, nombres, username, rol y fechaRegistro.
+        Orden predeterminado: apellidos:asc,nombres:asc. Un campo fuera de esta lista responde VALIDACION_FALLIDA (422).
+      security:
+        - bearerAuth: []
+      x-roles: [Administrador]
+      parameters:
+        - $ref: ../componentes/parametros.yaml#/page
+        - $ref: ../componentes/parametros.yaml#/pageSize
+        - $ref: ../componentes/parametros.yaml#/orden
+        - $ref: ../componentes/parametros.yaml#/q
+        - $ref: '#/components/parameters/FiltroRol'
+        - $ref: '#/components/parameters/FiltroEstadoActivo'
+      responses:
+        '200':
+          description: Página de usuarios.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsuarioPagina'
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
+        '422':
+          $ref: ../componentes/errores.yaml#/Error422
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500
+    post:
+      tags:
+        - Usuarios
+      operationId: registrarUsuario
+      summary: Registrar usuario
+      description: >-
+        Registra un usuario con una clave temporal y un rol inicial (CU-02, flujo alternativo 1).
+        Si el nombre de usuario ya existe, responde USUARIO_DUPLICADO (409) y no crea el registro.
+        La clave temporal se recibe solo en la solicitud y nunca se devuelve. El usuario creado queda activo.
+      security:
+        - bearerAuth: []
+      x-roles: [Administrador]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UsuarioNuevo'
+      responses:
+        '201':
+          description: Usuario registrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsuarioRegistrado'
+        '400':
+          $ref: ../componentes/errores.yaml#/Error400
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
+        '409':
+          $ref: ../componentes/errores.yaml#/Error409
+        '422':
+          $ref: ../componentes/errores.yaml#/Error422
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500
+  /usuarios/{id}:
+    put:
+      tags:
+        - Usuarios
+      operationId: actualizarUsuario
+      summary: Actualizar usuario
+      description: >-
+        Actualiza los nombres, los apellidos y el rol de un usuario (CU-02, flujo alternativo 2).
+        El nombre de usuario y la clave no se modifican en esta operación. Si el identificador no existe,
+        responde RECURSO_NO_ENCONTRADO (404). El cambio de rol no altera el historial de operaciones del usuario.
+      security:
+        - bearerAuth: []
+      x-roles: [Administrador]
+      parameters:
+        - $ref: '#/components/parameters/IdUsuario'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UsuarioActualizacion'
+      responses:
+        '200':
+          description: Usuario actualizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsuarioRegistrado'
+        '400':
+          $ref: ../componentes/errores.yaml#/Error400
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
+        '404':
+          $ref: ../componentes/errores.yaml#/Error404
+        '422':
+          $ref: ../componentes/errores.yaml#/Error422
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500
+  /usuarios/{id}/estado:
+    put:
+      tags:
+        - Usuarios
+      operationId: cambiarEstadoUsuario
+      summary: Cambiar estado de acceso
+      description: >-
+        Activa o desactiva el acceso de un usuario (CU-02, flujo alternativo 3, revocación de acceso).
+        La desactivación es lógica: el usuario deja de poder iniciar sesión y su registro, con su historial,
+        se conserva. Si el identificador no existe, responde RECURSO_NO_ENCONTRADO (404).
+      security:
+        - bearerAuth: []
+      x-roles: [Administrador]
+      parameters:
+        - $ref: '#/components/parameters/IdUsuario'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EstadoAccesoUsuario'
+      responses:
+        '200':
+          description: Estado de acceso actualizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsuarioRegistrado'
+        '400':
+          $ref: ../componentes/errores.yaml#/Error400
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
+        '404':
+          $ref: ../componentes/errores.yaml#/Error404
+        '422':
+          $ref: ../componentes/errores.yaml#/Error422
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500
 components:
   securitySchemes:
     bearerAuth:
       $ref: ../componentes/seguridad.yaml#/bearerAuth
-paths: {}
+  parameters:
+    IdUsuario:
+      name: id
+      in: path
+      required: true
+      description: Identificador técnico del usuario.
+      schema:
+        $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+    FiltroRol:
+      name: rol
+      in: query
+      required: false
+      description: Filtra los usuarios por rol.
+      schema:
+        $ref: '#/components/schemas/RolAcceso'
+    FiltroEstadoActivo:
+      name: estadoActivo
+      in: query
+      required: false
+      description: Filtra los usuarios por estado de acceso. El valor true incluye solo cuentas activas.
+      schema:
+        type: boolean
+  schemas:
+    RolAcceso:
+      type: string
+      description: >-
+        Nivel de acceso del usuario. Los valores son los de la columna rol de la tabla usuario (ADR-008),
+        en minúsculas y sin acentos. Corresponden a los roles Administrador, Vendedor, Almacenero y Reponedor.
+      enum: [administrador, vendedor, almacenero, reponedor]
+      example: almacenero
+    UsuarioRegistrado:
+      type: object
+      description: >-
+        Usuario registrado en el sistema. Nunca incluye la clave ni su representación hash.
+        Corresponde a la entidad Usuario del diccionario de datos.
+      required: [id, nombres, apellidos, username, rol, estadoActivo, fechaRegistro]
+      properties:
+        id:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        nombres:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Nombres del usuario.
+        apellidos:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Apellidos del usuario.
+        username:
+          type: string
+          minLength: 1
+          maxLength: 50
+          description: Nombre de usuario único, utilizado para el inicio de sesión.
+        rol:
+          $ref: '#/components/schemas/RolAcceso'
+        estadoActivo:
+          type: boolean
+          description: Indica si el usuario puede acceder al sistema.
+        fechaRegistro:
+          $ref: ../componentes/esquemas-comunes.yaml#/FechaHora
+        fechaActualizacion:
+          description: Fecha y hora de la última modificación administrativa. Nulo si nunca se modificó.
+          anyOf:
+            - $ref: ../componentes/esquemas-comunes.yaml#/FechaHora
+            - type: 'null'
+      example:
+        id: '42'
+        nombres: Rosa
+        apellidos: Quispe Huamán
+        username: rquispe
+        rol: almacenero
+        estadoActivo: true
+        fechaRegistro: '2026-03-02T09:15:00-05:00'
+        fechaActualizacion: null
+    UsuarioPagina:
+      description: Página de usuarios con el sobre de paginación común.
+      allOf:
+        - $ref: ../componentes/esquemas-comunes.yaml#/Pagina
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/UsuarioRegistrado'
+    UsuarioNuevo:
+      type: object
+      description: >-
+        Datos para registrar un usuario (CU-02). La clave temporal se envía solo en la solicitud
+        y el sistema almacena su representación hash.
+      required: [nombres, apellidos, username, claveTemporal, rol]
+      additionalProperties: false
+      properties:
+        nombres:
+          type: string
+          minLength: 1
+          maxLength: 100
+        apellidos:
+          type: string
+          minLength: 1
+          maxLength: 100
+        username:
+          type: string
+          minLength: 4
+          maxLength: 20
+          pattern: '^[a-z0-9._-]+$'
+          description: Nombre de usuario único, en minúsculas, sin espacios. Admite letras, números y los signos . _ -.
+        claveTemporal:
+          type: string
+          format: password
+          writeOnly: true
+          minLength: 8
+          pattern: '^(?=.*[A-Za-z])(?=.*[0-9]).{8,}$'
+          description: Clave temporal de al menos 8 caracteres, con al menos una letra y un número.
+        rol:
+          $ref: '#/components/schemas/RolAcceso'
+      example:
+        nombres: Rosa
+        apellidos: Quispe Huamán
+        username: rquispe
+        claveTemporal: Temporal2026
+        rol: almacenero
+    UsuarioActualizacion:
+      type: object
+      description: Datos modificables de un usuario (CU-02). No incluye el nombre de usuario ni la clave.
+      required: [nombres, apellidos, rol]
+      additionalProperties: false
+      properties:
+        nombres:
+          type: string
+          minLength: 1
+          maxLength: 100
+        apellidos:
+          type: string
+          minLength: 1
+          maxLength: 100
+        rol:
+          $ref: '#/components/schemas/RolAcceso'
+      example:
+        nombres: Rosa
+        apellidos: Quispe Huamán
+        rol: reponedor
+    EstadoAccesoUsuario:
+      type: object
+      description: Estado de acceso de un usuario. El valor false revoca el acceso de forma lógica.
+      required: [estadoActivo]
+      additionalProperties: false
+      properties:
+        estadoActivo:
+          type: boolean
+      example:
+        estadoActivo: false
+    CredencialesSesion:
+      type: object
+      description: Credenciales personales del usuario para iniciar sesión (CU-01).
+      required: [username, clave]
+      additionalProperties: false
+      properties:
+        username:
+          type: string
+          minLength: 1
+          maxLength: 50
+          description: Nombre de usuario.
+        clave:
+          type: string
+          format: password
+          writeOnly: true
+          minLength: 1
+          maxLength: 255
+          description: Clave personal del usuario.
+      example:
+        username: rquispe
+        clave: Clave-de-ejemplo1
+    SesionIniciada:
+      type: object
+      description: Resultado de un inicio de sesión correcto. El token se envía en la cabecera Authorization de las siguientes solicitudes.
+      required: [token, usuario]
+      properties:
+        token:
+          type: string
+          description: JWT de acceso. Contiene el identificador del usuario y su rol.
+        usuario:
+          $ref: '#/components/schemas/UsuarioRegistrado'
+      example:
+        token: eyJhbGciOiJIUzI1NiJ9.ejemplo.firma
+        usuario:
+          id: '42'
+          nombres: Rosa
+          apellidos: Quispe Huamán
+          username: rquispe
+          rol: almacenero
+          estadoActivo: true
+          fechaRegistro: '2026-03-02T09:15:00-05:00'
+          fechaActualizacion: null

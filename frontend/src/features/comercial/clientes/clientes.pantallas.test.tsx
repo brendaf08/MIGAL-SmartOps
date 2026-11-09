@@ -38,7 +38,8 @@ async function llenarFormulario(datos: {
   correo?: string;
 }) {
   if (datos.tipo) await elegirOpcion('Tipo de documento', datos.tipo);
-  await userEvent.type(screen.getByRole('textbox', { name: /^Documento/ }), datos.documento);
+  // El diálogo se abre con una transición: se espera al campo en lugar de consultarlo de inmediato.
+  await userEvent.type(await screen.findByRole('textbox', { name: /^Documento/ }), datos.documento);
   await userEvent.type(
     screen.getByRole('textbox', { name: /^Nombre o razón social/ }),
     datos.nombre,

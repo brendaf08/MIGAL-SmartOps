@@ -1,0 +1,32 @@
+# Entorno de desarrollo de la base de datos del proyecto MIGAL SmartOps.
+# Versión de PostgreSQL fijada según el ADR-005. No se utilizan etiquetas flotantes.
+# Las variables se leen del archivo .env de la raíz (plantilla: .env.example).
+# Ejecución: docker compose up -d --wait
+
+services:
+  postgres:
+    image: postgres:18.6-alpine
+    container_name: migal-postgres
+    restart: unless-stopped
+    environment:
+      # Variables obligatorias: si no están definidas, Compose interrumpe la ejecución con el mensaje indicado.
+      POSTGRES_DB: ${POSTGRES_DB:?Definir POSTGRES_DB en el archivo .env}
+      POSTGRES_USER: ${POSTGRES_USER:?Definir POSTGRES_USER en el archivo .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Definir POSTGRES_PASSWORD en el archivo .env}
+    ports:
+      # Publicación restringida a la interfaz de bucle local para evitar el acceso desde la red.
+      - "127.0.0.1:${POSTGRES_PUERTO:-5432}:5432"
+    volumes:
+      # A partir de PostgreSQL 18, la imagen almacena los datos en un subdirectorio de /var/lib/postgresql.
+      - migal-postgres-datos:/var/lib/postgresql
+    healthcheck:
+      # Las variables se expanden dentro del contenedor; el doble signo de dólar evita la interpolación de Compose.
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  migal-postgres-datos:
+    name: migal-postgres-datos

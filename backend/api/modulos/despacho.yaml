@@ -2,16 +2,674 @@ openapi: 3.1.0
 info:
   title: MIGAL SmartOps - Despacho
   version: 1.0.0
-  description: Documento base del módulo de despacho (CU-06). Sus operaciones se definen en el pull request del módulo.
+  description: >-
+    Contrato del módulo de despacho (CU-06). Define el listado de guías de despacho, el detalle y los datos
+    imprimibles de cada guía, el listado de ventas pendientes de despacho, la emisión de la guía de una venta,
+    la confirmación de la salida física, la reimpresión y el registro de la entrega al cliente. La confirmación
+    de la salida registra los movimientos de salida del Kardex y consume las reservas en una sola transacción.
+    Las reglas de negocio proceden del ADR-003; el formato de las operaciones, del ADR-006 con los ajustes del ADR-008.
 servers:
   - url: /api/v1
 security:
   - bearerAuth: []
 tags:
   - name: Despacho
-    description: Guías de despacho, salida física y reimpresión.
+    description: Guías de despacho, ventas pendientes de despacho, salida física, reimpresión y entrega.
 components:
   securitySchemes:
     bearerAuth:
       $ref: ../componentes/seguridad.yaml#/bearerAuth
-paths: {}
+  parameters:
+    IdGuiaRuta:
+      name: id
+      in: path
+      required: true
+      description: Identificador técnico de la guía de despacho. El código de negocio no se usa como clave de ruta.
+      schema:
+        $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+    IdVentaFiltro:
+      name: idVenta
+      in: query
+      description: Filtro por venta de origen, identificada por su id técnico.
+      schema:
+        $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+    EstadoGuiaFiltro:
+      name: estado
+      in: query
+      description: >-
+        Filtro por estado de la guía. Admite varios valores separados por coma. Sin valor, se incluyen
+        todos los estados.
+      schema:
+        type: string
+        pattern: '^(preparacion|emitida|salida_confirmada|entregada)(,(preparacion|emitida|salida_confirmada|entregada))*$'
+  schemas:
+    GuiaEstado:
+      type: string
+      description: >-
+        Situación de la guía. Coincide con el valor de estado de la base de datos. La emisión crea la guía en
+        estado emitida. La versión 1 no define una operación que asigne el estado preparacion.
+      enum: [preparacion, emitida, salida_confirmada, entregada]
+    GuiaUbicacionSalida:
+      type: object
+      description: Ubicación de la que sale una parte de la línea, con la cantidad reservada desde esa ubicación.
+      required: [ubicacionId, nombre, cantidad]
+      properties:
+        ubicacionId:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        nombre:
+          type: string
+          description: Nombre visible de la tienda principal o del almacén.
+        cantidad:
+          description: Cantidad reservada desde la ubicación.
+          $ref: ../componentes/esquemas-comunes.yaml#/Cantidad
+          exclusiveMinimum: 0
+      example:
+        ubicacionId: "101"
+        nombre: Tienda principal
+        cantidad: 40
+    GuiaLinea:
+      type: object
+      description: >-
+        Línea de la guía. Su cantidad es la cantidad comprometida de la línea de venta, porque el despacho es
+        único y completo. La suma de las cantidades de sus ubicaciones de salida es igual a la cantidad de la línea.
+      required: [productoId, sku, nombre, unidad, cantidad, ubicacionesSalida]
+      properties:
+        productoId:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        sku:
+          $ref: ../componentes/esquemas-comunes.yaml#/Sku
+        nombre:
+          type: string
+        unidad:
+          type: string
+          description: Unidad de medida del producto, por ejemplo bolsa o m³.
+        cantidad:
+          description: Cantidad a despachar.
+          $ref: ../componentes/esquemas-comunes.yaml#/Cantidad
+          exclusiveMinimum: 0
+        ubicacionesSalida:
+          type: array
+          minItems: 1
+          description: Ubicaciones de salida, tomadas de las reservas activas o consumidas de la venta.
+          items:
+            $ref: '#/components/schemas/GuiaUbicacionSalida'
+    GuiaResumen:
+      type: object
+      description: Resumen de una guía de despacho, usado en los listados.
+      required: [id, codigo, idVenta, codigoVenta, cliente, estado, fechaEmision, fechaSalidaReal, usuarioResponsableId]
+      properties:
+        id:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        codigo:
+          description: Código visible de la guía, por ejemplo D-0031.
+          $ref: ../componentes/esquemas-comunes.yaml#/Codigo
+        idVenta:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        codigoVenta:
+          description: Código visible de la venta de origen, por ejemplo V-0038.
+          $ref: ../componentes/esquemas-comunes.yaml#/Codigo
+        cliente:
+          type: string
+          description: Nombre o razón social del cliente de la venta.
+        estado:
+          $ref: '#/components/schemas/GuiaEstado'
+        fechaEmision:
+          description: Marca de la emisión de la guía.
+          $ref: ../componentes/esquemas-comunes.yaml#/FechaHora
+        fechaSalidaReal:
+          description: Marca de la confirmación de la salida física. Nula mientras la salida no se confirma.
+          anyOf:
+            - $ref: ../componentes/esquemas-comunes.yaml#/FechaHora
+            - type: 'null'
+        usuarioResponsableId:
+          description: Usuario que confirma la salida física, tomado del token. Nulo mientras la salida no se confirma.
+          anyOf:
+            - $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+            - type: 'null'
+      example:
+        id: "31"
+        codigo: D-0031
+        idVenta: "38"
+        codigoVenta: V-0038
+        cliente: Constructora Los Andes S.A.C.
+        estado: emitida
+        fechaEmision: "2026-11-06T09:15:00-05:00"
+        fechaSalidaReal: null
+        usuarioResponsableId: null
+    GuiaDespacho:
+      description: Guía de despacho con sus líneas y sus ubicaciones de salida.
+      allOf:
+        - $ref: '#/components/schemas/GuiaResumen'
+        - type: object
+          required: [direccionEntrega, fechaDespacho, lineas]
+          properties:
+            direccionEntrega:
+              type: string
+              description: Dirección de entrega copiada de la venta al emitir la guía.
+            fechaDespacho:
+              description: Fecha programada para la salida. Nula cuando no se programa.
+              anyOf:
+                - $ref: ../componentes/esquemas-comunes.yaml#/Fecha
+                - type: 'null'
+            lineas:
+              type: array
+              minItems: 1
+              items:
+                $ref: '#/components/schemas/GuiaLinea'
+      example:
+        id: "31"
+        codigo: D-0031
+        idVenta: "38"
+        codigoVenta: V-0038
+        cliente: Constructora Los Andes S.A.C.
+        estado: salida_confirmada
+        fechaEmision: "2026-11-06T09:15:00-05:00"
+        fechaSalidaReal: "2026-11-07T14:32:10-05:00"
+        usuarioResponsableId: "7"
+        direccionEntrega: Av. Javier Prado Este 4200, San Borja, Lima
+        fechaDespacho: null
+        lineas:
+          - productoId: "42"
+            sku: CEM-001
+            nombre: Cemento Sol tipo I, bolsa 42.5 kg
+            unidad: bolsa
+            cantidad: 200
+            ubicacionesSalida:
+              - ubicacionId: "101"
+                nombre: Tienda principal
+                cantidad: 40
+              - ubicacionId: "102"
+                nombre: Almacén 1
+                cantidad: 160
+    GuiaPagina:
+      description: Página de guías de despacho, de la más reciente a la más antigua por fecha de emisión.
+      allOf:
+        - $ref: ../componentes/esquemas-comunes.yaml#/Pagina
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/GuiaResumen'
+    DespachoVentaPendiente:
+      type: object
+      description: >-
+        Resumen de una venta con todas sus cantidades reservadas y sin guía emitida. Contiene solo los datos
+        necesarios para generar la guía; el detalle completo de la venta corresponde al módulo comercial.
+      required: [idVenta, codigoVenta, fecha, cliente, direccionEntrega, cantidadLineas, estado]
+      properties:
+        idVenta:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        codigoVenta:
+          $ref: ../componentes/esquemas-comunes.yaml#/Codigo
+        fecha:
+          description: Fecha de la venta.
+          $ref: ../componentes/esquemas-comunes.yaml#/Fecha
+        cliente:
+          type: string
+        direccionEntrega:
+          type: string
+          description: Dirección de entrega registrada en la venta.
+        cantidadLineas:
+          type: integer
+          minimum: 1
+          description: Número de líneas de la venta.
+        estado:
+          type: string
+          const: pendiente_despacho
+      example:
+        idVenta: "39"
+        codigoVenta: V-0039
+        fecha: "2026-11-07"
+        cliente: Ferrocentro Quispe E.I.R.L.
+        direccionEntrega: Av. Argentina 1870, Callao
+        cantidadLineas: 2
+        estado: pendiente_despacho
+    DespachoVentaPendientePagina:
+      description: Página de ventas pendientes de despacho, de la más antigua a la más reciente por fecha de venta.
+      allOf:
+        - $ref: ../componentes/esquemas-comunes.yaml#/Pagina
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/DespachoVentaPendiente'
+    GuiaSolicitudEmision:
+      type: object
+      description: >-
+        Emisión de la guía de una venta. Solo se identifica la venta; las líneas, las cantidades y las ubicaciones
+        se toman de la venta y de sus reservas.
+      required: [idVenta]
+      additionalProperties: false
+      properties:
+        idVenta:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+      example:
+        idVenta: "39"
+    GuiaSolicitudReimpresion:
+      type: object
+      description: Reimpresión de la guía con su motivo obligatorio.
+      required: [motivo]
+      additionalProperties: false
+      properties:
+        motivo:
+          type: string
+          minLength: 1
+          maxLength: 500
+          pattern: '\S'
+          description: Justificación de la reimpresión. No puede estar vacía ni contener solo espacios.
+      example:
+        motivo: Documento dañado durante el traslado al chofer
+    GuiaReimpresion:
+      type: object
+      description: Reimpresión registrada con su motivo. No modifica el inventario ni el estado de la guía.
+      required: [id, idGuia, fechaHora, usuarioId, motivo]
+      properties:
+        id:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        idGuia:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        fechaHora:
+          $ref: ../componentes/esquemas-comunes.yaml#/FechaHora
+        usuarioId:
+          description: Usuario que registra la reimpresión.
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        motivo:
+          type: string
+      example:
+        id: "18"
+        idGuia: "31"
+        fechaHora: "2026-11-07T16:05:44-05:00"
+        usuarioId: "7"
+        motivo: Documento dañado durante el traslado al chofer
+    GuiaMovimientoSalida:
+      type: object
+      description: >-
+        Movimiento de salida del Kardex generado por la confirmación de la salida física. Cada movimiento se
+        vincula a la guía y es de solo lectura. Es un subconjunto del movimiento de Kardex del módulo de inventario.
+      required: [id, fechaHora, productoId, sku, tipoOperacion, cantidad, origenMovimiento, ubicacionId, usuarioId, idGuia]
+      properties:
+        id:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        fechaHora:
+          $ref: ../componentes/esquemas-comunes.yaml#/FechaHora
+        productoId:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        sku:
+          $ref: ../componentes/esquemas-comunes.yaml#/Sku
+        tipoOperacion:
+          type: string
+          const: salida
+        cantidad:
+          description: Cantidad despachada desde la ubicación.
+          $ref: ../componentes/esquemas-comunes.yaml#/Cantidad
+          exclusiveMinimum: 0
+        origenMovimiento:
+          type: string
+          const: despacho
+        ubicacionId:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        usuarioId:
+          description: Usuario responsable de la confirmación de la salida.
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        idGuia:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+      example:
+        id: "1212"
+        fechaHora: "2026-11-07T14:32:10-05:00"
+        productoId: "42"
+        sku: CEM-001
+        tipoOperacion: salida
+        cantidad: 40
+        origenMovimiento: despacho
+        ubicacionId: "101"
+        usuarioId: "7"
+        idGuia: "31"
+    GuiaCambioExistencia:
+      type: object
+      description: Existencia física de un producto en una ubicación antes y después de la salida.
+      required: [productoId, sku, ubicacionId, unidad, antes, despues]
+      properties:
+        productoId:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        sku:
+          $ref: ../componentes/esquemas-comunes.yaml#/Sku
+        ubicacionId:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        unidad:
+          type: string
+        antes:
+          description: Existencia física antes de la salida.
+          $ref: ../componentes/esquemas-comunes.yaml#/Cantidad
+          minimum: 0
+        despues:
+          description: Existencia física después de la salida.
+          $ref: ../componentes/esquemas-comunes.yaml#/Cantidad
+          minimum: 0
+      example:
+        productoId: "42"
+        sku: CEM-001
+        ubicacionId: "101"
+        unidad: bolsa
+        antes: 120
+        despues: 80
+    GuiaResultadoSalida:
+      type: object
+      description: Guía con la salida confirmada, sus movimientos de Kardex y las existencias antes y después.
+      required: [guia, movimientos, cambios]
+      properties:
+        guia:
+          $ref: '#/components/schemas/GuiaDespacho'
+        movimientos:
+          type: array
+          minItems: 1
+          description: Un movimiento de salida por cada ubicación de cada línea de la guía.
+          items:
+            $ref: '#/components/schemas/GuiaMovimientoSalida'
+        cambios:
+          type: array
+          minItems: 1
+          description: Existencia antes y después por cada producto y ubicación afectados.
+          items:
+            $ref: '#/components/schemas/GuiaCambioExistencia'
+
+paths:
+  /guias-despacho:
+    get:
+      operationId: listarGuiasDespacho
+      tags: [Despacho]
+      summary: Listar guías de despacho
+      description: >-
+        Lista las guías de despacho paginadas (CU-06). Los filtros q, estado, idVenta, desde y hasta son opcionales
+        y combinables; q busca por código de la guía o por cliente, y el rango de fechas es inclusivo y se aplica
+        sobre la fecha de emisión. El orden predeterminado es fechaEmision:desc; los campos ordenables son
+        fechaEmision y codigo. Operación de solo lectura que no genera movimientos de Kardex.
+      x-roles: [Almacenero]
+      x-herramienta-agente: true
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: ../componentes/parametros.yaml#/q
+        - $ref: '#/components/parameters/EstadoGuiaFiltro'
+        - $ref: '#/components/parameters/IdVentaFiltro'
+        - $ref: ../componentes/parametros.yaml#/desde
+        - $ref: ../componentes/parametros.yaml#/hasta
+        - $ref: ../componentes/parametros.yaml#/orden
+        - $ref: ../componentes/parametros.yaml#/page
+        - $ref: ../componentes/parametros.yaml#/pageSize
+      responses:
+        '200':
+          description: Página de guías de despacho.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GuiaPagina'
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
+        '422':
+          $ref: ../componentes/errores.yaml#/Error422
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500
+    post:
+      operationId: emitirGuiaDespacho
+      tags: [Despacho]
+      summary: Emitir la guía de despacho de una venta
+      description: >-
+        Emite la guía de despacho de una venta con todas sus cantidades reservadas (CU-06, pasos 3 a 6). La venta
+        debe estar en estado pendiente_despacho; tras la emisión pasa a lista_para_despacho. La guía se crea en estado
+        emitida, con las líneas y la dirección de entrega de la venta. La emisión no modifica el inventario, no
+        genera movimientos de Kardex y no requiere Idempotency-Key, porque la unicidad por venta impide duplicados.
+        Si la venta ya tiene guía, se rechaza con GUIA_EXISTENTE aunque su estado haya cambiado. Si la venta no
+        está en pendiente_despacho, se rechaza con VENTA_NO_DESPACHABLE. Si alguna línea no tiene reservada la
+        cantidad completa, se rechaza con RESERVA_INCOMPLETA. Devuelve 201 con la guía creada.
+      x-roles: [Almacenero]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GuiaSolicitudEmision'
+      responses:
+        '201':
+          description: Guía emitida.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GuiaDespacho'
+        '400':
+          $ref: ../componentes/errores.yaml#/Error400
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
+        '404':
+          $ref: ../componentes/errores.yaml#/Error404
+        '409':
+          $ref: ../componentes/errores.yaml#/Error409
+        '422':
+          $ref: ../componentes/errores.yaml#/Error422
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500
+
+  /guias-despacho/{id}:
+    get:
+      operationId: consultarGuiaDespacho
+      tags: [Despacho]
+      summary: Consultar una guía de despacho
+      description: >-
+        Devuelve una guía con sus líneas y, por cada línea, sus ubicaciones de salida tomadas de las reservas de la
+        venta (CU-06). Operación de solo lectura.
+      x-roles: [Almacenero]
+      x-herramienta-agente: true
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdGuiaRuta'
+      responses:
+        '200':
+          description: Guía de despacho.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GuiaDespacho'
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
+        '404':
+          $ref: ../componentes/errores.yaml#/Error404
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500
+
+  /guias-despacho/{id}/documento:
+    get:
+      operationId: obtenerDocumentoGuia
+      tags: [Despacho]
+      summary: Obtener los datos imprimibles de una guía
+      description: >-
+        Devuelve los datos del documento de la guía para su impresión (CU-06, paso 7). La consulta no registra
+        ninguna impresión ni reimpresión, y no modifica el inventario. Operación de solo lectura.
+      x-roles: [Almacenero]
+      x-herramienta-agente: true
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdGuiaRuta'
+      responses:
+        '200':
+          description: Datos imprimibles de la guía.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GuiaDespacho'
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
+        '404':
+          $ref: ../componentes/errores.yaml#/Error404
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500
+
+  /guias-despacho/{id}/salida:
+    post:
+      operationId: confirmarSalidaGuia
+      tags: [Despacho]
+      summary: Confirmar la salida física de una guía
+      description: >-
+        Confirma la salida física completa de una guía en estado emitida (CU-06, paso 8). En una sola transacción,
+        cambia la guía a salida_confirmada, registra la fecha real de salida y el usuario responsable (tomado del
+        token), genera un movimiento de salida de Kardex con origen despacho por cada ubicación de cada línea,
+        consume las reservas activas de la venta y pasa la venta a despachada. No admite cuerpo. Requiere la cabecera
+        Idempotency-Key; un reintento con la misma clave devuelve la respuesta original con la cabecera
+        Idempotent-Replayed. Si la guía no está en emitida, se rechaza con SALIDA_NO_CONFIRMABLE. Si alguna línea no
+        tiene reservada la cantidad completa, se rechaza con RESERVA_INCOMPLETA y no se genera ningún movimiento.
+        Si otra operación modifica el mismo inventario, se rechaza con PETICION_CONCURRENTE.
+      x-roles: [Almacenero]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdGuiaRuta'
+        - $ref: ../componentes/parametros.yaml#/IdempotencyKey
+      responses:
+        '200':
+          description: Salida confirmada. Un reintento con la misma clave devuelve la respuesta original con la cabecera Idempotent-Replayed.
+          headers:
+            Idempotent-Replayed:
+              description: Presente con el valor true cuando la respuesta se reproduce desde una clave ya procesada.
+              schema:
+                type: string
+                enum: ['true']
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GuiaResultadoSalida'
+        '400':
+          $ref: ../componentes/errores.yaml#/Error400
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
+        '404':
+          $ref: ../componentes/errores.yaml#/Error404
+        '409':
+          $ref: ../componentes/errores.yaml#/Error409
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500
+
+  /guias-despacho/{id}/reimpresiones:
+    post:
+      operationId: registrarReimpresionGuia
+      tags: [Despacho]
+      summary: Registrar una reimpresión de la guía
+      description: >-
+        Registra una reimpresión de la guía con su motivo obligatorio (CU-06, flujo alternativo 1). La operación no
+        modifica el inventario, no genera movimientos de Kardex y no cambia el estado de la guía. Devuelve 201 con la
+        reimpresión registrada.
+      x-roles: [Almacenero]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdGuiaRuta'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GuiaSolicitudReimpresion'
+      responses:
+        '201':
+          description: Reimpresión registrada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GuiaReimpresion'
+        '400':
+          $ref: ../componentes/errores.yaml#/Error400
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
+        '404':
+          $ref: ../componentes/errores.yaml#/Error404
+        '422':
+          $ref: ../componentes/errores.yaml#/Error422
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500
+
+  /guias-despacho/{id}/entrega:
+    post:
+      operationId: registrarEntregaGuia
+      tags: [Despacho]
+      summary: Registrar la entrega al cliente
+      description: >-
+        Registra la entrega de la mercadería al cliente y cambia la guía de salida_confirmada a entregada. La
+        operación no admite cuerpo, no modifica el inventario y no genera movimientos de Kardex. Si la guía no está
+        en salida_confirmada, se rechaza con 409; el código de negocio de ese caso no figura en el catálogo
+        CodigoError y queda pendiente. Devuelve 200 con la guía actualizada.
+      x-roles: [Almacenero]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdGuiaRuta'
+      responses:
+        '200':
+          description: Entrega registrada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GuiaDespacho'
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
+        '404':
+          $ref: ../componentes/errores.yaml#/Error404
+        '409':
+          $ref: ../componentes/errores.yaml#/Error409
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500
+
+  /ventas-pendientes-despacho:
+    get:
+      operationId: listarVentasPendientesDespacho
+      tags: [Despacho]
+      summary: Listar ventas pendientes de despacho
+      description: >-
+        Lista las ventas en estado pendiente_despacho, es decir, con todas sus cantidades reservadas y sin guía emitida
+        (CU-06, paso 2). Devuelve solo el resumen necesario para emitir la guía; el detalle de la venta corresponde al
+        módulo comercial (CU-10). Las ventas con cantidades pendientes de abastecimiento no aparecen en el listado.
+        El filtro q busca por código de venta o por cliente, y el rango desde y hasta se aplica sobre la fecha de la
+        venta, de modo inclusivo. El orden es fijo por fecha ascendente y código ascendente. Operación de solo lectura.
+      x-roles: [Almacenero]
+      x-herramienta-agente: true
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: ../componentes/parametros.yaml#/q
+        - $ref: ../componentes/parametros.yaml#/desde
+        - $ref: ../componentes/parametros.yaml#/hasta
+        - $ref: ../componentes/parametros.yaml#/page
+        - $ref: ../componentes/parametros.yaml#/pageSize
+      responses:
+        '200':
+          description: Página de ventas pendientes de despacho.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DespachoVentaPendientePagina'
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
+        '422':
+          $ref: ../componentes/errores.yaml#/Error422
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500

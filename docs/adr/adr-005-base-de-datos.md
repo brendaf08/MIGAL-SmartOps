@@ -19,7 +19,7 @@ La decisión debe satisfacer los siguientes requerimientos:
 | RNF-09 | Acceso a la base de datos restringido a los componentes autorizados. |
 | RNF-14 | Cambios de esquema versionados y revisables, que mantengan desacopladas las capas. |
 
-Las reglas de negocio sobre ventas, reservas, Kardex y despacho se establecen en el ADR-003 (Reglas de ventas, reservas, Kardex y despacho). Ese registro aún no se encuentra integrado en la rama principal, por lo que se cita como texto y no se enlaza. Este ADR adopta sus reglas y las traduce a restricciones del esquema y a la estrategia de concurrencia.
+Las reglas de negocio sobre ventas, reservas, Kardex y despacho se establecen en el [ADR-003](adr-003-reglas-ventas-reservas-despacho.md). Este ADR adopta sus reglas y las traduce a restricciones del esquema y a la estrategia de concurrencia.
 
 ### Divergencias entre requerimientos y modelo
 
@@ -220,4 +220,4 @@ Los estados de la reserva son los siguientes: `activa` al crearse; `consumida` a
 - [Base de datos](../../database/README.md)
 - [Migraciones](../../database/migraciones/README.md)
 - [Reglas de contribución](../../CONTRIBUTING.md)
-- ADR-003, Reglas de ventas, reservas, Kardex y despacho (pendiente de integración; citado como texto).
+- [ADR-003: Reglas de ventas, reservas, Kardex y despacho](adr-003-reglas-ventas-reservas-despacho.md)

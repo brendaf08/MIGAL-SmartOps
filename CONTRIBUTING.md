@@ -101,6 +101,17 @@ Una corrección que afecta varios artefactos debe presentarse de forma conjunta.
 
 Los cambios incompletos pueden abrirse como borrador. Deben indicar lo que falta antes de solicitar aprobación.
 
+### 5.1. Tamaño y alcance
+
+Dado que los pull requests se integran mediante Squash and merge, cada uno queda como un único commit en `main`. Su tamaño determina la granularidad del historial y la calidad de la revisión.
+
+- Cada pull request aborda un único propósito y puede revisarse en una sesión.
+- Objetivo: 400 líneas modificadas o menos, sin contar archivos generados. Límite: 800 líneas.
+- Un cambio mayor se divide en pull requests sucesivos. La división sigue la secuencia natural de la implementación (por ejemplo, esquema, dominio, servicio y controlador).
+- Los pull requests con dependencias se abren una vez integrado el anterior, o se marcan como borrador e indican su dependencia.
+- Mantener como máximo cuatro pull requests abiertos por integrante.
+- El título del pull request sigue el formato de commit (`tipo(ambito): descripcion`), pues será el mensaje resultante en `main`.
+- Las excepciones al límite (importaciones, archivos generados, renombrados masivos) se justifican en la descripción y se aíslan en commits propios.
 
 ## 6. Revisión e integración
 

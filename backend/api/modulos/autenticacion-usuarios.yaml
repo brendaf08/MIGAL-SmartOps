@@ -1,0 +1,17 @@
+openapi: 3.1.0
+info:
+  title: MIGAL SmartOps - Autenticación y usuarios
+  version: 1.0.0
+  description: Documento base del módulo de autenticación y usuarios (CU-01, CU-02). Sus operaciones se definen en el pull request del módulo.
+servers:
+  - url: /api/v1
+security:
+  - bearerAuth: []
+tags:
+  - name: Autenticación y usuarios
+    description: Sesiones, usuarios y roles.
+components:
+  securitySchemes:
+    bearerAuth:
+      $ref: ../componentes/seguridad.yaml#/bearerAuth
+paths: {}

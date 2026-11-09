@@ -1,0 +1,17 @@
+openapi: 3.1.0
+info:
+  title: MIGAL SmartOps - Despacho
+  version: 1.0.0
+  description: Documento base del módulo de despacho (CU-06). Sus operaciones se definen en el pull request del módulo.
+servers:
+  - url: /api/v1
+security:
+  - bearerAuth: []
+tags:
+  - name: Despacho
+    description: Guías de despacho, salida física y reimpresión.
+components:
+  securitySchemes:
+    bearerAuth:
+      $ref: ../componentes/seguridad.yaml#/bearerAuth
+paths: {}

@@ -1,0 +1,7 @@
+# Configuración de lint del contrato (Redocly CLI).
+# Se aplica el conjunto recommended con las excepciones documentadas a continuación.
+extends:
+  - recommended
+rules:
+  # Excepción: la licencia de la API no está definida en la documentación del proyecto.
+  info-license: off

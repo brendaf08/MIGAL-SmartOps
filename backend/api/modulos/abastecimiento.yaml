@@ -1,0 +1,17 @@
+openapi: 3.1.0
+info:
+  title: MIGAL SmartOps - Abastecimiento
+  version: 1.0.0
+  description: Documento base del módulo de abastecimiento (CU-11, CU-12, CU-13). Sus operaciones se definen en el pull request del módulo.
+servers:
+  - url: /api/v1
+security:
+  - bearerAuth: []
+tags:
+  - name: Abastecimiento
+    description: Proveedores, catálogo de proveedor, órdenes de compra y recepciones.
+components:
+  securitySchemes:
+    bearerAuth:
+      $ref: ../componentes/seguridad.yaml#/bearerAuth
+paths: {}

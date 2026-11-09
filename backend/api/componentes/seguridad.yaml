@@ -1,0 +1,21 @@
+# Esquemas de seguridad y roles del contrato (ADR-006).
+# Los documentos de módulo referencian este archivo mediante $ref.
+#
+# Extensión x-roles: se declara en el nivel de cada operación con la lista de
+# valores de RolUsuario que pueden invocarla, por ejemplo:
+#   x-roles: [Almacenero, Administrador]
+# El backend aplica la misma lista mediante autorización centralizada. La
+# operación POST /sesiones es pública y no declara x-roles.
+
+bearerAuth:
+  type: http
+  scheme: bearer
+  bearerFormat: JWT
+  description: >-
+    JWT de acceso enviado en la cabecera Authorization. Lo emite POST /sesiones.
+    La duración del token y el mecanismo de renovación quedan pendientes (ADR-006).
+
+RolUsuario:
+  type: string
+  description: Rol del usuario autenticado. La lista es cerrada en la versión 1.
+  enum: [Administrador, Vendedor, Almacenero, Reponedor]

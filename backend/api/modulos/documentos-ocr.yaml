@@ -1,0 +1,17 @@
+openapi: 3.1.0
+info:
+  title: MIGAL SmartOps - Documentos OCR
+  version: 1.0.0
+  description: Documento base del módulo de documentos OCR (CU-08). Sus operaciones se definen en el pull request del módulo.
+servers:
+  - url: /api/v1
+security:
+  - bearerAuth: []
+tags:
+  - name: Documentos OCR
+    description: Carga, consulta, validación y descarte de documentos, y resultados del OCR.
+components:
+  securitySchemes:
+    bearerAuth:
+      $ref: ../componentes/seguridad.yaml#/bearerAuth
+paths: {}

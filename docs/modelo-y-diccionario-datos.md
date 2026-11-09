@@ -112,6 +112,7 @@ El nivel mínimo de stock constituye un umbral de alerta y no una cantidad prote
 | `estado` | Simple | Situación operativa: pendiente de abastecimiento, pendiente de despacho, lista para despacho, despachada o cancelada. |
 | `fecha_cancelacion` | Opcional | Fecha y hora de cancelación, cuando corresponda. |
 | `motivo_cancelacion` | Condicional | Justificación obligatoria cuando la venta es cancelada. |
+| `id_usuario_autorizante` | Condicional (FK) | Usuario que autoriza la cancelación. Obligatorio cuando la venta es cancelada. |
 
 La entidad `Venta` representa el pedido comercial aprobado y conserva su relación con la cotización de origen. No se incorpora una entidad `Pedido` independiente.
 
@@ -120,6 +121,8 @@ El registro de la venta puede producirse aunque no exista stock suficiente, siem
 La cantidad comprometida se conserva en los detalles de venta. Las existencias disponibles se reservan según la ubicación, mientras que las cantidades faltantes quedan pendientes de abastecimiento.
 
 El registro comercial no genera movimientos físicos de salida de Kardex.
+
+La cancelación antes del despacho exige `motivo_cancelacion`, `fecha_cancelacion` e `id_usuario_autorizante`, libera las reservas activas y no genera movimientos de Kardex.
 
 ### Cotizacion
 
@@ -154,9 +157,11 @@ Los nombres y transiciones definitivos de los estados deberán armonizarse con l
 | `estado` | Simple | Situación del documento: preparación, emitida, salida confirmada o entregada. |
 | `fecha_emision` | Simple | Fecha y hora de generación de la guía. |
 | `fecha_salida_real` | Opcional | Fecha y hora en que se confirma la salida física de la mercadería. |
-| `id_usuario_responsable` | Opcional (FK) | Usuario que confirma la salida física correspondiente. |
+| `id_usuario_responsable` | Condicional (FK) | Usuario que confirma la salida física. Obligatorio cuando el estado es salida confirmada o entregada. |
 
 Una venta puede generar como máximo una guía de despacho.
+
+La confirmación de la salida física exige identificar al usuario responsable (RNF-10, RF-USR-04).
 
 La emisión o impresión de la guía no modifica el inventario. La salida de Kardex se registra cuando se confirma físicamente el despacho completo de la mercadería.
 

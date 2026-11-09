@@ -27,6 +27,24 @@ Se incorpora la separación entre operaciones comerciales y movimientos físicos
 
 Las entidades y relaciones descritas a continuación constituyen la estructura propuesta del modelo. El diagrama deberá actualizarse para reflejar las modificaciones incorporadas en este documento, especialmente las asociaciones correspondientes a reservas, cotizaciones, ventas y despachos.
 
+### Convenciones de claves y de nomenclatura
+
+Los tipos de atributo del diccionario se interpretan de la siguiente manera:
+
+| Tipo de atributo | Significado en la base de datos |
+| --- | --- |
+| Único (PK) | Clave primaria. |
+| Único | Clave alterna con restricción de unicidad (por ejemplo, `sku`, `ruc` y `username`). |
+| Obligatorio (FK) | Clave foránea no nula. |
+| Obligatorio (FK, único) | Clave foránea no nula con restricción de unicidad (por ejemplo, `id_cotizacion` en `Venta` e `id_venta` en `Guia_Despacho`). |
+| Opcional (FK) | Clave foránea que admite nulos. |
+| Condicional | Obligatorio según el estado u origen del registro. |
+| Derivado | Valor calculado que no se almacena como columna. |
+
+El diagrama entidad-relación subraya únicamente las claves primarias. Las claves alternas y las claves foráneas únicas se distinguen mediante este diccionario.
+
+Los nombres de las relaciones son los de la tabla de relaciones sin atributos de este documento. El diagrama entidad-relación utiliza los mismos nombres.
+
 <a id="entidades-maestras-y-transaccionales"></a>
 
 ## Entidades maestras y transaccionales
@@ -393,6 +411,7 @@ Las relaciones sin atributos representan asociaciones directas entre entidades q
 | Genera_Ingreso | Orden_Recepcion + Movimiento_Kardex | Una recepción validada puede generar múltiples movimientos de entrada. Cada movimiento de recepción se vincula a una única recepción de origen. |
 | Tiene_Ordenes | Proveedor + Orden_Compra | Un proveedor puede tener cero o múltiples órdenes de compra; cada orden corresponde a un único proveedor. |
 | Deriva_En | Orden_Compra + Orden_Recepcion | Una orden de compra puede originar cero o múltiples recepciones; cada recepción corresponde a una única orden de compra. |
+| Registra_Reserva | Usuario + Reserva_Stock | Un usuario puede registrar múltiples reservas; cada reserva identifica a un único usuario responsable. |
 | Corrige | Movimiento_Kardex + Movimiento_Kardex | Un movimiento puede ser corregido por cero o múltiples movimientos compensatorios; cada movimiento compensatorio corrige a un único movimiento. |
 | Sube | Usuario + Documento_Digital | Un usuario puede cargar múltiples documentos; cada documento identifica a un único usuario responsable. |
 | Contiene | Documento_Digital + Detalle_Extraido | Un documento puede contener cero o múltiples elementos extraídos; cada detalle pertenece a un único documento. |

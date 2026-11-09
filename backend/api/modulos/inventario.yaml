@@ -313,6 +313,182 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/MovimientoKardex'
+    CambioExistencia:
+      type: object
+      description: Existencia física de un inventario antes y después de una operación.
+      required: [productoId, sku, ubicacionId, unidad, antes, despues]
+      properties:
+        productoId:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        sku:
+          $ref: ../componentes/esquemas-comunes.yaml#/Sku
+        ubicacionId:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        unidad:
+          type: string
+        antes:
+          description: Existencia física antes de la operación.
+          $ref: ../componentes/esquemas-comunes.yaml#/Cantidad
+          minimum: 0
+        despues:
+          description: Existencia física después de la operación.
+          $ref: ../componentes/esquemas-comunes.yaml#/Cantidad
+          minimum: 0
+      example:
+        productoId: "42"
+        sku: CEM-001
+        ubicacionId: "102"
+        unidad: bolsa
+        antes: 120
+        despues: 115
+    SolicitudMovimiento:
+      type: object
+      description: >-
+        Ajuste manual de entrada o de salida. Su origen es siempre ajuste. Una salida solo reduce el
+        stock libre del inventario y no afecta las reservas de las ventas. Los traslados usan SolicitudTraslado.
+      required: [tipoOperacion, productoId, ubicacionId, cantidad, motivo]
+      additionalProperties: false
+      properties:
+        tipoOperacion:
+          $ref: '#/components/schemas/TipoOperacion'
+        productoId:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        ubicacionId:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        cantidad:
+          description: Cantidad positiva a ajustar.
+          $ref: ../componentes/esquemas-comunes.yaml#/Cantidad
+          exclusiveMinimum: 0
+        motivo:
+          type: string
+          minLength: 1
+          maxLength: 500
+          description: Justificación del ajuste, como producto dañado o sobrante detectado. No puede estar vacía ni contener solo espacios.
+        idMovimientoCorregido:
+          type: [string, 'null']
+          description: >-
+            Movimiento que se compensa. Si se informa, el tipo debe ser opuesto al del movimiento
+            corregido y el producto y la ubicación deben coincidir con los de dicho movimiento.
+      example:
+        tipoOperacion: salida
+        productoId: "42"
+        ubicacionId: "102"
+        cantidad: 5
+        motivo: Bolsas dañadas por humedad
+        idMovimientoCorregido: null
+    ResultadoMovimiento:
+      type: object
+      description: Movimiento creado y existencias antes y después de la operación.
+      required: [movimientos, cambios]
+      properties:
+        movimientos:
+          type: array
+          minItems: 1
+          maxItems: 1
+          items:
+            $ref: '#/components/schemas/MovimientoKardex'
+        cambios:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/CambioExistencia'
+    SolicitudTraslado:
+      type: object
+      description: >-
+        Traslado interno entre dos ubicaciones. Se registra de forma atómica como una salida en el origen
+        y una entrada en el destino. La ubicación de destino debe ser distinta de la de origen.
+      required: [productoId, ubicacionOrigenId, ubicacionDestinoId, cantidad, motivo]
+      additionalProperties: false
+      properties:
+        productoId:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        ubicacionOrigenId:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        ubicacionDestinoId:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        cantidad:
+          description: Cantidad positiva a trasladar. Debe ser igual o inferior al stock libre del origen.
+          $ref: ../componentes/esquemas-comunes.yaml#/Cantidad
+          exclusiveMinimum: 0
+        motivo:
+          type: string
+          minLength: 1
+          maxLength: 500
+          description: Justificación obligatoria del traslado. No puede estar vacía ni contener solo espacios.
+      example:
+        productoId: "42"
+        ubicacionOrigenId: "101"
+        ubicacionDestinoId: "102"
+        cantidad: 20
+        motivo: Reposición del almacén 1 para la semana de obra
+    ResultadoTraslado:
+      type: object
+      description: Traslado registrado. Los dos movimientos comparten la referencia asignada por el servidor.
+      required: [referenciaTraslado, movimientos, cambios]
+      properties:
+        referenciaTraslado:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        movimientos:
+          type: array
+          minItems: 2
+          maxItems: 2
+          description: Salida en el origen y entrada en el destino, en ese orden.
+          items:
+            $ref: '#/components/schemas/MovimientoKardex'
+        cambios:
+          type: array
+          minItems: 2
+          maxItems: 2
+          description: Existencias antes y después en el origen y en el destino.
+          items:
+            $ref: '#/components/schemas/CambioExistencia'
+      example:
+        referenciaTraslado: "TRS-7f3a"
+        movimientos:
+          - id: "1210"
+            fechaHora: "2026-11-07T15:10:02-05:00"
+            productoId: "42"
+            sku: CEM-001
+            nombreProducto: Cemento Sol tipo I, bolsa 42.5 kg
+            tipoOperacion: salida
+            cantidad: 20
+            origenMovimiento: traslado
+            ubicacionId: "101"
+            usuarioId: "7"
+            motivo: Reposición del almacén 1 para la semana de obra
+            idGuia: null
+            idRecepcion: null
+            referenciaTraslado: "TRS-7f3a"
+            idMovimientoCorregido: null
+          - id: "1211"
+            fechaHora: "2026-11-07T15:10:02-05:00"
+            productoId: "42"
+            sku: CEM-001
+            nombreProducto: Cemento Sol tipo I, bolsa 42.5 kg
+            tipoOperacion: entrada
+            cantidad: 20
+            origenMovimiento: traslado
+            ubicacionId: "102"
+            usuarioId: "7"
+            motivo: Reposición del almacén 1 para la semana de obra
+            idGuia: null
+            idRecepcion: null
+            referenciaTraslado: "TRS-7f3a"
+            idMovimientoCorregido: null
+        cambios:
+          - productoId: "42"
+            sku: CEM-001
+            ubicacionId: "101"
+            unidad: bolsa
+            antes: 40
+            despues: 20
+          - productoId: "42"
+            sku: CEM-001
+            ubicacionId: "102"
+            unidad: bolsa
+            antes: 120
+            despues: 140
+
 paths:
   /inventario/disponibilidad:
     get:
@@ -422,7 +598,7 @@ paths:
       description: >-
         Lista los movimientos de inventario físico, del más reciente al más antiguo (CU-07). Todos los
         filtros son opcionales y combinables; el rango de fechas es inclusivo. El Kardex es de solo lectura.
-        Los movimientos se registran mediante operaciones de escritura del mismo módulo.
+        Los movimientos se crean únicamente con POST sobre este mismo recurso o con POST /inventario/traslados.
       x-roles: [Almacenero, Administrador]
       x-herramienta-agente: true
       security:
@@ -448,6 +624,105 @@ paths:
           $ref: ../componentes/errores.yaml#/Error401
         '403':
           $ref: ../componentes/errores.yaml#/Error403
+        '422':
+          $ref: ../componentes/errores.yaml#/Error422
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500
+    post:
+      operationId: registrarMovimientoManual
+      tags: [Inventario]
+      summary: Registrar un movimiento manual de ajuste
+      description: >-
+        Registra una entrada o una salida por ajuste o merma (CU-05, origen ajuste). Requiere motivo no vacío
+        y la cabecera Idempotency-Key. Una salida solo reduce el stock libre del inventario: si la cantidad
+        supera el stock libre, se rechaza con STOCK_INSUFICIENTE y no afecta las reservas. Una corrección se
+        registra como movimiento compensatorio de tipo opuesto mediante idMovimientoCorregido, con su motivo.
+        Los traslados no se registran en esta operación; se usan con POST /inventario/traslados.
+        Devuelve 201 con el movimiento y las existencias antes y después.
+      x-roles: [Almacenero]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: ../componentes/parametros.yaml#/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SolicitudMovimiento'
+      responses:
+        '201':
+          description: Movimiento registrado. Un reintento con la misma clave y el mismo cuerpo devuelve la respuesta original con la cabecera Idempotent-Replayed.
+          headers:
+            Idempotent-Replayed:
+              description: Presente con el valor true cuando la respuesta se reproduce desde una clave ya procesada.
+              schema:
+                type: string
+                enum: ['true']
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultadoMovimiento'
+        '400':
+          $ref: ../componentes/errores.yaml#/Error400
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
+        '404':
+          $ref: ../componentes/errores.yaml#/Error404
+        '409':
+          $ref: ../componentes/errores.yaml#/Error409
+        '422':
+          $ref: ../componentes/errores.yaml#/Error422
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500
+
+  /inventario/traslados:
+    post:
+      operationId: registrarTraslado
+      tags: [Inventario]
+      summary: Registrar un traslado interno entre ubicaciones
+      description: >-
+        Registra de forma atómica el traslado de un producto entre dos ubicaciones (CU-05, flujo alternativo 2).
+        Genera una salida en el origen y una entrada en el destino, vinculadas por referenciaTraslado. El motivo
+        es obligatorio y la cabecera Idempotency-Key también. Si el stock libre del origen no alcanza la cantidad,
+        se rechaza con STOCK_INSUFICIENTE y no se genera ningún movimiento. Si el origen y el destino coinciden,
+        se rechaza con VALIDACION_FALLIDA.
+      x-roles: [Administrador, Almacenero]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: ../componentes/parametros.yaml#/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SolicitudTraslado'
+      responses:
+        '201':
+          description: Traslado registrado. Un reintento con la misma clave y el mismo cuerpo devuelve la respuesta original con la cabecera Idempotent-Replayed.
+          headers:
+            Idempotent-Replayed:
+              description: Presente con el valor true cuando la respuesta se reproduce desde una clave ya procesada.
+              schema:
+                type: string
+                enum: ['true']
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultadoTraslado'
+        '400':
+          $ref: ../componentes/errores.yaml#/Error400
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
+        '404':
+          $ref: ../componentes/errores.yaml#/Error404
+        '409':
+          $ref: ../componentes/errores.yaml#/Error409
         '422':
           $ref: ../componentes/errores.yaml#/Error422
         '500':

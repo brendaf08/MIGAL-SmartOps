@@ -1,17 +1,186 @@
+# Contrato OpenAPI del módulo comercial, conforme al ADR-006 y al ADR-008.
+# Cubre la gestión de clientes. Los esquemas llevan el prefijo Cliente para evitar colisiones al unirse con join.
 openapi: 3.1.0
 info:
   title: MIGAL SmartOps - Comercial
   version: 1.0.0
-  description: Documento base del módulo comercial (CU-09, CU-10). Sus operaciones se definen en el pull request del módulo.
+  description: Contrato del módulo comercial de la API REST de MIGAL SmartOps. Define la gestión de clientes. La autorización por rol se declara en la extensión x-roles de cada operación.
 servers:
   - url: /api/v1
 security:
   - bearerAuth: []
 tags:
-  - name: Comercial
-    description: Clientes, cotizaciones, ventas y atención de ventas.
+  - name: Clientes
+    description: Registro, consulta, actualización y vigencia de los clientes.
 components:
   securitySchemes:
     bearerAuth:
       $ref: ../componentes/seguridad.yaml#/bearerAuth
-paths: {}
+  parameters:
+    ClienteId:
+      name: id
+      in: path
+      required: true
+      description: Identificador técnico del cliente.
+      schema: {$ref: ../componentes/esquemas-comunes.yaml#/Identificador}
+    FiltroEstadoActivoCliente:
+      name: estadoActivo
+      in: query
+      required: false
+      description: Filtra los clientes por vigencia. El valor true incluye solo clientes activos.
+      schema: {type: boolean}
+  schemas:
+    TipoDocumentoCliente:
+      type: string
+      description: Tipo de documento de identificación. La base de datos no restringe sus valores; el contrato limita los de uso comercial.
+      enum: [dni, ruc]
+      example: ruc
+    ClienteDatos:
+      type: object
+      description: >-
+        Datos registrables de un cliente. El documento es opcional en las operaciones de mostrador. El tipo y el
+        número se informan juntos o se omiten juntos. El DNI tiene 8 dígitos y el RUC, 11 dígitos que empiezan en 10 o 20.
+      additionalProperties: false
+      required: [nombreRazonSocial]
+      properties:
+        tipoDocumento:
+          anyOf: [{$ref: '#/components/schemas/TipoDocumentoCliente'}, {type: 'null'}]
+          description: Tipo de documento. Nulo en los clientes de mostrador sin documento.
+        numeroDocumento:
+          type: [string, 'null']
+          maxLength: 20
+          description: Número de documento. Es único entre los clientes; si ya pertenece a otro, responde DOCUMENTO_CLIENTE_DUPLICADO.
+        nombreRazonSocial: {type: string, minLength: 1, maxLength: 200, description: Nombre completo o razón social.}
+        telefonoContacto: {type: [string, 'null'], maxLength: 30, description: Teléfono de contacto. Nulo cuando no se registra.}
+        direccionReferencia: {type: [string, 'null'], maxLength: 255, description: Dirección o referencia del cliente. Nula cuando no se registra.}
+      example: {tipoDocumento: ruc, numeroDocumento: '20601234567', nombreRazonSocial: Constructora Andina S.A.C., telefonoContacto: '987654321'}
+    ClienteRegistrado:
+      type: object
+      description: Cliente registrado. Corresponde a la entidad Cliente del diccionario de datos. Los clientes inactivos se conservan con su historial.
+      required: [id, nombreRazonSocial, estadoActivo, fechaRegistro]
+      properties:
+        id: {$ref: ../componentes/esquemas-comunes.yaml#/Identificador}
+        tipoDocumento: {anyOf: [{$ref: '#/components/schemas/TipoDocumentoCliente'}, {type: 'null'}]}
+        numeroDocumento: {type: [string, 'null'], maxLength: 20}
+        nombreRazonSocial: {type: string, minLength: 1, maxLength: 200}
+        telefonoContacto: {type: [string, 'null'], maxLength: 30}
+        direccionReferencia: {type: [string, 'null'], maxLength: 255}
+        estadoActivo: {type: boolean, description: Vigencia del cliente. Un cliente inactivo no puede asociarse a nuevas cotizaciones.}
+        fechaRegistro: {$ref: ../componentes/esquemas-comunes.yaml#/FechaHora}
+      example: {id: '57', tipoDocumento: ruc, numeroDocumento: '20601234567', nombreRazonSocial: Constructora Andina S.A.C., estadoActivo: true, fechaRegistro: '2026-02-10T10:20:00-05:00'}
+    ClientePagina:
+      description: Página de clientes con el sobre de paginación común.
+      allOf:
+        - $ref: ../componentes/esquemas-comunes.yaml#/Pagina
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: {$ref: '#/components/schemas/ClienteRegistrado'}
+    ClienteActualizacionEstado:
+      type: object
+      description: Cambio de vigencia de un cliente. La desactivación es lógica y conserva el registro y su historial.
+      additionalProperties: false
+      required: [estadoActivo]
+      properties:
+        estadoActivo: {type: boolean, description: Verdadero para activar el cliente y falso para desactivarlo.}
+      example: {estadoActivo: false}
+
+paths:
+  /clientes:
+    get:
+      operationId: listarClientes
+      summary: Listar clientes
+      description: Devuelve una página de clientes, activos e inactivos salvo que se filtre por estadoActivo. El parámetro q busca por nombre o razón social y por número de documento. Campos ordenables, nombreRazonSocial y fechaRegistro. Orden predeterminado nombreRazonSocial:asc. Un campo fuera de la lista genera VALIDACION_FALLIDA.
+      tags: [Clientes]
+      security: [{bearerAuth: []}]
+      x-roles: [Vendedor, Administrador]
+      parameters:
+        - {$ref: ../componentes/parametros.yaml#/page}
+        - {$ref: ../componentes/parametros.yaml#/pageSize}
+        - {$ref: ../componentes/parametros.yaml#/orden}
+        - {$ref: ../componentes/parametros.yaml#/q}
+        - {$ref: '#/components/parameters/FiltroEstadoActivoCliente'}
+      responses:
+        '200': {description: Página de clientes., content: {application/json: {schema: {$ref: '#/components/schemas/ClientePagina'}}}}
+        '401': {$ref: ../componentes/errores.yaml#/Error401}
+        '403': {$ref: ../componentes/errores.yaml#/Error403}
+        '422': {$ref: ../componentes/errores.yaml#/Error422}
+        '500': {$ref: ../componentes/errores.yaml#/Error500}
+    post:
+      operationId: registrarCliente
+      summary: Registrar cliente
+      description: Registra un cliente nuevo con estado activo. Si el número de documento ya pertenece a otro cliente, responde DOCUMENTO_CLIENTE_DUPLICADO con clienteId y no crea el registro. Las reglas de los campos generan VALIDACION_FALLIDA.
+      tags: [Clientes]
+      security: [{bearerAuth: []}]
+      x-roles: [Vendedor, Administrador]
+      requestBody:
+        required: true
+        content: {application/json: {schema: {$ref: '#/components/schemas/ClienteDatos'}}}
+      responses:
+        '201': {description: Cliente registrado., content: {application/json: {schema: {$ref: '#/components/schemas/ClienteRegistrado'}}}}
+        '400': {$ref: ../componentes/errores.yaml#/Error400}
+        '401': {$ref: ../componentes/errores.yaml#/Error401}
+        '403': {$ref: ../componentes/errores.yaml#/Error403}
+        '409': {$ref: ../componentes/errores.yaml#/Error409}
+        '422': {$ref: ../componentes/errores.yaml#/Error422}
+        '500': {$ref: ../componentes/errores.yaml#/Error500}
+
+  /clientes/{id}:
+    parameters:
+      - {$ref: '#/components/parameters/ClienteId'}
+    get:
+      operationId: consultarCliente
+      summary: Consultar cliente
+      description: Devuelve el detalle de un cliente, activo o inactivo. Responde RECURSO_NO_ENCONTRADO si el identificador no existe.
+      tags: [Clientes]
+      security: [{bearerAuth: []}]
+      x-roles: [Vendedor, Administrador]
+      responses:
+        '200': {description: Cliente encontrado., content: {application/json: {schema: {$ref: '#/components/schemas/ClienteRegistrado'}}}}
+        '401': {$ref: ../componentes/errores.yaml#/Error401}
+        '403': {$ref: ../componentes/errores.yaml#/Error403}
+        '404': {$ref: ../componentes/errores.yaml#/Error404}
+        '500': {$ref: ../componentes/errores.yaml#/Error500}
+    put:
+      operationId: actualizarCliente
+      summary: Actualizar cliente
+      description: Modifica los datos de un cliente. El estado de vigencia se cambia mediante PUT /clientes/{id}/estado. Si el nuevo número de documento pertenece a otro cliente, responde DOCUMENTO_CLIENTE_DUPLICADO.
+      tags: [Clientes]
+      security: [{bearerAuth: []}]
+      x-roles: [Vendedor, Administrador]
+      requestBody:
+        required: true
+        content: {application/json: {schema: {$ref: '#/components/schemas/ClienteDatos'}}}
+      responses:
+        '200': {description: Cliente actualizado., content: {application/json: {schema: {$ref: '#/components/schemas/ClienteRegistrado'}}}}
+        '400': {$ref: ../componentes/errores.yaml#/Error400}
+        '401': {$ref: ../componentes/errores.yaml#/Error401}
+        '403': {$ref: ../componentes/errores.yaml#/Error403}
+        '404': {$ref: ../componentes/errores.yaml#/Error404}
+        '409': {$ref: ../componentes/errores.yaml#/Error409}
+        '422': {$ref: ../componentes/errores.yaml#/Error422}
+        '500': {$ref: ../componentes/errores.yaml#/Error500}
+
+  /clientes/{id}/estado:
+    parameters:
+      - {$ref: '#/components/parameters/ClienteId'}
+    put:
+      operationId: actualizarEstadoCliente
+      summary: Activar o desactivar cliente
+      description: Establece la vigencia del cliente. La desactivación es lógica y conserva el registro. Responde RECURSO_NO_ENCONTRADO si el identificador no existe.
+      tags: [Clientes]
+      security: [{bearerAuth: []}]
+      x-roles: [Vendedor, Administrador]
+      requestBody:
+        required: true
+        content: {application/json: {schema: {$ref: '#/components/schemas/ClienteActualizacionEstado'}}}
+      responses:
+        '200': {description: Estado actualizado. Devuelve el cliente con su nuevo estado., content: {application/json: {schema: {$ref: '#/components/schemas/ClienteRegistrado'}}}}
+        '400': {$ref: ../componentes/errores.yaml#/Error400}
+        '401': {$ref: ../componentes/errores.yaml#/Error401}
+        '403': {$ref: ../componentes/errores.yaml#/Error403}
+        '404': {$ref: ../componentes/errores.yaml#/Error404}
+        '422': {$ref: ../componentes/errores.yaml#/Error422}
+        '500': {$ref: ../componentes/errores.yaml#/Error500}

@@ -118,6 +118,16 @@ La entidad `Venta` representa el pedido comercial aprobado y conserva su relaci�
 
 El registro de la venta puede producirse aunque no exista stock suficiente, siempre que la operación haya sido aceptada por el cliente y validada comercialmente por MIGAL.
 
+Los estados de la venta y sus transiciones son los siguientes:
+
+| Estado | Condición | Transiciones permitidas |
+| --- | --- | --- |
+| Pendiente de abastecimiento | Existen cantidades sin reservar. | Pendiente de despacho, Cancelada. |
+| Pendiente de despacho | Todas las cantidades están reservadas y no se emitió la guía de despacho. | Lista para despacho, Cancelada. |
+| Lista para despacho | La guía de despacho está emitida. | Despachada, Cancelada. |
+| Despachada | Se confirmó la salida física. Estado final. | Ninguna. |
+| Cancelada | Cancelada antes del despacho. Estado final. | Ninguna. |
+
 La cantidad comprometida se conserva en los detalles de venta. Las existencias disponibles se reservan según la ubicación, mientras que las cantidades faltantes quedan pendientes de abastecimiento.
 
 El registro comercial no genera movimientos físicos de salida de Kardex.
@@ -144,7 +154,17 @@ La conversión de una cotización a venta requiere la aceptación del cliente y 
 
 Cuando exista stock insuficiente, la evaluación de abastecimiento considera la categoría del producto. Para cementos, ladrillos, fierros y agregados se contempla una viabilidad de reposición automática; las demás categorías requieren evaluación de la propietaria responsable.
 
-Los nombres y transiciones definitivos de los estados deberán armonizarse con las especificaciones funcionales correspondientes.
+Los estados de la cotización y sus transiciones son los siguientes:
+
+| Estado | Descripción | Transiciones permitidas |
+| --- | --- | --- |
+| Emitida | Propuesta registrada y vigente. | Aceptada, Rechazada, Vencida. |
+| Aceptada | El cliente aceptó la propuesta. | Validada, Rechazada (MIGAL determina que no es viable), Vencida. |
+| Validada | MIGAL validó la viabilidad comercial. Puede convertirse en una venta. | Vencida, si no se convirtió antes de `fecha_vencimiento`. |
+| Rechazada | Estado final. | Ninguna. |
+| Vencida | Estado final. | Ninguna. |
+
+La conversión de una cotización validada en venta no cambia su estado; la existencia de la venta indica que fue convertida.
 
 ### Guia_Despacho
 
@@ -286,7 +306,7 @@ Estas asociaciones se implementan mediante tablas intermedias, permitiendo repre
 
 **Inventario.** La combinación de producto y almacén debe ser única. `cantidad_fisica` representa las unidades existentes, mientras que `cantidad_reservada` y `cantidad_libre` son cantidades calculadas a partir de las reservas activas.
 
-**Reserva_Stock.** Cada registro identifica una cantidad de un producto comprometida para una línea de venta desde una ubicación específica. Se consideran los estados Activa, Liberada y Consumida, conservando el historial de asignaciones.
+**Reserva_Stock.** Cada registro identifica una cantidad de un producto comprometida para una línea de venta desde una ubicación específica. Se consideran los estados Activa, Liberada y Consumida, conservando el historial de asignaciones. Toda reserva se crea en estado Activa. Pasa a Consumida cuando se confirma el despacho, en la misma transacción que la salida de Kardex, o a Liberada cuando se cancela la venta. Consumida y Liberada son estados finales y `fecha_cierre` se registra en ambas transiciones.
 
 **Detalle_Venta.** `cantidad_vendida` representa la cantidad comprometida comercialmente. No equivale a la cantidad físicamente despachada. Las cantidades reservadas y pendientes se obtienen a partir de los registros de reservas y del estado operativo de la venta.
 

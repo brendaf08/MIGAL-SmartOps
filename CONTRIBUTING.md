@@ -261,7 +261,37 @@ Procedimiento:
 
 Los elementos de cada paquete deben corresponder a las clases del modelo de clases vigente.
 
-### 9.3. Diagramas de actividades y otros modelos
+### 9.3. Diagrama entidad-relación
+
+Las fuentes se almacenan en:
+
+```text
+docs/fuentes/der/
+```
+
+Se utiliza un archivo `.puml` con sintaxis de PlantUML, delimitado por `@startuml` y `@enduml`, en notación de pies de gallo (IE). El nombre base de la fuente debe coincidir con el de su imagen:
+
+```text
+MIGAL-DER-01-modelo-entidad-relacion.puml
+MIGAL-DER-01-modelo-entidad-relacion.png
+```
+
+Las entidades, atributos, claves, relaciones y cardinalidades del diagrama deben corresponder a `docs/modelo-y-diccionario-datos.md`, que constituye la fuente de verdad del contenido.
+
+Procedimiento:
+
+1. Editar o agregar la fuente en `docs/fuentes/der/`.
+2. Exportar el PNG con Docker, desde la raíz del repositorio, sustituyendo la ruta absoluta de `docs/fuentes/der/`:
+
+   ```text
+   docker run --rm -v "<ruta absoluta de docs/fuentes/der>:/data" plantuml/plantuml -tpng -Sdpi=150 -DPLANTUML_LIMIT_SIZE=16384 /data/MIGAL-DER-01-modelo-entidad-relacion.puml
+   ```
+
+3. Mover el PNG generado a `docs/imagenes/`, reemplazando la imagen anterior, y eliminar la copia que quedó en `docs/fuentes/der/`.
+4. Revisar la legibilidad del PNG y su visualización en `docs/modelo-y-diccionario-datos.md`.
+5. Actualizar en el mismo pull request el diccionario, la fuente y la imagen.
+
+### 9.4. Diagramas de actividades y otros modelos
 
 Mantener su fuente editable y exportación mediante la herramienta acordada para cada tipo de diagrama.
 

@@ -1,0 +1,354 @@
+@startuml MIGAL-DER-01-modelo-entidad-relacion
+' Diagrama entidad-relación de MIGAL SmartOps en notación de pies de gallo (IE).
+' Fuente de verdad: docs/modelo-y-diccionario-datos.md.
+' Los nombres de entidades, atributos y relaciones corresponden al diccionario.
+'
+' Convenciones de atributos:
+'   *       obligatorio (no nulo)
+'   (sin marca) opcional
+'   (C)     condicional
+'   /       derivado (no se almacena como columna)
+'   <<PK>>  clave primaria
+'   <<FK>>  clave foránea
+'   <<UK>>  clave alterna o clave foránea única
+'
+' Las relaciones con atributos se representan mediante entidades de tabla intermedia.
+' Las relaciones sin atributos utilizan el nombre definido en el diccionario.
+' Las relaciones id_usuario_autorizante e id_usuario_responsable de Guia_Despacho
+' no tienen nombre asignado en el diccionario; se etiquetan con el nombre de la clave foránea.
+
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam nodesep 40
+skinparam ranksep 80
+skinparam ArrowColor #333333
+skinparam EntityBorderColor #333333
+skinparam EntityBackgroundColor #FFFFFF
+skinparam NoteBackgroundColor #FFF8DC
+skinparam NoteBorderColor #333333
+hide circle
+
+title MIGAL SmartOps - Modelo entidad-relación
+
+' ---------------------------------------------------------------
+' Entidades maestras y transaccionales
+' ---------------------------------------------------------------
+
+entity Usuario {
+  * id_usuario <<PK>>
+  --
+  * nombres
+  * apellidos
+  * username <<UK>>
+  * password_hash
+  * rol
+  * estado_activo
+  * fecha_registro
+  fecha_actualizacion
+}
+
+entity Cliente {
+  * id_cliente <<PK>>
+  --
+  tipo_documento
+  numero_documento
+  * nombre_razon_social
+  telefono_contacto
+  direccion_referencia
+  * estado_activo
+  * fecha_registro
+}
+
+entity Almacen {
+  * id_almacen <<PK>>
+  --
+  * nombre
+  * tipo_ubicacion
+  direccion_referencia
+  * estado_activo
+}
+
+entity Producto {
+  * id_producto <<PK>>
+  --
+  * sku <<UK>>
+  * nombre_oficial
+  descripcion
+  * unidad_medida
+  * precio_referencial
+  * stock_minimo
+  * estado_activo
+  * categoria_producto
+  marca
+  presentacion
+  * fecha_registro
+  fecha_actualizacion
+}
+
+entity Cotizacion {
+  * id_cotizacion <<PK>>
+  --
+  * id_cliente <<FK>>
+  * id_usuario_responsable <<FK>>
+  * fecha_emision
+  * fecha_vencimiento
+  condiciones_comerciales
+  * descuento
+  * estado
+  / total_cotizacion
+  fecha_aceptacion_cliente
+  fecha_validacion_migal
+}
+
+entity Venta {
+  * id_venta <<PK>>
+  --
+  * id_cotizacion <<FK>> <<UK>>
+  * id_cliente <<FK>>
+  * id_usuario_responsable <<FK>>
+  * fecha_venta
+  * descuento
+  / total_venta
+  * estado
+  fecha_cancelacion
+  (C) motivo_cancelacion
+  (C) id_usuario_autorizante <<FK>>
+}
+
+entity Guia_Despacho {
+  * id_guia <<PK>>
+  --
+  * id_venta <<FK>> <<UK>>
+  * direccion_entrega
+  fecha_despacho
+  * estado
+  * fecha_emision
+  fecha_salida_real
+  (C) id_usuario_responsable <<FK>>
+}
+
+entity Proveedor {
+  * id_proveedor <<PK>>
+  --
+  * ruc <<UK>>
+  * razon_social
+  * contacto
+  condiciones
+  * estado_activo
+  * fecha_registro
+}
+
+entity Orden_Compra {
+  * id_orden <<PK>>
+  --
+  * id_proveedor <<FK>>
+  * id_usuario_responsable <<FK>>
+  * fecha_emision
+  * estado
+  fecha_entrega_estimada
+  observaciones
+  modalidad_pago
+}
+
+entity Orden_Recepcion {
+  * id_recepcion <<PK>>
+  --
+  * id_orden <<FK>>
+  * id_usuario_responsable <<FK>>
+  * fecha_recepcion
+  * estado
+  fecha_validacion
+  observaciones
+}
+
+entity Movimiento_Kardex {
+  * id_movimiento <<PK>>
+  --
+  * id_inventario <<FK>>
+  * fecha_hora
+  * tipo_operacion
+  * cantidad
+  (C) motivo
+  * id_usuario_responsable <<FK>>
+  * origen_movimiento
+  id_guia <<FK>>
+  id_recepcion <<FK>>
+  referencia_traslado
+  id_movimiento_corregido <<FK>>
+}
+
+entity Documento_Digital {
+  * id_documento <<PK>>
+  --
+  * ruta_archivo
+  * fecha_subida
+  * estado_procesamiento
+  * tipo_documento
+  * id_usuario <<FK>>
+  id_cotizacion <<FK>>
+  id_recepcion <<FK>>
+}
+
+entity Detalle_Extraido {
+  * id_detalle_extraido <<PK>>
+  --
+  * id_documento <<FK>>
+  * texto_crudo
+  cantidad_leida
+  id_producto <<FK>>
+  texto_corregido
+}
+
+' ---------------------------------------------------------------
+' Tablas de relaciones con atributos
+' ---------------------------------------------------------------
+
+entity Inventario {
+  * id_inventario <<PK>>
+  --
+  * id_producto <<FK>>
+  * id_almacen <<FK>>
+  * cantidad_fisica
+  / cantidad_reservada
+  / cantidad_libre
+}
+
+entity Reserva_Stock {
+  * id_reserva <<PK>>
+  --
+  * id_detalle_venta <<FK>>
+  * id_inventario <<FK>>
+  * cantidad_reservada
+  * estado
+  * fecha_reserva
+  fecha_cierre
+  * id_usuario_responsable <<FK>>
+}
+
+entity Detalle_Venta {
+  * id_detalle_venta <<PK>>
+  --
+  * id_venta <<FK>>
+  * id_producto <<FK>>
+  * cantidad_vendida
+  * precio_unitario
+  / subtotal_detalle
+  / cantidad_reservada_actual
+  / cantidad_pendiente_abastecimiento
+}
+
+entity Detalle_Cotizacion {
+  * id_cotizacion <<PK>> <<FK>>
+  * id_producto <<PK>> <<FK>>
+  --
+  * cantidad_cotizada
+  * precio_unitario
+  / subtotal_detalle
+}
+
+entity Detalle_Compra {
+  * id_orden <<PK>> <<FK>>
+  * id_producto <<PK>> <<FK>>
+  --
+  * cantidad_comprada
+  * costo_unitario
+  / subtotal_detalle
+  / cantidad_pendiente_recepcion
+}
+
+entity Detalle_Recepcion {
+  * id_recepcion <<PK>> <<FK>>
+  * id_producto <<PK>> <<FK>>
+  * id_almacen_destino <<PK>> <<FK>>
+  --
+  * cantidad_recibida
+}
+
+entity Catalogo_Proveedor {
+  * id_proveedor <<PK>> <<FK>>
+  * id_producto <<PK>> <<FK>>
+  --
+  * precio_compra
+  plazo_entrega_referencial_dias
+  fecha_actualizacion_precio
+}
+
+' ---------------------------------------------------------------
+' Relaciones sin atributos (nombre según el diccionario)
+' ---------------------------------------------------------------
+
+Usuario ||--o{ Venta : Registra
+Usuario ||--o{ Cotizacion : Emite
+Usuario ||--o{ Movimiento_Kardex : Registra_Movimiento
+Usuario ||--o{ Orden_Compra : Registra_Compra
+Usuario ||--o{ Orden_Recepcion : Registra_Recepcion
+Usuario ||--o{ Reserva_Stock : Registra_Reserva
+Usuario ||--o{ Documento_Digital : Sube
+Usuario |o--o{ Venta : id_usuario_autorizante
+Usuario |o--o{ Guia_Despacho : id_usuario_responsable
+
+Cliente ||--o{ Cotizacion : Solicita_Cotizacion
+Cliente ||--o{ Venta : Realiza_Venta
+
+Cotizacion ||--o| Venta : Se_Convierte_En
+Venta ||--o| Guia_Despacho : Genera
+
+Inventario ||--o{ Movimiento_Kardex : Afecta
+Guia_Despacho |o--o{ Movimiento_Kardex : Genera_Salida
+Orden_Recepcion |o--o{ Movimiento_Kardex : Genera_Ingreso
+Movimiento_Kardex |o--o{ Movimiento_Kardex : Corrige
+
+Proveedor ||--o{ Orden_Compra : Tiene_Ordenes
+Orden_Compra ||--o{ Orden_Recepcion : Deriva_En
+
+Documento_Digital ||--o{ Detalle_Extraido : Contiene
+Producto |o--o{ Detalle_Extraido : Asociado
+Cotizacion |o--o{ Documento_Digital : Origina_Cotizacion
+Orden_Recepcion |o--o{ Documento_Digital : Apoya_Recepcion
+
+' ---------------------------------------------------------------
+' Relaciones con atributos (tablas intermedias)
+' ---------------------------------------------------------------
+
+Producto ||--o{ Inventario
+Almacen ||--o{ Inventario
+
+Detalle_Venta ||--o{ Reserva_Stock
+Inventario ||--o{ Reserva_Stock
+
+Venta ||--o{ Detalle_Venta
+Producto ||--o{ Detalle_Venta
+
+Cotizacion ||--o{ Detalle_Cotizacion
+Producto ||--o{ Detalle_Cotizacion
+
+Orden_Compra ||--o{ Detalle_Compra
+Producto ||--o{ Detalle_Compra
+
+Orden_Recepcion ||--o{ Detalle_Recepcion
+Producto ||--o{ Detalle_Recepcion
+Almacen ||--o{ Detalle_Recepcion
+
+Proveedor ||--o{ Catalogo_Proveedor
+Producto ||--o{ Catalogo_Proveedor
+
+' ---------------------------------------------------------------
+' Restricción de exclusividad de Documento_Digital
+' ---------------------------------------------------------------
+
+note right of Documento_Digital
+  Exclusividad documental:
+  id_cotizacion e id_recepcion no deben contener
+  simultáneamente referencias válidas en un mismo registro.
+  Ambos pueden permanecer vacíos mientras el archivo
+  se encuentra pendiente de asociación.
+end note
+
+legend bottom
+  * obligatorio   (sin marca) opcional   (C) condicional   / derivado
+  <<PK>> clave primaria   <<FK>> clave foránea   <<UK>> clave alterna o FK única
+  Cardinalidad: pie de gallo para muchos, || uno, o cero, | uno.
+endlegend
+
+@enduml

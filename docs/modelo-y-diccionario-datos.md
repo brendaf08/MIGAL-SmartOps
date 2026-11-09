@@ -25,7 +25,25 @@ Se incorpora la separación entre operaciones comerciales y movimientos físicos
 
 ![Diagrama entidad-relación de MIGAL SmartOps](imagenes/MIGAL-DER-01-modelo-entidad-relacion.png)
 
-Las entidades y relaciones descritas a continuación constituyen la estructura propuesta del modelo. El diagrama deberá actualizarse para reflejar las modificaciones incorporadas en este documento, especialmente las asociaciones correspondientes a reservas, cotizaciones, ventas y despachos.
+Las entidades y relaciones descritas a continuación constituyen la estructura propuesta del modelo. El diagrama se genera a partir de su [Código fuente](fuentes/der/MIGAL-DER-01-modelo-entidad-relacion.puml) y se actualiza en el mismo pull request que este documento.
+
+### Convenciones de claves y de nomenclatura
+
+Los tipos de atributo del diccionario se interpretan de la siguiente manera:
+
+| Tipo de atributo | Significado en la base de datos |
+| --- | --- |
+| Único (PK) | Clave primaria. |
+| Único | Clave alterna con restricción de unicidad (por ejemplo, `sku`, `ruc` y `username`). |
+| Obligatorio (FK) | Clave foránea no nula. |
+| Obligatorio (FK, único) | Clave foránea no nula con restricción de unicidad (por ejemplo, `id_cotizacion` en `Venta` e `id_venta` en `Guia_Despacho`). |
+| Opcional (FK) | Clave foránea que admite nulos. |
+| Condicional | Obligatorio según el estado u origen del registro. |
+| Derivado | Valor calculado que no se almacena como columna. |
+
+El diagrama entidad-relación subraya únicamente las claves primarias. Las claves alternas y las claves foráneas únicas se distinguen mediante este diccionario.
+
+Los nombres de las relaciones son los de la tabla de relaciones sin atributos de este documento. El diagrama entidad-relación utiliza los mismos nombres.
 
 <a id="entidades-maestras-y-transaccionales"></a>
 
@@ -112,14 +130,27 @@ El nivel mínimo de stock constituye un umbral de alerta y no una cantidad prote
 | `estado` | Simple | Situación operativa: pendiente de abastecimiento, pendiente de despacho, lista para despacho, despachada o cancelada. |
 | `fecha_cancelacion` | Opcional | Fecha y hora de cancelación, cuando corresponda. |
 | `motivo_cancelacion` | Condicional | Justificación obligatoria cuando la venta es cancelada. |
+| `id_usuario_autorizante` | Condicional (FK) | Usuario que autoriza la cancelación. Obligatorio cuando la venta es cancelada. |
 
 La entidad `Venta` representa el pedido comercial aprobado y conserva su relación con la cotización de origen. No se incorpora una entidad `Pedido` independiente.
 
 El registro de la venta puede producirse aunque no exista stock suficiente, siempre que la operación haya sido aceptada por el cliente y validada comercialmente por MIGAL.
 
+Los estados de la venta y sus transiciones son los siguientes:
+
+| Estado | Condición | Transiciones permitidas |
+| --- | --- | --- |
+| Pendiente de abastecimiento | Existen cantidades sin reservar. | Pendiente de despacho, Cancelada. |
+| Pendiente de despacho | Todas las cantidades están reservadas y no se emitió la guía de despacho. | Lista para despacho, Cancelada. |
+| Lista para despacho | La guía de despacho está emitida. | Despachada, Cancelada. |
+| Despachada | Se confirmó la salida física. Estado final. | Ninguna. |
+| Cancelada | Cancelada antes del despacho. Estado final. | Ninguna. |
+
 La cantidad comprometida se conserva en los detalles de venta. Las existencias disponibles se reservan según la ubicación, mientras que las cantidades faltantes quedan pendientes de abastecimiento.
 
 El registro comercial no genera movimientos físicos de salida de Kardex.
+
+La cancelación antes del despacho exige `motivo_cancelacion`, `fecha_cancelacion` e `id_usuario_autorizante`, libera las reservas activas y no genera movimientos de Kardex.
 
 ### Cotizacion
 
@@ -141,7 +172,17 @@ La conversión de una cotización a venta requiere la aceptación del cliente y 
 
 Cuando exista stock insuficiente, la evaluación de abastecimiento considera la categoría del producto. Para cementos, ladrillos, fierros y agregados se contempla una viabilidad de reposición automática; las demás categorías requieren evaluación de la propietaria responsable.
 
-Los nombres y transiciones definitivos de los estados deberán armonizarse con las especificaciones funcionales correspondientes.
+Los estados de la cotización y sus transiciones son los siguientes:
+
+| Estado | Descripción | Transiciones permitidas |
+| --- | --- | --- |
+| Emitida | Propuesta registrada y vigente. | Aceptada, Rechazada, Vencida. |
+| Aceptada | El cliente aceptó la propuesta. | Validada, Rechazada (MIGAL determina que no es viable), Vencida. |
+| Validada | MIGAL validó la viabilidad comercial. Puede convertirse en una venta. | Vencida, si no se convirtió antes de `fecha_vencimiento`. |
+| Rechazada | Estado final. | Ninguna. |
+| Vencida | Estado final. | Ninguna. |
+
+La conversión de una cotización validada en venta no cambia su estado; la existencia de la venta indica que fue convertida.
 
 ### Guia_Despacho
 
@@ -154,9 +195,11 @@ Los nombres y transiciones definitivos de los estados deberán armonizarse con l
 | `estado` | Simple | Situación del documento: preparación, emitida, salida confirmada o entregada. |
 | `fecha_emision` | Simple | Fecha y hora de generación de la guía. |
 | `fecha_salida_real` | Opcional | Fecha y hora en que se confirma la salida física de la mercadería. |
-| `id_usuario_responsable` | Opcional (FK) | Usuario que confirma la salida física correspondiente. |
+| `id_usuario_responsable` | Condicional (FK) | Usuario que confirma la salida física. Obligatorio cuando el estado es salida confirmada o entregada. |
 
 Una venta puede generar como máximo una guía de despacho.
+
+La confirmación de la salida física exige identificar al usuario responsable (RNF-10, RF-USR-04).
 
 La emisión o impresión de la guía no modifica el inventario. La salida de Kardex se registra cuando se confirma físicamente el despacho completo de la mercadería.
 
@@ -206,12 +249,13 @@ Las cantidades recibidas se registran en `Detalle_Recepcion` y generan movimient
 | `id_guia` | Opcional (FK) | Referencia a la guía cuando el movimiento proviene de un despacho. |
 | `id_recepcion` | Opcional (FK) | Referencia a la recepción cuando el movimiento corresponde a una entrada de abastecimiento. |
 | `referencia_traslado` | Opcional | Identificador compartido por los movimientos de salida y entrada de un traslado interno. |
+| `id_movimiento_corregido` | Opcional (FK) | Referencia al movimiento que corrige, cuando el registro es un movimiento compensatorio. |
 
-Los movimientos de Kardex representan variaciones reales del inventario físico.
+Los movimientos de Kardex representan variaciones reales del inventario físico. El registro es de solo anexión: no se modifican ni se eliminan movimientos. Una corrección se registra como un movimiento compensatorio de tipo opuesto, con origen Ajuste, motivo obligatorio y referencia al movimiento corregido.
 
 Cada movimiento se vincula a un inventario específico, evitando registrar separadamente referencias redundantes a producto y almacén cuando ambos ya se encuentran identificados mediante `id_inventario`.
 
-Los movimientos asociados a despachos y recepciones deben conservar la referencia a su operación de origen. Los traslados internos se registran mediante una salida del almacén de origen y una entrada en el almacén de destino, vinculadas por una misma referencia.
+Los movimientos asociados a despachos y recepciones deben conservar la referencia a su operación de origen. Los movimientos de origen Ajuste exigen motivo y no tienen referencia de operación. Los movimientos de origen Traslado exigen `referencia_traslado`: cada referencia agrupa exactamente una salida y una entrada de igual cantidad y del mismo producto, en inventarios distintos. Los traslados internos se registran mediante una salida del almacén de origen y una entrada en el almacén de destino, vinculadas por una misma referencia.
 
 ### Proveedor
 
@@ -269,8 +313,8 @@ Estas asociaciones se implementan mediante tablas intermedias, permitiendo repre
 
 | Relación | Entidades que une | Atributos propios | Cardinalidad |
 | --- | --- | --- | --- |
-| `Inventario` | Producto + Almacen | `id_inventario` (PK)<br>`id_producto` (FK)<br>`id_almacen` (FK)<br>`cantidad_fisica` (Simple)<br>`cantidad_reservada` (Derivado)<br>`cantidad_libre` (Derivado) | Muchos a muchos resuelta mediante Inventario. Un producto puede encontrarse en múltiples almacenes y cada almacén puede contener distintos productos. Cada combinación producto-almacén es única. |
-| `Reserva_Stock` | Detalle_Venta + Inventario | `id_reserva` (PK)<br>`id_detalle_venta` (FK)<br>`id_inventario` (FK)<br>`cantidad_reservada` (Simple)<br>`estado` (Simple)<br>`fecha_reserva` (Simple)<br>`fecha_cierre` (Opcional)<br>`id_usuario_responsable` (FK) | Una línea de venta puede tener múltiples reservas y un inventario puede estar asociado a reservas de diferentes ventas. Cada reserva corresponde a una línea y ubicación determinadas. |
+| `Inventario` | Producto + Almacen | `id_inventario` (PK)<br>`id_producto` (FK)<br>`id_almacen` (FK)<br>`cantidad_fisica` (Simple)<br>`cantidad_reservada` (Derivado)<br>`cantidad_libre` (Derivado) | Muchos a muchos resuelta mediante Inventario. Un producto puede encontrarse en múltiples almacenes y cada almacén puede contener distintos productos. Cada combinación producto-almacén es única (restricción de unicidad sobre `id_producto` e `id_almacen`). |
+| `Reserva_Stock` | Detalle_Venta + Inventario | `id_reserva` (PK)<br>`id_detalle_venta` (FK)<br>`id_inventario` (FK)<br>`cantidad_reservada` (Simple)<br>`estado` (Simple: activa, liberada o consumida)<br>`fecha_reserva` (Simple)<br>`fecha_cierre` (Opcional)<br>`id_usuario_responsable` (FK) | Una línea de venta puede tener múltiples reservas y un inventario puede estar asociado a reservas de diferentes ventas. Cada reserva corresponde a una línea y ubicación determinadas. |
 | `Detalle_Venta` | Venta + Producto | `id_detalle_venta` (PK)<br>`id_venta` (FK)<br>`id_producto` (FK)<br>`cantidad_vendida` (Simple)<br>`precio_unitario` (Simple)<br>`subtotal_detalle` (Derivado)<br>`cantidad_reservada_actual` (Derivado)<br>`cantidad_pendiente_abastecimiento` (Derivado) | Muchos a muchos resuelta mediante Detalle_Venta. Una venta contiene uno o varios productos y un producto puede aparecer en distintas ventas. |
 | `Detalle_Cotizacion` | Cotizacion + Producto | `id_cotizacion` (PK, FK)<br>`id_producto` (PK, FK)<br>`cantidad_cotizada` (Simple)<br>`precio_unitario` (Simple)<br>`subtotal_detalle` (Derivado) | Muchos a muchos. Una cotización puede incluir varios productos y un producto puede estar presente en diferentes cotizaciones. |
 | `Detalle_Compra` | Orden_Compra + Producto | `id_orden` (PK, FK)<br>`id_producto` (PK, FK)<br>`cantidad_comprada` (Simple)<br>`costo_unitario` (Simple)<br>`subtotal_detalle` (Derivado)<br>`cantidad_pendiente_recepcion` (Derivado) | Muchos a muchos. Una orden de compra contiene uno o varios productos y un producto puede ser solicitado en distintas órdenes. |
@@ -279,15 +323,33 @@ Estas asociaciones se implementan mediante tablas intermedias, permitiendo repre
 
 ### Consideraciones de las relaciones
 
+**Claves foráneas.** Las claves foráneas de las tablas de relaciones con atributos son obligatorias, salvo que su descripción indique lo contrario.
+
 **Inventario.** La combinación de producto y almacén debe ser única. `cantidad_fisica` representa las unidades existentes, mientras que `cantidad_reservada` y `cantidad_libre` son cantidades calculadas a partir de las reservas activas.
 
-**Reserva_Stock.** Cada registro identifica una cantidad de un producto comprometida para una línea de venta desde una ubicación específica. Se consideran los estados Activa, Liberada y Consumida, conservando el historial de asignaciones.
+**Reserva_Stock.** Cada registro identifica una cantidad de un producto comprometida para una línea de venta desde una ubicación específica. Se consideran los estados Activa, Liberada y Consumida, conservando el historial de asignaciones. Toda reserva se crea en estado Activa. Pasa a Consumida cuando se confirma el despacho, en la misma transacción que la salida de Kardex, o a Liberada cuando se cancela la venta. Consumida y Liberada son estados finales y `fecha_cierre` se registra en ambas transiciones.
 
 **Detalle_Venta.** `cantidad_vendida` representa la cantidad comprometida comercialmente. No equivale a la cantidad físicamente despachada. Las cantidades reservadas y pendientes se obtienen a partir de los registros de reservas y del estado operativo de la venta.
 
 **Detalle_Recepcion.** La inclusión de `id_almacen_destino` permite registrar el ingreso de productos a diferentes ubicaciones físicas sin perder la referencia a la recepción de origen.
 
 **Catalogo_Proveedor.** Conserva las asociaciones entre productos y proveedores, junto con información comercial referencial. La selección y evaluación final de condiciones de abastecimiento permanece bajo responsabilidad del personal autorizado de MIGAL.
+
+Los atributos derivados se calculan con las siguientes fórmulas:
+
+```text
+subtotal_detalle (cotización, venta) = cantidad × precio_unitario
+subtotal_detalle (compra)            = cantidad_comprada × costo_unitario
+
+total_cotizacion = SUM(subtotal_detalle) - descuento
+total_venta      = SUM(subtotal_detalle) - descuento
+
+cantidad_pendiente_recepcion =
+    cantidad_comprada
+    - SUM(cantidad_recibida de las recepciones validadas de la orden para el mismo producto)
+```
+
+`Detalle_Recepcion` no referencia a `Detalle_Compra`: su vínculo se establece mediante la orden de la recepción y el producto.
 
 Los atributos marcados como derivados corresponden a valores calculados y no requieren almacenarse como columnas físicas independientes, salvo que una necesidad técnica posterior justifique su persistencia controlada.
 
@@ -367,6 +429,8 @@ Las relaciones sin atributos representan asociaciones directas entre entidades q
 | Genera_Ingreso | Orden_Recepcion + Movimiento_Kardex | Una recepción validada puede generar múltiples movimientos de entrada. Cada movimiento de recepción se vincula a una única recepción de origen. |
 | Tiene_Ordenes | Proveedor + Orden_Compra | Un proveedor puede tener cero o múltiples órdenes de compra; cada orden corresponde a un único proveedor. |
 | Deriva_En | Orden_Compra + Orden_Recepcion | Una orden de compra puede originar cero o múltiples recepciones; cada recepción corresponde a una única orden de compra. |
+| Registra_Reserva | Usuario + Reserva_Stock | Un usuario puede registrar múltiples reservas; cada reserva identifica a un único usuario responsable. |
+| Corrige | Movimiento_Kardex + Movimiento_Kardex | Un movimiento puede ser corregido por cero o múltiples movimientos compensatorios; cada movimiento compensatorio corrige a un único movimiento. |
 | Sube | Usuario + Documento_Digital | Un usuario puede cargar múltiples documentos; cada documento identifica a un único usuario responsable. |
 | Contiene | Documento_Digital + Detalle_Extraido | Un documento puede contener cero o múltiples elementos extraídos; cada detalle pertenece a un único documento. |
 | Asociado | Producto + Detalle_Extraido | Un producto puede asociarse a múltiples detalles extraídos; cada detalle puede asociarse opcionalmente a un único producto. |

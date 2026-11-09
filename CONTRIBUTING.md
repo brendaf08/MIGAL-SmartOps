@@ -58,20 +58,31 @@ Cada commit debe representar un avance coherente y explicar el cambio realizado.
 Formato:
 
 ```text
-tipo: descripcion concreta
+tipo(ambito): descripcion concreta
 ```
+
+El tipo corresponde al prefijo de la rama (`docs`, `feat`, `fix`, `refactor`, `chore`). El ámbito indica el componente o artefacto afectado, se escribe en minúsculas y entre paréntesis. La descripción se redacta en modo imperativo, en minúsculas y sin punto final.
 
 Ejemplos:
 
 ```text
-docs: actualizar secuencia del CU-01
-docs: alinear CU-13 con recepciones parciales
-feat: registrar ventas con salida de inventario
-fix: impedir traslados con stock insuficiente
-chore: configurar generador de secuencias
+docs(secuencias): actualizar secuencia del CU-01
+docs(requerimientos): alinear CU-13 con recepciones parciales
+feat(ventas): registrar ventas con reserva de inventario
+fix(inventario): impedir traslados con stock insuficiente
+chore(secuencias): configurar generador de secuencias
 ```
 
 Evitar mensajes como `cambios`, `actualizado`, `final` o `arreglos`.
+
+### 4.1. Commits atómicos
+
+- Cada commit contiene un único cambio lógico y puede revertirse de forma independiente.
+- Cada commit deja el proyecto en un estado verificable: compila, supera las pruebas y mantiene la documentación coherente.
+- Los cambios de formato, los renombrados y los cambios de comportamiento se registran en commits distintos.
+- Las pruebas de un cambio se incluyen en el mismo commit que el código que verifican.
+- Los archivos generados (por ejemplo, imágenes exportadas o archivos de bloqueo de dependencias) se incluyen en el commit de la fuente que los origina.
+- Ordenar los commits de modo que el PR pueda revisarse commit por commit.
 
 ## 5. Pull requests
 
@@ -89,6 +100,18 @@ Utilizar la plantilla del repositorio cuando esté disponible.
 Una corrección que afecta varios artefactos debe presentarse de forma conjunta. Si requiere varios pull requests, registrar sus dependencias en Notion y mantener la tarea abierta hasta completar el conjunto.
 
 Los cambios incompletos pueden abrirse como borrador. Deben indicar lo que falta antes de solicitar aprobación.
+
+### 5.1. Tamaño y alcance
+
+Dado que los pull requests se integran mediante Squash and merge, cada uno queda como un único commit en `main`. Su tamaño determina la granularidad del historial y la calidad de la revisión.
+
+- Cada pull request aborda un único propósito y puede revisarse en una sesión.
+- Objetivo: 400 líneas modificadas o menos, sin contar archivos generados. Límite: 800 líneas.
+- Un cambio mayor se divide en pull requests sucesivos. La división sigue la secuencia natural de la implementación (por ejemplo, esquema, dominio, servicio y controlador).
+- Los pull requests con dependencias se abren una vez integrado el anterior, o se marcan como borrador e indican su dependencia.
+- Mantener como máximo cuatro pull requests abiertos por integrante.
+- El título del pull request sigue el formato de commit (`tipo(ambito): descripcion`), pues será el mensaje resultante en `main`.
+- Las excepciones al límite (importaciones, archivos generados, renombrados masivos) se justifican en la descripción y se aíslan en commits propios.
 
 ## 6. Revisión e integración
 

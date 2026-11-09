@@ -255,7 +255,7 @@ Los movimientos de Kardex representan variaciones reales del inventario físico.
 
 Cada movimiento se vincula a un inventario específico, evitando registrar separadamente referencias redundantes a producto y almacén cuando ambos ya se encuentran identificados mediante `id_inventario`.
 
-Los movimientos asociados a despachos y recepciones deben conservar la referencia a su operación de origen. Los traslados internos se registran mediante una salida del almacén de origen y una entrada en el almacén de destino, vinculadas por una misma referencia.
+Los movimientos asociados a despachos y recepciones deben conservar la referencia a su operación de origen. Los movimientos de origen Ajuste exigen motivo y no tienen referencia de operación. Los movimientos de origen Traslado exigen `referencia_traslado`: cada referencia agrupa exactamente una salida y una entrada de igual cantidad y del mismo producto, en inventarios distintos. Los traslados internos se registran mediante una salida del almacén de origen y una entrada en el almacén de destino, vinculadas por una misma referencia.
 
 ### Proveedor
 
@@ -313,8 +313,8 @@ Estas asociaciones se implementan mediante tablas intermedias, permitiendo repre
 
 | Relación | Entidades que une | Atributos propios | Cardinalidad |
 | --- | --- | --- | --- |
-| `Inventario` | Producto + Almacen | `id_inventario` (PK)<br>`id_producto` (FK)<br>`id_almacen` (FK)<br>`cantidad_fisica` (Simple)<br>`cantidad_reservada` (Derivado)<br>`cantidad_libre` (Derivado) | Muchos a muchos resuelta mediante Inventario. Un producto puede encontrarse en múltiples almacenes y cada almacén puede contener distintos productos. Cada combinación producto-almacén es única. |
-| `Reserva_Stock` | Detalle_Venta + Inventario | `id_reserva` (PK)<br>`id_detalle_venta` (FK)<br>`id_inventario` (FK)<br>`cantidad_reservada` (Simple)<br>`estado` (Simple)<br>`fecha_reserva` (Simple)<br>`fecha_cierre` (Opcional)<br>`id_usuario_responsable` (FK) | Una línea de venta puede tener múltiples reservas y un inventario puede estar asociado a reservas de diferentes ventas. Cada reserva corresponde a una línea y ubicación determinadas. |
+| `Inventario` | Producto + Almacen | `id_inventario` (PK)<br>`id_producto` (FK)<br>`id_almacen` (FK)<br>`cantidad_fisica` (Simple)<br>`cantidad_reservada` (Derivado)<br>`cantidad_libre` (Derivado) | Muchos a muchos resuelta mediante Inventario. Un producto puede encontrarse en múltiples almacenes y cada almacén puede contener distintos productos. Cada combinación producto-almacén es única (restricción de unicidad sobre `id_producto` e `id_almacen`). |
+| `Reserva_Stock` | Detalle_Venta + Inventario | `id_reserva` (PK)<br>`id_detalle_venta` (FK)<br>`id_inventario` (FK)<br>`cantidad_reservada` (Simple)<br>`estado` (Simple: activa, liberada o consumida)<br>`fecha_reserva` (Simple)<br>`fecha_cierre` (Opcional)<br>`id_usuario_responsable` (FK) | Una línea de venta puede tener múltiples reservas y un inventario puede estar asociado a reservas de diferentes ventas. Cada reserva corresponde a una línea y ubicación determinadas. |
 | `Detalle_Venta` | Venta + Producto | `id_detalle_venta` (PK)<br>`id_venta` (FK)<br>`id_producto` (FK)<br>`cantidad_vendida` (Simple)<br>`precio_unitario` (Simple)<br>`subtotal_detalle` (Derivado)<br>`cantidad_reservada_actual` (Derivado)<br>`cantidad_pendiente_abastecimiento` (Derivado) | Muchos a muchos resuelta mediante Detalle_Venta. Una venta contiene uno o varios productos y un producto puede aparecer en distintas ventas. |
 | `Detalle_Cotizacion` | Cotizacion + Producto | `id_cotizacion` (PK, FK)<br>`id_producto` (PK, FK)<br>`cantidad_cotizada` (Simple)<br>`precio_unitario` (Simple)<br>`subtotal_detalle` (Derivado) | Muchos a muchos. Una cotización puede incluir varios productos y un producto puede estar presente en diferentes cotizaciones. |
 | `Detalle_Compra` | Orden_Compra + Producto | `id_orden` (PK, FK)<br>`id_producto` (PK, FK)<br>`cantidad_comprada` (Simple)<br>`costo_unitario` (Simple)<br>`subtotal_detalle` (Derivado)<br>`cantidad_pendiente_recepcion` (Derivado) | Muchos a muchos. Una orden de compra contiene uno o varios productos y un producto puede ser solicitado en distintas órdenes. |
@@ -322,6 +322,8 @@ Estas asociaciones se implementan mediante tablas intermedias, permitiendo repre
 | `Catalogo_Proveedor` | Proveedor + Producto | `id_proveedor` (PK, FK)<br>`id_producto` (PK, FK)<br>`precio_compra` (Simple)<br>`plazo_entrega_referencial_dias` (Opcional)<br>`fecha_actualizacion_precio` (Opcional) | Muchos a muchos. Un proveedor puede suministrar diferentes productos y un producto puede encontrarse asociado a varios proveedores. |
 
 ### Consideraciones de las relaciones
+
+**Claves foráneas.** Las claves foráneas de las tablas de relaciones con atributos son obligatorias, salvo que su descripción indique lo contrario.
 
 **Inventario.** La combinación de producto y almacén debe ser única. `cantidad_fisica` representa las unidades existentes, mientras que `cantidad_reservada` y `cantidad_libre` son cantidades calculadas a partir de las reservas activas.
 
@@ -332,6 +334,22 @@ Estas asociaciones se implementan mediante tablas intermedias, permitiendo repre
 **Detalle_Recepcion.** La inclusión de `id_almacen_destino` permite registrar el ingreso de productos a diferentes ubicaciones físicas sin perder la referencia a la recepción de origen.
 
 **Catalogo_Proveedor.** Conserva las asociaciones entre productos y proveedores, junto con información comercial referencial. La selección y evaluación final de condiciones de abastecimiento permanece bajo responsabilidad del personal autorizado de MIGAL.
+
+Los atributos derivados se calculan con las siguientes fórmulas:
+
+```text
+subtotal_detalle (cotización, venta) = cantidad × precio_unitario
+subtotal_detalle (compra)            = cantidad_comprada × costo_unitario
+
+total_cotizacion = SUM(subtotal_detalle) - descuento
+total_venta      = SUM(subtotal_detalle) - descuento
+
+cantidad_pendiente_recepcion =
+    cantidad_comprada
+    - SUM(cantidad_recibida de las recepciones validadas de la orden para el mismo producto)
+```
+
+`Detalle_Recepcion` no referencia a `Detalle_Compra`: su vínculo se establece mediante la orden de la recepción y el producto.
 
 Los atributos marcados como derivados corresponden a valores calculados y no requieren almacenarse como columnas físicas independientes, salvo que una necesidad técnica posterior justifique su persistencia controlada.
 

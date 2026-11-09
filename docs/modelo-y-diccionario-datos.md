@@ -96,6 +96,22 @@ Toda cotización y venta se encuentra asociada a un cliente registrado, conforme
 
 El modelo permite diferenciar las existencias mantenidas en la tienda principal y en los dos almacenes adicionales de MIGAL.
 
+### Categoria
+
+| Atributo | Tipo de atributo | Descripción |
+| --- | --- | --- |
+| `id_categoria` | Único (PK) | Identificador interno de la categoría o subcategoría. |
+| `nombre` | Simple | Denominación de la categoría, como `Cemento y aglomerantes`. Es única dentro de un mismo padre. |
+| `id_categoria_padre` | Opcional (FK) | Referencia a la categoría de nivel superior. Las categorías de primer nivel no la contienen. |
+| `aprobacion_automatica` | Simple | Indicador que determina si la viabilidad de abastecimiento de los productos de la categoría se aprueba automáticamente cuando existe stock insuficiente. |
+| `estado_activo` | Simple | Indicador de vigencia de la categoría. |
+
+La jerarquía de productos consta de dos niveles. Las categorías de primer nivel agrupan a sus subcategorías, y los productos se asignan a una categoría mediante `id_categoria`. La categoría efectiva de un producto es la subcategoría a la que pertenece; si la categoría asignada no tiene subcategorías, ella es la categoría efectiva.
+
+La unicidad del nombre se aplica sobre la combinación de `id_categoria_padre` y `nombre`, tratando el padre nulo como un valor único. Una categoría no puede ser su propia categoría padre.
+
+Las categorías con `aprobacion_automatica` verdadero son `Cemento y aglomerantes`, `Agregados`, `Ladrillos y bloques` y `Fierro y acero de construcción`. Las demás categorías tienen este indicador en falso.
+
 ### Producto
 
 | Atributo | Tipo de atributo | Descripción |
@@ -108,7 +124,7 @@ El modelo permite diferenciar las existencias mantenidas en la tienda principal 
 | `precio_referencial` | Simple | Precio comercial de referencia utilizado como apoyo en cotizaciones y ventas. |
 | `stock_minimo` | Simple | Umbral utilizado para generar alertas de reposición. |
 | `estado_activo` | Simple | Indicador de vigencia del producto. |
-| `categoria_producto` | Simple | Categoría comercial utilizada, entre otras funciones, para evaluar la viabilidad del abastecimiento. |
+| `id_categoria` | Obligatorio (FK) | Categoría asignada al producto. Su indicador `aprobacion_automatica` determina la viabilidad de abastecimiento aplicable. |
 | `marca` | Opcional | Marca comercial del producto. |
 | `presentacion` | Opcional | Presentación o formato de comercialización. |
 | `fecha_registro` | Simple | Fecha de incorporación al catálogo. |
@@ -170,7 +186,7 @@ La cancelación antes del despacho exige `motivo_cancelacion`, `fecha_cancelacio
 
 La conversión de una cotización a venta requiere la aceptación del cliente y la validación de viabilidad comercial.
 
-Cuando exista stock insuficiente, la evaluación de abastecimiento considera la categoría del producto. Para cementos, ladrillos, fierros y agregados se contempla una viabilidad de reposición automática; las demás categorías requieren evaluación de la propietaria responsable.
+Cuando exista stock insuficiente, la evaluación de abastecimiento considera la categoría efectiva del producto, según lo descrito en la entidad `Categoria`. Si el indicador `aprobacion_automatica` de esa categoría es verdadero, la viabilidad de abastecimiento se aprueba automáticamente. Esta regla se aplica a las categorías Cemento y aglomerantes, Agregados, Ladrillos y bloques y Fierro y acero de construcción; las demás categorías requieren evaluación de la propietaria responsable.
 
 Los estados de la cotización y sus transiciones son los siguientes:
 
@@ -436,6 +452,8 @@ Las relaciones sin atributos representan asociaciones directas entre entidades q
 | Asociado | Producto + Detalle_Extraido | Un producto puede asociarse a múltiples detalles extraídos; cada detalle puede asociarse opcionalmente a un único producto. |
 | Origina_Cotizacion | Documento_Digital + Cotizacion | Un documento puede utilizarse como fuente principal de una cotización; la asociación es opcional en ambos extremos. |
 | Apoya_Recepcion | Documento_Digital + Orden_Recepcion | Un documento puede utilizarse para precargar una recepción; la asociación es opcional en ambos extremos. |
+| Clasifica | Categoria + Producto | Una categoría puede clasificar cero o múltiples productos; cada producto pertenece a una única categoría. |
+| Contiene_Subcategoria | Categoria + Categoria | Una categoría puede contener cero o múltiples subcategorías; cada subcategoría tiene como máximo una categoría padre. |
 
 ### Consideraciones de cardinalidad
 
@@ -483,6 +501,7 @@ Para mantener la consistencia entre las entidades y los procesos del sistema, se
 - Las reservas activas no deben superar las existencias físicas de un inventario.
 - Los movimientos de Kardex deben identificar el inventario afectado y la operación que los originó.
 - Las cancelaciones anteriores al despacho deben liberar las reservas y conservar el motivo y la autorización correspondiente.
+- Todo producto debe pertenecer a una única categoría, y el nombre de una categoría es único dentro de su mismo padre.
 - Los registros históricos deben conservarse cuando se desactiven clientes, proveedores, productos o usuarios.
 - Los movimientos de inventario y las reservas deben ejecutarse mediante operaciones transaccionales consistentes.
 

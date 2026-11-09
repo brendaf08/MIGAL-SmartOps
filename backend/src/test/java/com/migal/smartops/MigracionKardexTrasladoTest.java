@@ -136,8 +136,8 @@ class MigracionKardexTrasladoTest {
 
 	private Long crearInventario() {
 		Long idProducto = jdbc.queryForObject("""
-				INSERT INTO producto (sku, nombre_oficial, unidad_medida, precio_referencial, stock_minimo, categoria_producto)
-				VALUES (?, 'Producto ficticio', 'bolsa', 10.00, 0, 'cementos')
+				INSERT INTO producto (sku, nombre_oficial, unidad_medida, precio_referencial, stock_minimo, id_categoria)
+				VALUES (?, 'Producto ficticio', 'bolsa', 10.00, 0, (SELECT id_categoria FROM categoria WHERE nombre = 'Cemento y aglomerantes'))
 				RETURNING id_producto
 				""", Long.class, "TRA-" + sufijo());
 		Long idAlmacen = jdbc.queryForObject("""

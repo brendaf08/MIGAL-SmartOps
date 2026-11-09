@@ -69,6 +69,15 @@ entity Almacen {
   * estado_activo
 }
 
+entity Categoria {
+  * id_categoria <<PK>>
+  --
+  * nombre
+  id_categoria_padre <<FK>>
+  * aprobacion_automatica
+  * estado_activo
+}
+
 entity Producto {
   * id_producto <<PK>>
   --
@@ -79,7 +88,7 @@ entity Producto {
   * precio_referencial
   * stock_minimo
   * estado_activo
-  * categoria_producto
+  * id_categoria <<FK>>
   marca
   presentacion
   * fecha_registro
@@ -278,6 +287,9 @@ entity Catalogo_Proveedor {
 ' ---------------------------------------------------------------
 ' Relaciones sin atributos (nombre según el diccionario)
 ' ---------------------------------------------------------------
+
+Categoria ||--o{ Producto : Clasifica
+Categoria |o--o{ Categoria : Contiene_Subcategoria
 
 Usuario ||--o{ Venta : Registra
 Usuario ||--o{ Cotizacion : Emite

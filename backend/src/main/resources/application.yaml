@@ -1,0 +1,19 @@
+spring:
+  application:
+    name: smartops
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/migal_smartops}
+    username: ${SPRING_DATASOURCE_USERNAME:migal_app}
+    password: ${SPRING_DATASOURCE_PASSWORD:}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    locations: ${FLYWAY_LOCATIONS:filesystem:../database/migraciones}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

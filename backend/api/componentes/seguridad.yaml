@@ -5,7 +5,9 @@
 # valores de RolUsuario que pueden invocarla, por ejemplo:
 #   x-roles: [Almacenero, Administrador]
 # El backend aplica la misma lista mediante autorización centralizada. La
-# operación POST /sesiones es pública y no declara x-roles.
+# operación POST /sesiones es pública y no declara x-roles. Las operaciones abiertas a
+# todos los usuarios autenticados declaran los cuatro roles. Las operaciones exclusivas del
+# servicio de OCR declaran x-servicio con el alcance requerido y usan serviceAuth (ADR-008).
 
 bearerAuth:
   type: http
@@ -14,6 +16,15 @@ bearerAuth:
   description: >-
     JWT de acceso enviado en la cabecera Authorization. Lo emite POST /sesiones.
     La duración del token y el mecanismo de renovación quedan pendientes (ADR-006).
+
+serviceAuth:
+  type: http
+  scheme: bearer
+  bearerFormat: JWT
+  description: >-
+    Token de servicio emitido para el servicio de OCR. No representa a un usuario ni a un rol.
+    Las operaciones que lo aceptan declaran el alcance requerido en x-servicio, por ejemplo
+    ocr:resultados:escribir.
 
 RolUsuario:
   type: string

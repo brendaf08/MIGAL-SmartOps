@@ -1,0 +1,32 @@
+# Verifica los Pull Requests que tocan backend/ o las migraciones: compilación y pruebas.
+# Las pruebas utilizan Testcontainers con PostgreSQL real; el ejecutor ubuntu-latest incluye Docker.
+# Los PR que no tocan estas rutas (documentación, frontend, etc.) no se revisan aquí.
+name: Verificar backend
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'backend/**'
+      - 'database/migraciones/**'
+      - '.github/workflows/verificar-backend.yml'
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+          cache-dependency-path: backend/pom.xml
+
+      - name: Compilar y ejecutar pruebas
+        run: ./mvnw -B -ntp verify

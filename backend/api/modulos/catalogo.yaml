@@ -349,7 +349,7 @@ paths:
         - Catálogo
       security:
         - bearerAuth: []
-      x-roles: [Almacenero, Administrador]
+      x-roles: [almacenero, administrador]
       parameters:
         - $ref: ../componentes/parametros.yaml#/page
         - $ref: ../componentes/parametros.yaml#/pageSize
@@ -385,7 +385,7 @@ paths:
         - Catálogo
       security:
         - bearerAuth: []
-      x-roles: [Almacenero, Administrador]
+      x-roles: [almacenero, administrador]
       requestBody:
         required: true
         content:
@@ -423,7 +423,7 @@ paths:
         - Catálogo
       security:
         - bearerAuth: []
-      x-roles: [Almacenero, Administrador]
+      x-roles: [almacenero, administrador]
       responses:
         '200':
           description: Producto encontrado.
@@ -450,7 +450,7 @@ paths:
         - Catálogo
       security:
         - bearerAuth: []
-      x-roles: [Almacenero, Administrador]
+      x-roles: [almacenero, administrador]
       requestBody:
         required: true
         content:
@@ -491,7 +491,7 @@ paths:
         - Catálogo
       security:
         - bearerAuth: []
-      x-roles: [Almacenero, Administrador]
+      x-roles: [almacenero, administrador]
       requestBody:
         required: true
         content:
@@ -530,7 +530,7 @@ paths:
         - Catálogo
       security:
         - bearerAuth: []
-      x-roles: [Almacenero, Vendedor, Reponedor, Administrador]
+      x-roles: [almacenero, vendedor, reponedor, administrador]
       responses:
         '200':
           description: Lista completa de ubicaciones.
@@ -563,7 +563,7 @@ paths:
         - bearerAuth: []
       # Asignación de roles pendiente de confirmación: el ADR-006 no define quién gestiona los
       # almacenes. Se asigna Administrador por analogía con la gestión de maestros de usuarios.
-      x-roles: [Administrador]
+      x-roles: [administrador]
       requestBody:
         required: true
         content:
@@ -602,7 +602,7 @@ paths:
         - Catálogo
       security:
         - bearerAuth: []
-      x-roles: [Almacenero, Administrador]
+      x-roles: [almacenero, administrador]
       responses:
         '200':
           description: Lista completa de categorías.

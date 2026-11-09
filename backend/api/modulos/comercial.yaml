@@ -255,7 +255,7 @@ paths:
       description: Devuelve una página de clientes, activos e inactivos salvo que se filtre por estadoActivo. El parámetro q busca por nombre o razón social y por número de documento. Campos ordenables, nombreRazonSocial y fechaRegistro. Orden predeterminado nombreRazonSocial:asc. Un campo fuera de la lista genera VALIDACION_FALLIDA.
       tags: [Clientes]
       security: [{bearerAuth: []}]
-      x-roles: [Vendedor, Administrador]
+      x-roles: [vendedor, administrador]
       parameters:
         - {$ref: ../componentes/parametros.yaml#/page}
         - {$ref: ../componentes/parametros.yaml#/pageSize}
@@ -274,7 +274,7 @@ paths:
       description: Registra un cliente nuevo con estado activo. Si el número de documento ya pertenece a otro cliente, responde DOCUMENTO_CLIENTE_DUPLICADO con clienteId y no crea el registro. Las reglas de los campos generan VALIDACION_FALLIDA.
       tags: [Clientes]
       security: [{bearerAuth: []}]
-      x-roles: [Vendedor, Administrador]
+      x-roles: [vendedor, administrador]
       requestBody:
         required: true
         content: {application/json: {schema: {$ref: '#/components/schemas/ClienteDatos'}}}
@@ -296,7 +296,7 @@ paths:
       description: Devuelve el detalle de un cliente, activo o inactivo. Responde RECURSO_NO_ENCONTRADO si el identificador no existe.
       tags: [Clientes]
       security: [{bearerAuth: []}]
-      x-roles: [Vendedor, Administrador]
+      x-roles: [vendedor, administrador]
       responses:
         '200': {description: Cliente encontrado., content: {application/json: {schema: {$ref: '#/components/schemas/ClienteRegistrado'}}}}
         '401': {$ref: ../componentes/errores.yaml#/Error401}
@@ -309,7 +309,7 @@ paths:
       description: Modifica los datos de un cliente. El estado de vigencia se cambia mediante PUT /clientes/{id}/estado. Si el nuevo número de documento pertenece a otro cliente, responde DOCUMENTO_CLIENTE_DUPLICADO.
       tags: [Clientes]
       security: [{bearerAuth: []}]
-      x-roles: [Vendedor, Administrador]
+      x-roles: [vendedor, administrador]
       requestBody:
         required: true
         content: {application/json: {schema: {$ref: '#/components/schemas/ClienteDatos'}}}
@@ -332,7 +332,7 @@ paths:
       description: Establece la vigencia del cliente. La desactivación es lógica y conserva el registro. Responde RECURSO_NO_ENCONTRADO si el identificador no existe.
       tags: [Clientes]
       security: [{bearerAuth: []}]
-      x-roles: [Vendedor, Administrador]
+      x-roles: [vendedor, administrador]
       requestBody:
         required: true
         content: {application/json: {schema: {$ref: '#/components/schemas/ClienteActualizacionEstado'}}}
@@ -352,7 +352,7 @@ paths:
       description: Devuelve una página de cotizaciones con su estado vigente a la fecha de consulta. El parámetro q busca por nombre o razón social del cliente. El filtro estado admite varios valores separados por coma. Campos ordenables, fechaEmision y fechaVencimiento. Orden predeterminado fechaEmision:desc. Un campo fuera de la lista genera VALIDACION_FALLIDA.
       tags: [Cotizaciones]
       security: [{bearerAuth: []}]
-      x-roles: [Vendedor, Administrador]
+      x-roles: [vendedor, administrador]
       parameters:
         - {$ref: ../componentes/parametros.yaml#/page}
         - {$ref: ../componentes/parametros.yaml#/pageSize}
@@ -374,7 +374,7 @@ paths:
       description: Emite una cotización nueva con estado emitida. Sin cliente responde CLIENTE_REQUERIDO y con cliente inactivo responde CLIENTE_INACTIVO. La existencia del cliente y de los productos, la ausencia de productos repetidos y un descuento no mayor que el subtotal generan VALIDACION_FALLIDA. No reserva ni modifica existencias.
       tags: [Cotizaciones]
       security: [{bearerAuth: []}]
-      x-roles: [Vendedor]
+      x-roles: [vendedor]
       requestBody:
         required: true
         content: {application/json: {schema: {$ref: '#/components/schemas/CotizacionDatos'}}}
@@ -395,7 +395,7 @@ paths:
       description: Devuelve el detalle de una cotización con sus líneas, sus totales derivados y su estado vigente. Responde RECURSO_NO_ENCONTRADO si el identificador no existe.
       tags: [Cotizaciones]
       security: [{bearerAuth: []}]
-      x-roles: [Vendedor, Administrador]
+      x-roles: [vendedor, administrador]
       responses:
         '200': {description: Cotización encontrada., content: {application/json: {schema: {$ref: '#/components/schemas/CotizacionRegistrada'}}}}
         '401': {$ref: ../componentes/errores.yaml#/Error401}
@@ -408,7 +408,7 @@ paths:
       description: Modifica una cotización emitida antes de su aceptación. La fecha de emisión se conserva y la fecha de vencimiento se recalcula con validezDias. Una cotización que no está emitida responde COTIZACION_NO_EDITABLE. Una cotización emitida cuyo vencimiento ya superó la fecha de consulta responde COTIZACION_VENCIDA.
       tags: [Cotizaciones]
       security: [{bearerAuth: []}]
-      x-roles: [Vendedor]
+      x-roles: [vendedor]
       requestBody:
         required: true
         content: {application/json: {schema: {$ref: '#/components/schemas/CotizacionDatos'}}}
@@ -431,7 +431,7 @@ paths:
       description: Registra la aceptación de la propuesta por el cliente y cambia el estado de emitida a aceptada (CU-09, flujo alternativo 1). Fija fechaAceptacionCliente y no reserva existencias (RF-COT-08). Una cotización vencida responde COTIZACION_VENCIDA. Cualquier otro estado distinto de emitida responde COTIZACION_NO_EDITABLE.
       tags: [Cotizaciones]
       security: [{bearerAuth: []}]
-      x-roles: [Vendedor]
+      x-roles: [vendedor]
       parameters:
         - {$ref: ../componentes/parametros.yaml#/IdempotencyKey}
       responses:
@@ -452,7 +452,7 @@ paths:
       description: Registra la validación de viabilidad comercial de una cotización aceptada y cambia su estado de aceptada a validada. Fija fechaValidacionMigal. La realiza la propietaria responsable del abastecimiento, representada por el rol Administrador (ADR-008). Una cotización que no está aceptada responde COTIZACION_NO_CONVERTIBLE. Una cotización cuyo vencimiento ya pasó responde COTIZACION_VENCIDA.
       tags: [Cotizaciones]
       security: [{bearerAuth: []}]
-      x-roles: [Administrador]
+      x-roles: [administrador]
       parameters:
         - {$ref: ../componentes/parametros.yaml#/IdempotencyKey}
       responses:
@@ -473,7 +473,7 @@ paths:
       description: Registra el rechazo de una cotización, que pasa a rechazada (estado final). Con origen cliente, la cotización debe estar emitida (COTIZACION_NO_EDITABLE si no lo está) y lo registran los roles Vendedor y Administrador. Con origen migal, la cotización debe estar aceptada (COTIZACION_NO_CONVERTIBLE si no lo está) y solo lo registra el rol Administrador; un Vendedor que lo intente recibe PERMISO_INSUFICIENTE. El registro indica el origen, el usuario, la fecha y el motivo opcional. No reserva ni libera existencias.
       tags: [Cotizaciones]
       security: [{bearerAuth: []}]
-      x-roles: [Vendedor, Administrador]
+      x-roles: [vendedor, administrador]
       parameters:
         - {$ref: ../componentes/parametros.yaml#/IdempotencyKey}
       requestBody:
@@ -498,7 +498,7 @@ paths:
       description: Divide una cotización emitida en dos (ADR-003, regla 4). Traslada las cantidades indicadas a una cotización nueva, con el mismo cliente, condiciones y fechas, y conserva el resto en la original. Cada una podrá convertirse en su propia venta. Una cotización que no está emitida responde COTIZACION_NO_EDITABLE. Una cantidad superior a la cotizada, un producto ajeno a la cotización o la omisión de todas las líneas de la original generan VALIDACION_FALLIDA. No reserva existencias.
       tags: [Cotizaciones]
       security: [{bearerAuth: []}]
-      x-roles: [Vendedor]
+      x-roles: [vendedor]
       parameters:
         - {$ref: ../componentes/parametros.yaml#/IdempotencyKey}
       requestBody:
@@ -523,7 +523,7 @@ paths:
       description: Cambia a vencida una cotización cuya fecha de vencimiento ya superó la fecha de consulta (CU-09, flujo alternativo 3). El servidor aplica este cambio de forma automática y la operación permite registrarlo de forma explícita. Si la fecha no se ha superado responde VALIDACION_FALLIDA. Una cotización rechazada o vencida responde COTIZACION_NO_EDITABLE. Una cotización validada que ya originó una venta responde COTIZACION_YA_CONVERTIDA.
       tags: [Cotizaciones]
       security: [{bearerAuth: []}]
-      x-roles: [Vendedor, Administrador]
+      x-roles: [vendedor, administrador]
       parameters:
         - {$ref: ../componentes/parametros.yaml#/IdempotencyKey}
       responses:

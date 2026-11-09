@@ -387,7 +387,7 @@ paths:
         y combinables; q busca por código de la guía o por cliente, y el rango de fechas es inclusivo y se aplica
         sobre la fecha de emisión. El orden predeterminado es fechaEmision:desc; los campos ordenables son
         fechaEmision y codigo. Operación de solo lectura que no genera movimientos de Kardex.
-      x-roles: [Almacenero]
+      x-roles: [almacenero]
       x-herramienta-agente: true
       security:
         - bearerAuth: []
@@ -427,7 +427,7 @@ paths:
         Si la venta ya tiene guía, se rechaza con GUIA_EXISTENTE aunque su estado haya cambiado. Si la venta no
         está en pendiente_despacho, se rechaza con VENTA_NO_DESPACHABLE. Si alguna línea no tiene reservada la
         cantidad completa, se rechaza con RESERVA_INCOMPLETA. Devuelve 201 con la guía creada.
-      x-roles: [Almacenero]
+      x-roles: [almacenero]
       security:
         - bearerAuth: []
       requestBody:
@@ -466,7 +466,7 @@ paths:
       description: >-
         Devuelve una guía con sus líneas y, por cada línea, sus ubicaciones de salida tomadas de las reservas de la
         venta (CU-06). Operación de solo lectura.
-      x-roles: [Almacenero]
+      x-roles: [almacenero]
       x-herramienta-agente: true
       security:
         - bearerAuth: []
@@ -496,7 +496,7 @@ paths:
       description: >-
         Devuelve los datos del documento de la guía para su impresión (CU-06, paso 7). La consulta no registra
         ninguna impresión ni reimpresión, y no modifica el inventario. Operación de solo lectura.
-      x-roles: [Almacenero]
+      x-roles: [almacenero]
       x-herramienta-agente: true
       security:
         - bearerAuth: []
@@ -532,7 +532,7 @@ paths:
         Idempotent-Replayed. Si la guía no está en emitida, se rechaza con SALIDA_NO_CONFIRMABLE. Si alguna línea no
         tiene reservada la cantidad completa, se rechaza con RESERVA_INCOMPLETA y no se genera ningún movimiento.
         Si otra operación modifica el mismo inventario, se rechaza con PETICION_CONCURRENTE.
-      x-roles: [Almacenero]
+      x-roles: [almacenero]
       security:
         - bearerAuth: []
       parameters:
@@ -573,7 +573,7 @@ paths:
         Registra una reimpresión de la guía con su motivo obligatorio (CU-06, flujo alternativo 1). La operación no
         modifica el inventario, no genera movimientos de Kardex y no cambia el estado de la guía. Devuelve 201 con la
         reimpresión registrada.
-      x-roles: [Almacenero]
+      x-roles: [almacenero]
       security:
         - bearerAuth: []
       parameters:
@@ -614,7 +614,7 @@ paths:
         operación no admite cuerpo, no modifica el inventario y no genera movimientos de Kardex. Si la guía no está
         en salida_confirmada, se rechaza con 409; el código de negocio de ese caso no figura en el catálogo
         CodigoError y queda pendiente. Devuelve 200 con la guía actualizada.
-      x-roles: [Almacenero]
+      x-roles: [almacenero]
       security:
         - bearerAuth: []
       parameters:
@@ -648,7 +648,7 @@ paths:
         módulo comercial (CU-10). Las ventas con cantidades pendientes de abastecimiento no aparecen en el listado.
         El filtro q busca por código de venta o por cliente, y el rango desde y hasta se aplica sobre la fecha de la
         venta, de modo inclusivo. El orden es fijo por fecha ascendente y código ascendente. Operación de solo lectura.
-      x-roles: [Almacenero]
+      x-roles: [almacenero]
       x-herramienta-agente: true
       security:
         - bearerAuth: []

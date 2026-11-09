@@ -44,3 +44,25 @@ IdempotencyKey:
   required: true
   description: Clave UUID que identifica la operación para reintentos seguros (ADR-006).
   schema: {type: string, format: uuid}
+
+sku:
+  name: sku
+  in: query
+  description: Filtro exacto por SKU. El SKU no es clave de ruta (ADR-008).
+  schema: {type: string}
+
+ubicacionId:
+  name: ubicacionId
+  in: query
+  description: Filtro por identificador de la ubicación (tienda principal o almacén).
+  schema: {type: string}
+
+estadoActivo:
+  name: estadoActivo
+  in: query
+  description: Filtro por vigencia del registro.
+  schema: {type: boolean}
+
+IdempotentReplayed:
+  description: Presente con el valor true cuando la respuesta repite el resultado de una solicitud anterior con la misma Idempotency-Key.
+  schema: {type: boolean}

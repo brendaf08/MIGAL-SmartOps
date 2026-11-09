@@ -26,8 +26,8 @@ paths:
         Valida las credenciales personales y devuelve un JWT de acceso junto con el usuario autenticado y su rol.
         Es la única operación pública del módulo. Las credenciales incorrectas responden NO_AUTENTICADO (401)
         con un detalle que no indica cuál de los dos datos es erróneo. Una cuenta desactivada responde
-        NO_AUTENTICADO (401) solo cuando las credenciales son correctas, con un detalle que indica contactar
-        al Administrador. La duración del token y su renovación quedan pendientes (ADR-006).
+        CUENTA_INACTIVA (403) solo cuando las credenciales son correctas, con un detalle que indica contactar
+        al Administrador. El token dura 8 horas y no se renueva (ADR-009).
       security: []
       requestBody:
         required: true
@@ -46,6 +46,8 @@ paths:
           $ref: ../componentes/errores.yaml#/Error400
         '401':
           $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
         '422':
           $ref: ../componentes/errores.yaml#/Error422
         '500':
@@ -62,7 +64,7 @@ paths:
         Un token ausente o no válido responde NO_AUTENTICADO (401).
       security:
         - bearerAuth: []
-      x-roles: [Administrador, Vendedor, Almacenero, Reponedor]
+      x-roles: [administrador, vendedor, almacenero, reponedor]
       responses:
         '200':
           description: Usuario y rol de la sesión actual.
@@ -87,7 +89,7 @@ paths:
         Orden predeterminado: apellidos:asc,nombres:asc. Un campo fuera de esta lista responde VALIDACION_FALLIDA (422).
       security:
         - bearerAuth: []
-      x-roles: [Administrador]
+      x-roles: [administrador]
       parameters:
         - $ref: ../componentes/parametros.yaml#/page
         - $ref: ../componentes/parametros.yaml#/pageSize
@@ -121,7 +123,7 @@ paths:
         La clave temporal se recibe solo en la solicitud y nunca se devuelve. El usuario creado queda activo.
       security:
         - bearerAuth: []
-      x-roles: [Administrador]
+      x-roles: [administrador]
       requestBody:
         required: true
         content:
@@ -148,6 +150,34 @@ paths:
         '500':
           $ref: ../componentes/errores.yaml#/Error500
   /usuarios/{id}:
+    get:
+      tags:
+        - Usuarios
+      operationId: consultarUsuario
+      summary: Consultar usuario
+      description: >-
+        Devuelve los datos de un usuario, sin la clave. Lo utiliza el formulario de edición (CU-02).
+        Si el identificador no existe, responde RECURSO_NO_ENCONTRADO (404).
+      security:
+        - bearerAuth: []
+      x-roles: [administrador]
+      parameters:
+        - $ref: '#/components/parameters/IdUsuario'
+      responses:
+        '200':
+          description: Datos del usuario.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsuarioRegistrado'
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
+        '404':
+          $ref: ../componentes/errores.yaml#/Error404
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500
     put:
       tags:
         - Usuarios
@@ -159,7 +189,7 @@ paths:
         responde RECURSO_NO_ENCONTRADO (404). El cambio de rol no altera el historial de operaciones del usuario.
       security:
         - bearerAuth: []
-      x-roles: [Administrador]
+      x-roles: [administrador]
       parameters:
         - $ref: '#/components/parameters/IdUsuario'
       requestBody:
@@ -199,7 +229,7 @@ paths:
         se conserva. Si el identificador no existe, responde RECURSO_NO_ENCONTRADO (404).
       security:
         - bearerAuth: []
-      x-roles: [Administrador]
+      x-roles: [administrador]
       parameters:
         - $ref: '#/components/parameters/IdUsuario'
       requestBody:
@@ -408,15 +438,20 @@ components:
     SesionIniciada:
       type: object
       description: Resultado de un inicio de sesión correcto. El token se envía en la cabecera Authorization de las siguientes solicitudes.
-      required: [token, usuario]
+      required: [token, expiraEn, usuario]
       properties:
         token:
           type: string
           description: JWT de acceso. Contiene el identificador del usuario y su rol.
+        expiraEn:
+          type: integer
+          minimum: 1
+          description: Segundos de vigencia del token. Son 8 horas (28800) según el ADR-009. No hay renovación.
         usuario:
           $ref: '#/components/schemas/UsuarioRegistrado'
       example:
         token: eyJhbGciOiJIUzI1NiJ9.ejemplo.firma
+        expiraEn: 28800
         usuario:
           id: '42'
           nombres: Rosa

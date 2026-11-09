@@ -499,7 +499,7 @@ paths:
         Lista los productos con sus existencias físicas, reservadas y libres por ubicación (CU-04).
         La búsqueda, los filtros y la paginación se resuelven en el servidor, y el orden es fijo por
         SKU ascendente. Operación de solo lectura que no genera movimientos de Kardex.
-      x-roles: [Almacenero, Vendedor]
+      x-roles: [almacenero, vendedor]
       x-herramienta-agente: true
       security:
         - bearerAuth: []
@@ -535,7 +535,7 @@ paths:
         Devuelve la existencia física, reservada y libre de un producto, consolidada y por ubicación
         (CU-04). Ruta del módulo de inventario sobre el recurso productos (ADR-008, identificación por id).
         Operación de solo lectura.
-      x-roles: [Almacenero, Vendedor]
+      x-roles: [almacenero, vendedor]
       x-herramienta-agente: true
       security:
         - bearerAuth: []
@@ -566,7 +566,7 @@ paths:
         Lista los productos en nivel critico o minimo, es decir, con stock libre igual o inferior al
         stock mínimo (RF-KAR-09, P12). El orden es fijo: nivel critico antes que minimo, después faltante
         descendente y SKU ascendente. Operación de solo lectura.
-      x-roles: [Almacenero, Reponedor]
+      x-roles: [almacenero, reponedor]
       x-herramienta-agente: true
       security:
         - bearerAuth: []
@@ -599,7 +599,7 @@ paths:
         Lista los movimientos de inventario físico, del más reciente al más antiguo (CU-07). Todos los
         filtros son opcionales y combinables; el rango de fechas es inclusivo. El Kardex es de solo lectura.
         Los movimientos se crean únicamente con POST sobre este mismo recurso o con POST /inventario/traslados.
-      x-roles: [Almacenero, Administrador]
+      x-roles: [almacenero, administrador]
       x-herramienta-agente: true
       security:
         - bearerAuth: []
@@ -639,7 +639,7 @@ paths:
         registra como movimiento compensatorio de tipo opuesto mediante idMovimientoCorregido, con su motivo.
         Los traslados no se registran en esta operación; se usan con POST /inventario/traslados.
         Devuelve 201 con el movimiento y las existencias antes y después.
-      x-roles: [Almacenero]
+      x-roles: [almacenero]
       security:
         - bearerAuth: []
       parameters:
@@ -689,7 +689,7 @@ paths:
         es obligatorio y la cabecera Idempotency-Key también. Si el stock libre del origen no alcanza la cantidad,
         se rechaza con STOCK_INSUFICIENTE y no se genera ningún movimiento. Si el origen y el destino coinciden,
         se rechaza con VALIDACION_FALLIDA.
-      x-roles: [Administrador, Almacenero]
+      x-roles: [administrador, almacenero]
       security:
         - bearerAuth: []
       parameters:

@@ -58,20 +58,31 @@ Cada commit debe representar un avance coherente y explicar el cambio realizado.
 Formato:
 
 ```text
-tipo: descripcion concreta
+tipo(ambito): descripcion concreta
 ```
+
+El tipo corresponde al prefijo de la rama (`docs`, `feat`, `fix`, `refactor`, `chore`). El ámbito indica el componente o artefacto afectado, se escribe en minúsculas y entre paréntesis. La descripción se redacta en modo imperativo, en minúsculas y sin punto final.
 
 Ejemplos:
 
 ```text
-docs: actualizar secuencia del CU-01
-docs: alinear CU-13 con recepciones parciales
-feat: registrar ventas con salida de inventario
-fix: impedir traslados con stock insuficiente
-chore: configurar generador de secuencias
+docs(secuencias): actualizar secuencia del CU-01
+docs(requerimientos): alinear CU-13 con recepciones parciales
+feat(ventas): registrar ventas con reserva de inventario
+fix(inventario): impedir traslados con stock insuficiente
+chore(secuencias): configurar generador de secuencias
 ```
 
 Evitar mensajes como `cambios`, `actualizado`, `final` o `arreglos`.
+
+### 4.1. Commits atómicos
+
+- Cada commit contiene un único cambio lógico y puede revertirse de forma independiente.
+- Cada commit deja el proyecto en un estado verificable: compila, supera las pruebas y mantiene la documentación coherente.
+- Los cambios de formato, los renombrados y los cambios de comportamiento se registran en commits distintos.
+- Las pruebas de un cambio se incluyen en el mismo commit que el código que verifican.
+- Los archivos generados (por ejemplo, imágenes exportadas o archivos de bloqueo de dependencias) se incluyen en el commit de la fuente que los origina.
+- Ordenar los commits de modo que el PR pueda revisarse commit por commit.
 
 ## 5. Pull requests
 
@@ -89,6 +100,7 @@ Utilizar la plantilla del repositorio cuando esté disponible.
 Una corrección que afecta varios artefactos debe presentarse de forma conjunta. Si requiere varios pull requests, registrar sus dependencias en Notion y mantener la tarea abierta hasta completar el conjunto.
 
 Los cambios incompletos pueden abrirse como borrador. Deben indicar lo que falta antes de solicitar aprobación.
+
 
 ## 6. Revisión e integración
 

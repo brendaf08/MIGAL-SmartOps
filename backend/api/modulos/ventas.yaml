@@ -1,0 +1,707 @@
+# Contrato OpenAPI del módulo de ventas (CU-10), conforme al ADR-006 y al ADR-008.
+# Cubre el listado y la consulta de ventas, el registro desde una cotización aceptada y validada,
+# la venta directa de mostrador en un solo paso, el reintento de la cobertura de pendientes y la
+# cancelación antes del despacho. Las reglas de negocio proceden del ADR-003. Las operaciones de
+# clientes y cotizaciones se definen en comercial.yaml.
+# Los esquemas de este documento se referencian desde las rutas con #/components/schemas.
+openapi: 3.1.0
+info:
+  title: MIGAL SmartOps - Ventas
+  version: 1.0.0
+  description: >-
+    Contrato del módulo de ventas de la API REST de MIGAL SmartOps (CU-10). Define el listado y la
+    consulta de ventas, su registro desde una cotización aceptada y validada, la venta directa de
+    mostrador, el reintento de la cobertura de pendientes y la cancelación antes del despacho. La venta
+    solo reserva existencias por ubicación; no genera movimientos de Kardex. La autenticación se realiza
+    mediante JWT de usuario y la autorización por rol se declara en la extensión x-roles de cada operación.
+servers:
+  - url: /api/v1
+security:
+  - bearerAuth: []
+tags:
+  - name: Ventas
+    description: Listado, consulta, registro, cobertura y cancelación de ventas.
+components:
+  securitySchemes:
+    bearerAuth:
+      $ref: ../componentes/seguridad.yaml#/bearerAuth
+
+  parameters:
+    IdVentaRuta:
+      name: id
+      in: path
+      required: true
+      description: Identificador técnico de la venta. El código de negocio no se usa como clave de ruta.
+      schema:
+        $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+    VentaEstadoFiltro:
+      name: estado
+      in: query
+      description: >-
+        Filtro por estado de la venta. Admite varios valores separados por coma. Sin valor, se incluyen
+        las ventas de todos los estados.
+      style: form
+      explode: false
+      schema:
+        type: array
+        items:
+          $ref: '#/components/schemas/VentaEstado'
+    VentaClienteFiltro:
+      name: clienteId
+      in: query
+      description: Filtro por cliente, identificado por su id técnico.
+      schema:
+        $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+
+  schemas:
+    VentaEstado:
+      type: string
+      description: >-
+        Situación operativa de la venta. Coincide con el valor de estado de la tabla venta en la base de datos.
+        La transición a lista_para_despacho pertenece al módulo de despacho, al emitir la guía, y la transición
+        a despachada, al confirmar la salida física.
+      enum: [pendiente_abastecimiento, pendiente_despacho, lista_para_despacho, despachada, cancelada]
+    VentaEstadoReserva:
+      type: string
+      description: Estado de una reserva de existencias. Coincide con el valor de estado de la tabla reserva_stock.
+      enum: [activa, liberada, consumida]
+    VentaLinea:
+      type: object
+      description: >-
+        Línea de la venta con su cobertura. La cantidad vendida es la cantidad comprometida comercialmente.
+        La cantidad reservada actual es la suma de las reservas activas de la línea. La cantidad pendiente de
+        abastecimiento es la cantidad vendida menos la reservada, y es cero en las ventas despachadas o canceladas.
+        El subtotal es la cantidad vendida por el precio unitario.
+      required:
+        - id
+        - productoId
+        - sku
+        - nombreProducto
+        - cantidadVendida
+        - precioUnitario
+        - subtotal
+        - cantidadReservadaActual
+        - cantidadPendienteAbastecimiento
+      properties:
+        id:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        productoId:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        sku:
+          $ref: ../componentes/esquemas-comunes.yaml#/Sku
+        nombreProducto:
+          type: string
+          description: Denominación del producto en el momento de la consulta.
+        cantidadVendida:
+          description: Cantidad comprometida comercialmente. No equivale a la cantidad despachada.
+          $ref: ../componentes/esquemas-comunes.yaml#/Cantidad
+          exclusiveMinimum: 0
+        precioUnitario:
+          description: Precio unitario acordado en la cotización de origen.
+          $ref: ../componentes/esquemas-comunes.yaml#/Importe
+          minimum: 0
+        subtotal:
+          description: Cantidad vendida por precio unitario. Derivado, de solo lectura.
+          $ref: ../componentes/esquemas-comunes.yaml#/Importe
+          readOnly: true
+        cantidadReservadaActual:
+          description: Suma de las reservas activas de la línea. Derivada, de solo lectura.
+          $ref: ../componentes/esquemas-comunes.yaml#/Cantidad
+          minimum: 0
+          readOnly: true
+        cantidadPendienteAbastecimiento:
+          description: Cantidad vendida menos cantidad reservada actual. Derivada, de solo lectura.
+          $ref: ../componentes/esquemas-comunes.yaml#/Cantidad
+          minimum: 0
+          readOnly: true
+      example:
+        id: "901"
+        productoId: "44"
+        sku: AGR-004
+        nombreProducto: Arena gruesa, metro cúbico
+        cantidadVendida: 10
+        precioUnitario: 22.8
+        subtotal: 228
+        cantidadReservadaActual: 4
+        cantidadPendienteAbastecimiento: 6
+    VentaReserva:
+      type: object
+      description: >-
+        Reserva de existencias de una línea desde una ubicación. Se crea en estado activa y pasa a liberada si
+        la venta se cancela. Las reservas no modifican la existencia física ni generan movimientos de Kardex.
+      required:
+        - id
+        - lineaId
+        - productoId
+        - ubicacionId
+        - nombreUbicacion
+        - cantidadReservada
+        - estado
+        - fechaReserva
+        - fechaCierre
+      properties:
+        id:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        lineaId:
+          description: Línea de la venta a la que corresponde la reserva. Referencia a VentaLinea.id.
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        productoId:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        ubicacionId:
+          description: Ubicación de la que se reservan las existencias. Referencia a Almacen.id.
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        nombreUbicacion:
+          type: string
+          description: Nombre visible de la tienda principal o del almacén.
+        cantidadReservada:
+          $ref: ../componentes/esquemas-comunes.yaml#/Cantidad
+          exclusiveMinimum: 0
+        estado:
+          $ref: '#/components/schemas/VentaEstadoReserva'
+        fechaReserva:
+          $ref: ../componentes/esquemas-comunes.yaml#/FechaHora
+        fechaCierre:
+          type: [string, 'null']
+          format: date-time
+          description: Marca de cierre de la reserva. Nula mientras la reserva está activa.
+      example:
+        id: "3002"
+        lineaId: "902"
+        productoId: "44"
+        ubicacionId: "102"
+        nombreUbicacion: Almacén 1
+        cantidadReservada: 4
+        estado: activa
+        fechaReserva: "2026-11-07T16:45:00-05:00"
+        fechaCierre: null
+    VentaDetalle:
+      type: object
+      description: >-
+        Venta con sus líneas, su cobertura, sus reservas y sus totales. Toda venta procede de una cotización
+        aceptada y validada, y tiene un cliente asociado. El subtotal es la suma de los subtotales de las líneas
+        y el total es el subtotal menos el descuento. Los totales son de solo lectura.
+      required:
+        - id
+        - fechaVenta
+        - cotizacionId
+        - clienteId
+        - clienteNombre
+        - usuarioResponsableId
+        - estado
+        - descuento
+        - subtotal
+        - total
+        - fechaCancelacion
+        - motivoCancelacion
+        - usuarioAutorizanteId
+        - lineas
+        - reservas
+      properties:
+        id:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        fechaVenta:
+          description: Fecha y hora de aprobación y registro de la venta.
+          $ref: ../componentes/esquemas-comunes.yaml#/FechaHora
+        cotizacionId:
+          description: Cotización aceptada y validada de la que procede la venta. Única por venta.
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        clienteId:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        clienteNombre:
+          type: string
+          description: Nombre visible del cliente.
+        usuarioResponsableId:
+          description: Usuario que registró la venta.
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        estado:
+          $ref: '#/components/schemas/VentaEstado'
+        descuento:
+          description: Descuento monetario general aplicado a la venta.
+          $ref: ../componentes/esquemas-comunes.yaml#/Importe
+          minimum: 0
+        subtotal:
+          description: Suma de los subtotales de las líneas. Derivado, de solo lectura.
+          $ref: ../componentes/esquemas-comunes.yaml#/Importe
+          readOnly: true
+        total:
+          description: Subtotal menos descuento. Derivado, de solo lectura.
+          $ref: ../componentes/esquemas-comunes.yaml#/Importe
+          readOnly: true
+        fechaCancelacion:
+          type: [string, 'null']
+          format: date-time
+          description: Marca de la cancelación. Nula si la venta no está cancelada.
+        motivoCancelacion:
+          type: [string, 'null']
+          description: Justificación de la cancelación. Nula si la venta no está cancelada.
+        usuarioAutorizanteId:
+          type: [string, 'null']
+          description: Usuario que autorizó la cancelación. Nulo si la venta no está cancelada.
+        lineas:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/VentaLinea'
+        reservas:
+          type: array
+          description: Reservas de todas las líneas de la venta, incluidas las cerradas.
+          items:
+            $ref: '#/components/schemas/VentaReserva'
+      example:
+        id: "501"
+        fechaVenta: "2026-11-07T16:45:00-05:00"
+        cotizacionId: "301"
+        clienteId: "12"
+        clienteNombre: Constructora Ejemplo SAC
+        usuarioResponsableId: "5"
+        estado: pendiente_abastecimiento
+        descuento: 18
+        subtotal: 1368
+        total: 1350
+        fechaCancelacion: null
+        motivoCancelacion: null
+        usuarioAutorizanteId: null
+        lineas:
+          - id: "901"
+            productoId: "42"
+            sku: CEM-001
+            nombreProducto: Cemento Sol tipo I, bolsa 42.5 kg
+            cantidadVendida: 40
+            precioUnitario: 28.5
+            subtotal: 1140
+            cantidadReservadaActual: 40
+            cantidadPendienteAbastecimiento: 0
+          - id: "902"
+            productoId: "44"
+            sku: AGR-004
+            nombreProducto: Arena gruesa, metro cúbico
+            cantidadVendida: 10
+            precioUnitario: 22.8
+            subtotal: 228
+            cantidadReservadaActual: 4
+            cantidadPendienteAbastecimiento: 6
+        reservas:
+          - id: "3001"
+            lineaId: "901"
+            productoId: "42"
+            ubicacionId: "101"
+            nombreUbicacion: Tienda principal
+            cantidadReservada: 40
+            estado: activa
+            fechaReserva: "2026-11-07T16:45:00-05:00"
+            fechaCierre: null
+          - id: "3002"
+            lineaId: "902"
+            productoId: "44"
+            ubicacionId: "102"
+            nombreUbicacion: Almacén 1
+            cantidadReservada: 4
+            estado: activa
+            fechaReserva: "2026-11-07T16:45:00-05:00"
+            fechaCierre: null
+    VentaResumen:
+      type: object
+      description: Venta en el listado. Omite las líneas y las reservas; el detalle se consulta con consultarVenta.
+      required:
+        - id
+        - fechaVenta
+        - cotizacionId
+        - clienteId
+        - clienteNombre
+        - estado
+        - total
+      properties:
+        id:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        fechaVenta:
+          $ref: ../componentes/esquemas-comunes.yaml#/FechaHora
+        cotizacionId:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        clienteId:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        clienteNombre:
+          type: string
+        estado:
+          $ref: '#/components/schemas/VentaEstado'
+        total:
+          description: Subtotal menos descuento. Derivado, de solo lectura.
+          $ref: ../componentes/esquemas-comunes.yaml#/Importe
+          readOnly: true
+      example:
+        id: "501"
+        fechaVenta: "2026-11-07T16:45:00-05:00"
+        cotizacionId: "301"
+        clienteId: "12"
+        clienteNombre: Constructora Ejemplo SAC
+        estado: pendiente_abastecimiento
+        total: 1350
+    VentaPagina:
+      description: Página de ventas con el sobre de paginación común, de la más reciente a la más antigua.
+      allOf:
+        - $ref: ../componentes/esquemas-comunes.yaml#/Pagina
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/VentaResumen'
+    SolicitudVentaDesdeCotizacion:
+      type: object
+      description: >-
+        Conversión de una cotización aceptada y validada en venta. Las líneas, los precios, el descuento y el
+        cliente se toman de la cotización; el cuerpo no los admite.
+      additionalProperties: false
+      required: [idCotizacion]
+      properties:
+        idCotizacion:
+          description: Cotización aceptada y validada que origina la venta. Referencia a Cotizacion.id.
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+      example:
+        idCotizacion: "301"
+    VentaLineaDirecta:
+      type: object
+      description: Producto y cantidad de una venta directa de mostrador.
+      additionalProperties: false
+      required: [productoId, cantidad, precioUnitario]
+      properties:
+        productoId:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        cantidad:
+          description: Cantidad comprometida, positiva y con hasta tres decimales.
+          $ref: ../componentes/esquemas-comunes.yaml#/Cantidad
+          exclusiveMinimum: 0
+        precioUnitario:
+          $ref: ../componentes/esquemas-comunes.yaml#/Importe
+          minimum: 0
+      example:
+        productoId: "42"
+        cantidad: 40
+        precioUnitario: 28.5
+    SolicitudVentaDirecta:
+      type: object
+      description: >-
+        Venta directa de mostrador. Registra en un solo paso transaccional la cotización, su aceptación y su
+        validación, y la venta que de ella resulta (ADR-003). La venta siempre tiene cliente activo y un producto
+        no puede repetirse entre las líneas.
+      additionalProperties: false
+      required: [clienteId, descuento, lineas]
+      properties:
+        clienteId:
+          description: Cliente activo de la venta. Obligatorio.
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        descuento:
+          description: Descuento monetario general. No puede superar el subtotal de las líneas.
+          $ref: ../componentes/esquemas-comunes.yaml#/Importe
+          minimum: 0
+        condicionesComerciales:
+          type: [string, 'null']
+          maxLength: 500
+          description: Condiciones de precio, atención y otros términos de la cotización registrada.
+        fechaVencimiento:
+          description: Fecha límite de vigencia de la cotización registrada. Si se omite, el servidor la asigna.
+          $ref: ../componentes/esquemas-comunes.yaml#/Fecha
+        lineas:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/VentaLineaDirecta'
+      example:
+        clienteId: "12"
+        descuento: 18
+        condicionesComerciales: Entrega en obra con transporte propio
+        lineas:
+          - productoId: "42"
+            cantidad: 40
+            precioUnitario: 28.5
+          - productoId: "44"
+            cantidad: 10
+            precioUnitario: 22.8
+    SolicitudCancelacionVenta:
+      type: object
+      description: >-
+        Cancelación de la venta antes del despacho. El usuario autorizante no se informa en el cuerpo: se toma
+        del token de la sesión.
+      additionalProperties: false
+      required: [motivo]
+      properties:
+        motivo:
+          type: string
+          minLength: 1
+          maxLength: 500
+          description: Justificación de la cancelación. No puede estar vacía ni contener solo espacios.
+      example:
+        motivo: Cliente desistió de la obra
+
+paths:
+  /ventas:
+    get:
+      operationId: listarVentas
+      summary: Listar ventas
+      description: >-
+        Lista las ventas paginadas, de la más reciente a la más antigua (CU-10). Los filtros por estado, cliente
+        y rango de fechas son opcionales y combinables; el rango es inclusivo. Campo ordenable: fechaVenta; el
+        orden predeterminado es fechaVenta:desc. Un campo fuera de la lista genera VALIDACION_FALLIDA. Operación
+        de solo lectura que no genera movimientos de Kardex.
+      tags: [Ventas]
+      security:
+        - bearerAuth: []
+      x-roles: [Almacenero, Vendedor]
+      x-herramienta-agente: true
+      parameters:
+        - $ref: ../componentes/parametros.yaml#/page
+        - $ref: ../componentes/parametros.yaml#/pageSize
+        - $ref: ../componentes/parametros.yaml#/orden
+        - $ref: '#/components/parameters/VentaEstadoFiltro'
+        - $ref: '#/components/parameters/VentaClienteFiltro'
+        - $ref: ../componentes/parametros.yaml#/desde
+        - $ref: ../componentes/parametros.yaml#/hasta
+      responses:
+        '200':
+          description: Página de ventas.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VentaPagina'
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
+        '422':
+          $ref: ../componentes/errores.yaml#/Error422
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500
+    post:
+      operationId: registrarVentaDesdeCotizacion
+      summary: Registrar venta desde cotización
+      description: >-
+        Convierte una cotización aceptada y validada en venta (CU-10, flujo alternativo 2). La cotización debe
+        estar en estado aceptada y validada, sin venta previa, y su cliente debe estar activo. La venta toma las
+        líneas, los precios, el descuento y el cliente de la cotización. Reserva por ubicación el stock libre
+        disponible y registra las cantidades sin cobertura como pendientes de abastecimiento. El estado resultante
+        es pendiente_despacho si todas las líneas quedan reservadas y pendiente_abastecimiento en caso contrario.
+        La operación no reduce el stock físico ni genera movimientos de Kardex. Responde COTIZACION_NO_CONVERTIBLE si
+        la cotización no está aceptada y validada, COTIZACION_YA_CONVERTIDA si ya dio origen a una venta,
+        COTIZACION_VENCIDA si superó su fecha de vencimiento y CLIENTE_INACTIVO si el cliente no está activo. Una
+        cotización inexistente responde VALIDACION_FALLIDA en el campo idCotizacion. Un conflicto de idempotencia
+        responde IDEMPOTENCIA_CONFLICTO y una operación concurrente sobre el mismo inventario, PETICION_CONCURRENTE.
+        Requiere la cabecera Idempotency-Key.
+      tags: [Ventas]
+      security:
+        - bearerAuth: []
+      x-roles: [Vendedor]
+      parameters:
+        - $ref: ../componentes/parametros.yaml#/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SolicitudVentaDesdeCotizacion'
+      responses:
+        '201':
+          description: Venta registrada con la cobertura de cada línea y las reservas creadas. Un reintento con la misma clave y el mismo cuerpo devuelve la respuesta original con la cabecera Idempotent-Replayed.
+          headers:
+            Idempotent-Replayed:
+              description: Presente con el valor true cuando la respuesta se reproduce desde una clave ya procesada.
+              schema:
+                type: string
+                enum: ['true']
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VentaDetalle'
+        '400':
+          $ref: ../componentes/errores.yaml#/Error400
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
+        '409':
+          $ref: ../componentes/errores.yaml#/Error409
+        '422':
+          $ref: ../componentes/errores.yaml#/Error422
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500
+
+  /ventas/directas:
+    post:
+      operationId: registrarVentaDirecta
+      summary: Registrar venta directa de mostrador
+      description: >-
+        Registra en un solo paso transaccional una venta directa de mostrador (ADR-003, decisión 5; CU-10, flujo
+        principal, paso 3). Crea la cotización, registra su aceptación y su validación, y crea la venta a partir de
+        ella, con las mismas reglas de reserva que registrarVentaDesdeCotizacion. La viabilidad de abastecimiento
+        se resuelve así: si todas las categorías de los productos tienen aprobación automática, o si el usuario
+        autenticado es Administrador, la operación se completa; en otro caso responde VIABILIDAD_NO_CONFIRMADA y no
+        crea ningún registro. Si el cliente no está activo responde CLIENTE_INACTIVO; si falta, CLIENTE_REQUERIDO. Un
+        producto repetido entre las líneas o un descuento superior al subtotal genera VALIDACION_FALLIDA. La operación
+        no reduce el stock físico ni genera movimientos de Kardex. Un conflicto de idempotencia responde
+        IDEMPOTENCIA_CONFLICTO y una operación concurrente sobre el mismo inventario, PETICION_CONCURRENTE. Requiere la
+        cabecera Idempotency-Key.
+      tags: [Ventas]
+      security:
+        - bearerAuth: []
+      x-roles: [Vendedor, Administrador]
+      parameters:
+        - $ref: ../componentes/parametros.yaml#/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SolicitudVentaDirecta'
+      responses:
+        '201':
+          description: Venta registrada con la cobertura de cada línea. Un reintento con la misma clave y el mismo cuerpo devuelve la respuesta original con la cabecera Idempotent-Replayed.
+          headers:
+            Idempotent-Replayed:
+              description: Presente con el valor true cuando la respuesta se reproduce desde una clave ya procesada.
+              schema:
+                type: string
+                enum: ['true']
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VentaDetalle'
+        '400':
+          $ref: ../componentes/errores.yaml#/Error400
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
+        '409':
+          $ref: ../componentes/errores.yaml#/Error409
+        '422':
+          $ref: ../componentes/errores.yaml#/Error422
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500
+
+  /ventas/{id}:
+    parameters:
+      - $ref: '#/components/parameters/IdVentaRuta'
+    get:
+      operationId: consultarVenta
+      summary: Consultar venta
+      description: >-
+        Devuelve la venta con sus líneas, la cobertura de cada línea, sus reservas y sus totales (CU-10). Incluye las
+        reservas cerradas para conservar el historial de asignaciones. Responde RECURSO_NO_ENCONTRADO si el
+        identificador no existe. Operación de solo lectura que no genera movimientos de Kardex.
+      tags: [Ventas]
+      security:
+        - bearerAuth: []
+      x-roles: [Almacenero, Vendedor]
+      x-herramienta-agente: true
+      responses:
+        '200':
+          description: Venta con su detalle.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VentaDetalle'
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
+        '404':
+          $ref: ../componentes/errores.yaml#/Error404
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500
+
+  /ventas/{id}/cobertura:
+    parameters:
+      - $ref: '#/components/parameters/IdVentaRuta'
+    post:
+      operationId: reintentarCoberturaVenta
+      summary: Reintentar cobertura de pendientes
+      description: >-
+        Vuelve a consultar el stock libre por ubicación y reserva las cantidades pendientes de abastecimiento que
+        puedan atenderse (CU-10, flujos alternativos 5 y 6). Por cada línea reserva como máximo lo pendiente y como
+        máximo el stock libre disponible. Si todas las líneas quedan cubiertas, la venta pasa a pendiente_despacho; si
+        no, conserva pendiente_abastecimiento. Si la venta no tiene cantidades pendientes, la operación no reserva nada
+        y responde con el estado actual. No reduce el stock físico ni genera movimientos de Kardex. Un conflicto de
+        idempotencia responde IDEMPOTENCIA_CONFLICTO y una operación concurrente sobre el mismo inventario,
+        PETICION_CONCURRENTE. Requiere la cabecera Idempotency-Key.
+      tags: [Ventas]
+      security:
+        - bearerAuth: []
+      x-roles: [Almacenero, Vendedor]
+      parameters:
+        - $ref: ../componentes/parametros.yaml#/IdempotencyKey
+      responses:
+        '200':
+          description: Venta con la cobertura actualizada. Un reintento con la misma clave devuelve la respuesta original con la cabecera Idempotent-Replayed.
+          headers:
+            Idempotent-Replayed:
+              description: Presente con el valor true cuando la respuesta se reproduce desde una clave ya procesada.
+              schema:
+                type: string
+                enum: ['true']
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VentaDetalle'
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
+        '404':
+          $ref: ../componentes/errores.yaml#/Error404
+        '409':
+          $ref: ../componentes/errores.yaml#/Error409
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500
+
+  /ventas/{id}/cancelacion:
+    parameters:
+      - $ref: '#/components/parameters/IdVentaRuta'
+    post:
+      operationId: cancelarVenta
+      summary: Cancelar venta antes del despacho
+      description: >-
+        Cancela la venta antes del despacho (CU-10, flujo alternativo 7). Solo admite ventas en estado
+        pendiente_abastecimiento, pendiente_despacho o lista_para_despacho; una venta despachada o cancelada responde
+        VENTA_NO_CANCELABLE. El motivo es obligatorio; un motivo vacío o formado solo por espacios responde
+        MOTIVO_REQUERIDO. El usuario autorizante es el usuario autenticado. La operación libera las reservas activas,
+        que pasan a liberada, registra la fecha de cancelación y cambia el estado a cancelada. No genera movimientos de
+        Kardex. Un conflicto de idempotencia responde IDEMPOTENCIA_CONFLICTO y una operación concurrente sobre el mismo
+        inventario, PETICION_CONCURRENTE. Requiere la cabecera Idempotency-Key.
+      tags: [Ventas]
+      security:
+        - bearerAuth: []
+      x-roles: [Vendedor]
+      parameters:
+        - $ref: ../componentes/parametros.yaml#/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SolicitudCancelacionVenta'
+      responses:
+        '200':
+          description: Venta cancelada con sus reservas liberadas. Un reintento con la misma clave y el mismo cuerpo devuelve la respuesta original con la cabecera Idempotent-Replayed.
+          headers:
+            Idempotent-Replayed:
+              description: Presente con el valor true cuando la respuesta se reproduce desde una clave ya procesada.
+              schema:
+                type: string
+                enum: ['true']
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VentaDetalle'
+        '400':
+          $ref: ../componentes/errores.yaml#/Error400
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
+        '404':
+          $ref: ../componentes/errores.yaml#/Error404
+        '409':
+          $ref: ../componentes/errores.yaml#/Error409
+        '422':
+          $ref: ../componentes/errores.yaml#/Error422
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500

@@ -41,3 +41,22 @@ FechaHora:
   type: string
   format: date-time
   description: Marca de tiempo RFC 3339 con desplazamiento explícito.
+
+CantidadPositiva:
+  type: number
+  multipleOf: 0.001
+  exclusiveMinimum: 0
+  description: Cantidad mayor que cero, con hasta tres decimales.
+
+CantidadNoNegativa:
+  type: number
+  multipleOf: 0.001
+  minimum: 0
+  description: Cantidad igual o mayor que cero, con hasta tres decimales.
+
+ActualizacionEstado:
+  type: object
+  description: Cuerpo de las operaciones PUT /{recurso}/{id}/estado de los maestros.
+  required: [estadoActivo]
+  properties:
+    estadoActivo: {type: boolean}

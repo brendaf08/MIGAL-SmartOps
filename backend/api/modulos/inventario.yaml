@@ -2,16 +2,453 @@ openapi: 3.1.0
 info:
   title: MIGAL SmartOps - Inventario
   version: 1.0.0
-  description: Documento base del módulo de inventario (CU-04, CU-05, CU-07). Sus operaciones se definen en el pull request del módulo.
+  description: >-
+    Contrato del módulo de inventario (CU-04, CU-05 y CU-07). Define la disponibilidad y las
+    existencias por ubicación, las alertas de stock mínimo, la consulta del Kardex, los movimientos
+    manuales de ajuste y merma, y los traslados internos entre almacenes. Las reglas de negocio
+    proceden del ADR-003; el formato de las operaciones, del ADR-006 con los ajustes del ADR-008.
 servers:
   - url: /api/v1
 security:
   - bearerAuth: []
 tags:
   - name: Inventario
-    description: Disponibilidad, existencias, Kardex, movimientos manuales y alertas.
+    description: Disponibilidad, existencias, alertas, Kardex, movimientos manuales y traslados.
 components:
   securitySchemes:
     bearerAuth:
       $ref: ../componentes/seguridad.yaml#/bearerAuth
-paths: {}
+  parameters:
+    IdProductoRuta:
+      name: id
+      in: path
+      required: true
+      description: Identificador técnico del producto. El SKU no se usa como clave de ruta.
+      schema:
+        $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+    SkuFiltro:
+      name: sku
+      in: query
+      description: Filtro por clave natural del producto, con coincidencia exacta.
+      schema:
+        $ref: ../componentes/esquemas-comunes.yaml#/Sku
+    CategoriaFiltro:
+      name: categoriaId
+      in: query
+      description: Filtro por categoría del catálogo, identificada por su id técnico.
+      schema:
+        $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+    SoloAlertaFiltro:
+      name: soloAlerta
+      in: query
+      description: >-
+        Si es true, incluye solo los productos en nivel minimo o critico.
+      schema:
+        type: boolean
+        default: false
+    NivelAlertaFiltro:
+      name: nivel
+      in: query
+      description: Filtro por nivel de alerta. Sin valor, se incluyen ambos niveles.
+      schema:
+        type: string
+        enum: [critico, minimo]
+    UbicacionFiltro:
+      name: ubicacionId
+      in: query
+      description: Filtro por ubicación (tienda principal o almacén), identificada por su id técnico.
+      schema:
+        $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+    TipoOperacionFiltro:
+      name: tipoOperacion
+      in: query
+      description: Filtro por tipo de operación del movimiento.
+      schema:
+        $ref: '#/components/schemas/TipoOperacion'
+    OrigenFiltro:
+      name: origen
+      in: query
+      description: Filtro por origen del movimiento.
+      schema:
+        $ref: '#/components/schemas/OrigenMovimiento'
+  schemas:
+    TipoOperacion:
+      type: string
+      description: Clasificación del movimiento de Kardex. Coincide con el valor de tipo_operacion en la base de datos.
+      enum: [entrada, salida]
+    OrigenMovimiento:
+      type: string
+      description: Operación que origina el movimiento. Coincide con el valor de origen_movimiento en la base de datos.
+      enum: [despacho, recepcion, ajuste, traslado]
+    NivelAlerta:
+      type: string
+      description: >-
+        Nivel calculado sobre el stock libre del producto. Es critico si el stock libre es igual o
+        inferior a cero; minimo si es igual o inferior al stock mínimo; normal en otro caso.
+        El nivel no se almacena y se calcula en el servidor.
+      enum: [normal, minimo, critico]
+    ExistenciaUbicacion:
+      type: object
+      description: Existencias de un producto en una ubicación, correspondientes a un registro de inventario producto-almacén.
+      required: [ubicacionId, nombre, fisica, reservada, libre]
+      properties:
+        ubicacionId:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        nombre:
+          type: string
+          description: Nombre visible de la tienda principal o del almacén.
+        fisica:
+          description: Unidades existentes en la ubicación.
+          $ref: ../componentes/esquemas-comunes.yaml#/Cantidad
+          minimum: 0
+        reservada:
+          description: Suma de las reservas activas de la ubicación.
+          $ref: ../componentes/esquemas-comunes.yaml#/Cantidad
+          minimum: 0
+        libre:
+          description: Existencia física menos existencia reservada. Es la base de las salidas manuales y de los traslados.
+          $ref: ../componentes/esquemas-comunes.yaml#/Cantidad
+          minimum: 0
+      example:
+        ubicacionId: "101"
+        nombre: Tienda principal
+        fisica: 120
+        reservada: 40
+        libre: 80
+    ProductoExistencias:
+      type: object
+      description: Existencias de un producto consolidadas y por ubicación. Es el elemento de la disponibilidad y la respuesta de la consulta de existencias.
+      required: [productoId, sku, nombre, categoria, unidad, stockMinimo, fisico, reservado, libre, nivelAlerta, ubicaciones]
+      properties:
+        productoId:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        sku:
+          $ref: ../componentes/esquemas-comunes.yaml#/Sku
+        nombre:
+          type: string
+        categoria:
+          type: string
+          description: Nombre visible de la categoría del producto.
+        unidad:
+          type: string
+          description: Unidad de medida del producto, por ejemplo bolsa o m³.
+        stockMinimo:
+          description: Umbral de alerta de reposición.
+          $ref: ../componentes/esquemas-comunes.yaml#/Cantidad
+          minimum: 0
+        fisico:
+          description: Suma de la existencia física de todas las ubicaciones.
+          $ref: ../componentes/esquemas-comunes.yaml#/Cantidad
+          minimum: 0
+        reservado:
+          description: Suma de la existencia reservada de todas las ubicaciones.
+          $ref: ../componentes/esquemas-comunes.yaml#/Cantidad
+          minimum: 0
+        libre:
+          description: Existencia física menos existencia reservada, consolidada.
+          $ref: ../componentes/esquemas-comunes.yaml#/Cantidad
+          minimum: 0
+        nivelAlerta:
+          $ref: '#/components/schemas/NivelAlerta'
+        ubicaciones:
+          type: array
+          description: Existencias por ubicación, en el orden tienda principal y almacenes.
+          items:
+            $ref: '#/components/schemas/ExistenciaUbicacion'
+      example:
+        productoId: "42"
+        sku: CEM-001
+        nombre: Cemento Sol tipo I, bolsa 42.5 kg
+        categoria: Cemento
+        unidad: bolsa
+        stockMinimo: 200
+        fisico: 160
+        reservado: 40
+        libre: 120
+        nivelAlerta: normal
+        ubicaciones:
+          - ubicacionId: "101"
+            nombre: Tienda principal
+            fisica: 40
+            reservada: 0
+            libre: 40
+          - ubicacionId: "102"
+            nombre: Almacén 1
+            fisica: 120
+            reservada: 40
+            libre: 80
+    DisponibilidadPagina:
+      description: Página de productos con su disponibilidad.
+      allOf:
+        - $ref: ../componentes/esquemas-comunes.yaml#/Pagina
+        - type: object
+          required: [items, enAlerta, totalGeneral]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/ProductoExistencias'
+            enAlerta:
+              type: integer
+              minimum: 0
+              description: Productos en nivel minimo o critico del catálogo, sin aplicar los filtros de búsqueda.
+            totalGeneral:
+              type: integer
+              minimum: 0
+              description: Total de productos del catálogo, sin aplicar los filtros de búsqueda.
+    AlertaStock:
+      type: object
+      description: Producto en nivel minimo o critico, con la cantidad que falta para alcanzar el stock mínimo.
+      required: [productoId, sku, nombre, unidad, stockMinimo, libre, faltante, nivelAlerta]
+      properties:
+        productoId:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        sku:
+          $ref: ../componentes/esquemas-comunes.yaml#/Sku
+        nombre:
+          type: string
+        unidad:
+          type: string
+        stockMinimo:
+          description: Umbral de alerta de reposición.
+          $ref: ../componentes/esquemas-comunes.yaml#/Cantidad
+          minimum: 0
+        libre:
+          description: Existencia física menos existencia reservada, consolidada.
+          $ref: ../componentes/esquemas-comunes.yaml#/Cantidad
+          minimum: 0
+        faltante:
+          description: Stock mínimo menos stock libre.
+          $ref: ../componentes/esquemas-comunes.yaml#/Cantidad
+          minimum: 0
+        nivelAlerta:
+          $ref: '#/components/schemas/NivelAlerta'
+      example:
+        productoId: "44"
+        sku: AGR-004
+        nombre: Arena gruesa, metro cúbico
+        unidad: m³
+        stockMinimo: 10
+        libre: 0
+        faltante: 10
+        nivelAlerta: critico
+    AlertasPagina:
+      description: Página de productos en alerta, ordenada por nivel crítico primero, después por faltante descendente y SKU ascendente.
+      allOf:
+        - $ref: ../componentes/esquemas-comunes.yaml#/Pagina
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/AlertaStock'
+    MovimientoKardex:
+      type: object
+      description: Movimiento de inventario físico registrado en el Kardex. Es de solo lectura; los movimientos no se modifican ni se eliminan.
+      required: [id, fechaHora, productoId, sku, nombreProducto, tipoOperacion, cantidad, origenMovimiento, ubicacionId, usuarioId, motivo, idGuia, idRecepcion, referenciaTraslado, idMovimientoCorregido]
+      properties:
+        id:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        fechaHora:
+          $ref: ../componentes/esquemas-comunes.yaml#/FechaHora
+        productoId:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        sku:
+          $ref: ../componentes/esquemas-comunes.yaml#/Sku
+        nombreProducto:
+          type: string
+        tipoOperacion:
+          $ref: '#/components/schemas/TipoOperacion'
+        cantidad:
+          description: Cantidad positiva afectada por el movimiento.
+          $ref: ../componentes/esquemas-comunes.yaml#/Cantidad
+          exclusiveMinimum: 0
+        origenMovimiento:
+          $ref: '#/components/schemas/OrigenMovimiento'
+        ubicacionId:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        usuarioId:
+          description: Identificador del usuario responsable del movimiento.
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        motivo:
+          type: [string, 'null']
+          description: Justificación obligatoria en los orígenes ajuste y traslado. Nulo en despacho y recepción.
+        idGuia:
+          type: [string, 'null']
+          description: Guía de despacho de origen. Presente solo cuando el origen es despacho.
+        idRecepcion:
+          type: [string, 'null']
+          description: Recepción de origen. Presente solo cuando el origen es recepcion.
+        referenciaTraslado:
+          type: [string, 'null']
+          description: Identificador compartido por la salida y la entrada de un traslado. Presente solo cuando el origen es traslado.
+        idMovimientoCorregido:
+          type: [string, 'null']
+          description: Movimiento que este registro compensa. Presente solo en movimientos compensatorios.
+      example:
+        id: "1208"
+        fechaHora: "2026-11-07T14:32:10-05:00"
+        productoId: "42"
+        sku: CEM-001
+        nombreProducto: Cemento Sol tipo I, bolsa 42.5 kg
+        tipoOperacion: salida
+        cantidad: 5
+        origenMovimiento: ajuste
+        ubicacionId: "102"
+        usuarioId: "7"
+        motivo: Bolsas dañadas por humedad
+        idGuia: null
+        idRecepcion: null
+        referenciaTraslado: null
+        idMovimientoCorregido: null
+    KardexPagina:
+      description: Página de movimientos del Kardex, del más reciente al más antiguo.
+      allOf:
+        - $ref: ../componentes/esquemas-comunes.yaml#/Pagina
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/MovimientoKardex'
+paths:
+  /inventario/disponibilidad:
+    get:
+      operationId: consultarDisponibilidad
+      tags: [Inventario]
+      summary: Consultar disponibilidad de productos
+      description: >-
+        Lista los productos con sus existencias físicas, reservadas y libres por ubicación (CU-04).
+        La búsqueda, los filtros y la paginación se resuelven en el servidor, y el orden es fijo por
+        SKU ascendente. Operación de solo lectura que no genera movimientos de Kardex.
+      x-roles: [Almacenero, Vendedor]
+      x-herramienta-agente: true
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: ../componentes/parametros.yaml#/q
+        - $ref: '#/components/parameters/SkuFiltro'
+        - $ref: '#/components/parameters/CategoriaFiltro'
+        - $ref: '#/components/parameters/SoloAlertaFiltro'
+        - $ref: ../componentes/parametros.yaml#/page
+        - $ref: ../componentes/parametros.yaml#/pageSize
+      responses:
+        '200':
+          description: Página de productos con su disponibilidad.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DisponibilidadPagina'
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
+        '422':
+          $ref: ../componentes/errores.yaml#/Error422
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500
+
+  /productos/{id}/existencias:
+    get:
+      operationId: consultarExistenciasProducto
+      tags: [Inventario]
+      summary: Consultar existencias de un producto
+      description: >-
+        Devuelve la existencia física, reservada y libre de un producto, consolidada y por ubicación
+        (CU-04). Ruta del módulo de inventario sobre el recurso productos (ADR-008, identificación por id).
+        Operación de solo lectura.
+      x-roles: [Almacenero, Vendedor]
+      x-herramienta-agente: true
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdProductoRuta'
+      responses:
+        '200':
+          description: Existencias del producto.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductoExistencias'
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
+        '404':
+          $ref: ../componentes/errores.yaml#/Error404
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500
+
+  /inventario/alertas:
+    get:
+      operationId: listarAlertasStock
+      tags: [Inventario]
+      summary: Listar productos en alerta de stock
+      description: >-
+        Lista los productos en nivel critico o minimo, es decir, con stock libre igual o inferior al
+        stock mínimo (RF-KAR-09, P12). El orden es fijo: nivel critico antes que minimo, después faltante
+        descendente y SKU ascendente. Operación de solo lectura.
+      x-roles: [Almacenero, Reponedor]
+      x-herramienta-agente: true
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/NivelAlertaFiltro'
+        - $ref: ../componentes/parametros.yaml#/page
+        - $ref: ../componentes/parametros.yaml#/pageSize
+      responses:
+        '200':
+          description: Página de productos en alerta.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertasPagina'
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
+        '422':
+          $ref: ../componentes/errores.yaml#/Error422
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500
+
+  /inventario/movimientos:
+    get:
+      operationId: consultarKardex
+      tags: [Inventario]
+      summary: Consultar el Kardex
+      description: >-
+        Lista los movimientos de inventario físico, del más reciente al más antiguo (CU-07). Todos los
+        filtros son opcionales y combinables; el rango de fechas es inclusivo. El Kardex es de solo lectura.
+        Los movimientos se registran mediante operaciones de escritura del mismo módulo.
+      x-roles: [Almacenero, Administrador]
+      x-herramienta-agente: true
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: ../componentes/parametros.yaml#/q
+        - $ref: '#/components/parameters/SkuFiltro'
+        - $ref: '#/components/parameters/UbicacionFiltro'
+        - $ref: '#/components/parameters/TipoOperacionFiltro'
+        - $ref: '#/components/parameters/OrigenFiltro'
+        - $ref: ../componentes/parametros.yaml#/desde
+        - $ref: ../componentes/parametros.yaml#/hasta
+        - $ref: ../componentes/parametros.yaml#/page
+        - $ref: ../componentes/parametros.yaml#/pageSize
+      responses:
+        '200':
+          description: Página de movimientos del Kardex.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KardexPagina'
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
+        '422':
+          $ref: ../componentes/errores.yaml#/Error422
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500

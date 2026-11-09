@@ -25,7 +25,7 @@ Se incorpora la separación entre operaciones comerciales y movimientos físicos
 
 ![Diagrama entidad-relación de MIGAL SmartOps](imagenes/MIGAL-DER-01-modelo-entidad-relacion.png)
 
-Las entidades y relaciones descritas a continuación constituyen la estructura propuesta del modelo. El diagrama deberá actualizarse para reflejar las modificaciones incorporadas en este documento, especialmente las asociaciones correspondientes a reservas, cotizaciones, ventas y despachos.
+Las entidades y relaciones descritas a continuación constituyen la estructura propuesta del modelo. El diagrama se genera a partir de su [Código fuente](fuentes/der/MIGAL-DER-01-modelo-entidad-relacion.puml) y se actualiza en el mismo pull request que este documento.
 
 ### Convenciones de claves y de nomenclatura
 

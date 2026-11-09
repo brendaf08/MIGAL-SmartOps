@@ -1,0 +1,17 @@
+openapi: 3.1.0
+info:
+  title: MIGAL SmartOps - Catálogo
+  version: 1.0.0
+  description: Documento base del módulo de catálogo (CU-03). Sus operaciones se definen en el pull request del módulo.
+servers:
+  - url: /api/v1
+security:
+  - bearerAuth: []
+tags:
+  - name: Catálogo
+    description: Productos, categorías y almacenes.
+components:
+  securitySchemes:
+    bearerAuth:
+      $ref: ../componentes/seguridad.yaml#/bearerAuth
+paths: {}

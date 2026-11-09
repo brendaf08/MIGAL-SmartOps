@@ -1,0 +1,17 @@
+openapi: 3.1.0
+info:
+  title: MIGAL SmartOps - Inventario
+  version: 1.0.0
+  description: Documento base del módulo de inventario (CU-04, CU-05, CU-07). Sus operaciones se definen en el pull request del módulo.
+servers:
+  - url: /api/v1
+security:
+  - bearerAuth: []
+tags:
+  - name: Inventario
+    description: Disponibilidad, existencias, Kardex, movimientos manuales y alertas.
+components:
+  securitySchemes:
+    bearerAuth:
+      $ref: ../componentes/seguridad.yaml#/bearerAuth
+paths: {}

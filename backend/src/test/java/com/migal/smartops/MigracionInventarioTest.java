@@ -84,8 +84,8 @@ class MigracionInventarioTest {
 
 	private Long insertarProducto(String sku) {
 		return jdbc.queryForObject("""
-				INSERT INTO producto (sku, nombre_oficial, unidad_medida, precio_referencial, stock_minimo, categoria_producto)
-				VALUES (?, ?, 'metro', 4.00, 0, 'general')
+				INSERT INTO producto (sku, nombre_oficial, unidad_medida, precio_referencial, stock_minimo, id_categoria)
+				VALUES (?, ?, 'metro', 4.00, 0, (SELECT id_categoria FROM categoria WHERE nombre = 'Bazar y varios'))
 				RETURNING id_producto
 				""", Long.class, sku, "Producto " + sku);
 	}

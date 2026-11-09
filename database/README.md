@@ -5,7 +5,7 @@ Este directorio define la base de datos del proyecto. El motor es PostgreSQL, se
 ## Verificar los requisitos
 
 - Docker Desktop o Docker Engine con el complemento Docker Compose v2.
-- Espacio libre suficiente para la imagen `postgres:18.6-alpine` y el volumen de datos.
+- Espacio libre suficiente para la imagen `postgres:17.11-alpine` y el volumen de datos.
 
 ## Preparar el entorno
 

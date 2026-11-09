@@ -9,7 +9,7 @@ Backend principal de MIGAL SmartOps. Implementa el núcleo transaccional descrit
 | Java | 21 (LTS) |
 | Spring Boot | 4.1.2 |
 | Maven | Gestionado por Maven Wrapper (`mvnw`) |
-| PostgreSQL | 18.6 (imagen `postgres:18.6-alpine`) |
+| PostgreSQL | 17.11 (imagen `postgres:17.11-alpine`), la versión del proyecto en Supabase |
 
 ## Requisitos
 

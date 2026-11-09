@@ -39,11 +39,29 @@ Los tipos de atributo del diccionario se interpretan de la siguiente manera:
 | Obligatorio (FK, único) | Clave foránea no nula con restricción de unicidad (por ejemplo, `id_cotizacion` en `Venta` e `id_venta` en `Guia_Despacho`). |
 | Opcional (FK) | Clave foránea que admite nulos. |
 | Condicional | Obligatorio según el estado u origen del registro. |
+| Único (generado) | Clave alterna cuyo valor genera y almacena la base de datos a partir de la clave primaria (`codigo`). La aplicación no lo escribe. |
 | Derivado | Valor calculado que no se almacena como columna. |
 
 El diagrama entidad-relación subraya únicamente las claves primarias. Las claves alternas y las claves foráneas únicas se distinguen mediante este diccionario.
 
 Los nombres de las relaciones son los de la tabla de relaciones sin atributos de este documento. El diagrama entidad-relación utiliza los mismos nombres.
+
+<a id="codigos-de-negocio"></a>
+
+### Códigos de negocio
+
+Las entidades visibles para el usuario disponen del atributo `codigo`. La base de datos genera el valor y lo almacena a partir de la clave primaria, de modo que la aplicación no puede modificarlo. El código se compone de un prefijo propio de cada entidad, seguido del identificador con ceros a la izquierda hasta completar cuatro dígitos. Un identificador de más de cuatro dígitos se muestra completo y no se trunca.
+
+| Entidad | Prefijo | Ejemplo | Clave primaria de origen |
+| --- | --- | --- | --- |
+| Cliente | `CLI-` | `CLI-0001` | `id_cliente` |
+| Cotizacion | `COT-` | `COT-0812` | `id_cotizacion` |
+| Venta | `V-` | `V-0038` | `id_venta` |
+| Guia_Despacho | `D-` | `D-0031` | `id_guia` |
+| Orden_Compra | `OC-` | `OC-0087` | `id_orden` |
+| Orden_Recepcion | `R-` | `R-0012` | `id_recepcion` |
+
+Cada código es único dentro de su tabla. El código constituye un dato de presentación; las relaciones entre entidades y las rutas de la interfaz de programación utilizan la clave primaria.
 
 <a id="entidades-maestras-y-transaccionales"></a>
 
@@ -74,8 +92,9 @@ La desactivación de un usuario no elimina su participación histórica en las o
 | Atributo | Tipo de atributo | Descripción |
 | --- | --- | --- |
 | `id_cliente` | Único (PK) | Identificador interno del cliente. |
-| `tipo_documento` | Opcional | Tipo de documento de identificación, como DNI o RUC. |
-| `numero_documento` | Opcional | Número de documento utilizado como referencia comercial. |
+| `codigo` | Único (generado) | Código de negocio `CLI-` seguido del identificador (`CLI-0001`). |
+| `tipo_documento` | Condicional | Tipo de documento de identificación: `dni` o `ruc`. Se informa junto con `numero_documento` o se omite junto con él. |
+| `numero_documento` | Condicional | Número de documento: ocho dígitos para el DNI y once dígitos para el RUC. Un mismo tipo y número no pertenece a dos clientes. |
 | `nombre_razon_social` | Simple | Nombre completo o razón social del cliente. |
 | `telefono_contacto` | Opcional | Número telefónico u otro contacto registrado. |
 | `direccion_referencia` | Opcional | Dirección habitual o referencia del cliente, distinta de la dirección de despacho cuando corresponda. |
@@ -83,6 +102,8 @@ La desactivación de un usuario no elimina su participación histórica en las o
 | `fecha_registro` | Simple | Fecha y hora de incorporación del cliente. |
 
 Toda cotización y venta se encuentra asociada a un cliente registrado, conforme al [ADR-003](adr/adr-003-reglas-ventas-reservas-despacho.md). Las operaciones de mostrador utilizan un registro de cliente cuyo documento de identificación es opcional.
+
+El documento de identificación se valida en la base de datos: el tipo pertenece al conjunto `dni` y `ruc`, y el número respeta su formato. La unicidad de la combinación de tipo y número se aplica solo a los clientes que informan documento, por lo que los clientes de mostrador sin documento no entran en conflicto entre sí.
 
 ### Almacen
 
@@ -137,6 +158,7 @@ El nivel mínimo de stock constituye un umbral de alerta y no una cantidad prote
 | Atributo | Tipo de atributo | Descripción |
 | --- | --- | --- |
 | `id_venta` | Único (PK) | Identificador interno de la venta aprobada. |
+| `codigo` | Único (generado) | Código de negocio `V-` seguido del identificador. |
 | `id_cotizacion` | Obligatorio (FK, único) | Referencia a la cotización aceptada y validada que origina la venta. |
 | `id_cliente` | Obligatorio (FK) | Referencia al cliente asociado a la venta. |
 | `id_usuario_responsable` | Obligatorio (FK) | Usuario responsable del registro comercial. |
@@ -173,6 +195,7 @@ La cancelación antes del despacho exige `motivo_cancelacion`, `fecha_cancelacio
 | Atributo | Tipo de atributo | Descripción |
 | --- | --- | --- |
 | `id_cotizacion` | Único (PK) | Identificador interno de la cotización. |
+| `codigo` | Único (generado) | Código de negocio `COT-` seguido del identificador. |
 | `id_cliente` | Obligatorio (FK) | Referencia al cliente destinatario de la propuesta comercial. |
 | `id_usuario_responsable` | Obligatorio (FK) | Usuario responsable de elaborar la cotización. |
 | `fecha_emision` | Simple | Fecha y hora de emisión. |
@@ -205,6 +228,7 @@ La conversión de una cotización validada en venta no cambia su estado; la exis
 | Atributo | Tipo de atributo | Descripción |
 | --- | --- | --- |
 | `id_guia` | Único (PK) | Identificador interno de la guía u orden de despacho. |
+| `codigo` | Único (generado) | Código de negocio `D-` seguido del identificador. |
 | `id_venta` | Obligatorio (FK, único) | Referencia a la venta que origina el despacho. |
 | `direccion_entrega` | Simple | Dirección o ubicación de destino de la mercadería. |
 | `fecha_despacho` | Opcional | Fecha programada para la salida o entrega. |
@@ -224,6 +248,7 @@ La emisión o impresión de la guía no modifica el inventario. La salida de Kar
 | Atributo | Tipo de atributo | Descripción |
 | --- | --- | --- |
 | `id_orden` | Único (PK) | Identificador interno de la orden de compra. |
+| `codigo` | Único (generado) | Código de negocio `OC-` seguido del identificador. |
 | `id_proveedor` | Obligatorio (FK) | Referencia al proveedor registrado y activo al momento de crear la orden. |
 | `id_usuario_responsable` | Obligatorio (FK) | Usuario responsable del registro de la compra. |
 | `fecha_emision` | Simple | Fecha y hora de emisión. |
@@ -239,6 +264,7 @@ El registro de una orden de compra no incrementa automáticamente las existencia
 | Atributo | Tipo de atributo | Descripción |
 | --- | --- | --- |
 | `id_recepcion` | Único (PK) | Identificador interno de la recepción. |
+| `codigo` | Único (generado) | Código de negocio `R-` seguido del identificador. |
 | `id_orden` | Obligatorio (FK) | Referencia a la orden de compra de origen. |
 | `id_usuario_responsable` | Obligatorio (FK) | Usuario responsable del registro y validación de la recepción. |
 | `fecha_recepcion` | Simple | Fecha en que se recibe físicamente la mercadería. |
@@ -493,6 +519,8 @@ La información extraída mediante OCR y Fuzzy Matching constituye una precarga 
 Para mantener la consistencia entre las entidades y los procesos del sistema, se consideran las siguientes restricciones generales:
 
 - Los identificadores principales de las entidades deben ser únicos.
+- Los códigos de negocio se generan a partir de la clave primaria y son únicos en su tabla (V11).
+- El documento de identificación de un cliente se informa completo o se omite. El DNI tiene ocho dígitos y el RUC, once, y un mismo tipo y número no pertenece a dos clientes (V11).
 - El SKU de Producto, el username de Usuario y el RUC de Proveedor deben mantener restricciones de unicidad.
 - La combinación de producto y almacén en Inventario debe ser única.
 - Toda Venta debe encontrarse asociada a una Cotizacion aceptada y validada.

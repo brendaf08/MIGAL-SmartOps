@@ -9,7 +9,7 @@
 | RF-KAR-01 | El sistema deberá administrar de manera independiente las existencias correspondientes a la tienda principal y a los dos almacenes adicionales. |
 | RF-KAR-02 | El sistema deberá permitir consultar las existencias de cada producto por ubicación. |
 | RF-KAR-03 | El sistema deberá registrar movimientos de entrada de inventario únicamente cuando una recepción de mercadería haya sido confirmada por el personal de almacén. |
-| RF-KAR-04 | El sistema deberá registrar los movimientos de salida correspondientes cuando una venta sea confirmada. |
+| RF-KAR-04 | El sistema deberá registrar los movimientos de salida correspondientes únicamente cuando se confirme la salida física del despacho de una venta. |
 | RF-KAR-05 | Cada movimiento de Kardex deberá registrar como mínimo producto, ubicación, tipo de movimiento, cantidad, fecha y usuario responsable. |
 | RF-KAR-06 | El sistema deberá impedir una salida o traslado cuando la cantidad requerida sea superior al stock disponible. |
 | RF-KAR-07 | El sistema deberá registrar los traslados internos mediante partida doble, generando un movimiento de salida en el almacén de origen y un movimiento de entrada en el almacén de destino, ambos vinculados mediante un mismo traslado y motivo. |
@@ -19,7 +19,7 @@
 | RF-KAR-11 | El sistema deberá mantener trazabilidad entre un movimiento de Kardex y la operación que lo originó, cuando corresponda. |
 | RF-KAR-12 | El sistema deberá permitir consultar el historial de movimientos de un producto por almacén y rango de fechas. |
 | RF-KAR-13 | El sistema deberá permitir generar e imprimir una Orden de Despacho asociada a una venta registrada, incluyendo como mínimo la dirección de entrega y su estado. |
-| RF-KAR-14 | El sistema deberá permitir registrar movimientos manuales de inventario, como mermas y ajustes, exigiendo el ingreso de un motivo justificatorio. |
+| RF-KAR-14 | El sistema deberá permitir registrar movimientos manuales de inventario, como mermas y ajustes, exigiendo el ingreso de un motivo justificatorio y del usuario responsable. Estos movimientos no provienen de ventas y no podrán afectar el stock reservado, por lo que solo reducirán el stock libre. |
 
 ### Módulo OCR + Visión
 
@@ -86,10 +86,10 @@
 | --- | --- |
 | RF-CLI-01 | El sistema deberá permitir registrar clientes con nombre o razón social, documento referencial y datos de contacto opcionales. |
 | RF-CLI-02 | El sistema deberá permitir consultar y seleccionar un cliente existente al registrar una venta o cotización. |
-| RF-CLI-03 | El sistema deberá permitir asociar opcionalmente un cliente a una venta. |
-| RF-CLI-04 | El sistema deberá permitir asociar opcionalmente un cliente a una cotización. |
+| RF-CLI-03 | El sistema deberá asociar obligatoriamente un cliente registrado a cada venta. |
+| RF-CLI-04 | El sistema deberá asociar obligatoriamente un cliente registrado a cada cotización. |
 | RF-CLI-05 | Un cliente podrá estar asociado a múltiples ventas y múltiples cotizaciones. |
-| RF-CLI-06 | Una venta o cotización podrá registrarse sin cliente asociado cuando la operación no requiera identificarlo. |
+| RF-CLI-06 | Una venta o cotización no podrá registrarse sin un cliente asociado. Las operaciones de mostrador se registrarán con un registro de cliente cuyo documento de identificación sea opcional. |
 | RF-CLI-07 | El sistema deberá conservar la trazabilidad de las ventas y cotizaciones asociadas a cada cliente. |
 | RF-CLI-08 | El sistema deberá permitir actualizar el estado del cliente sin eliminar el historial de ventas o cotizaciones asociado. |
 
@@ -112,24 +112,25 @@
 
 | Código | Requerimiento funcional |
 | --- | --- |
-| RF-VEN-01 | El sistema deberá permitir registrar una venta indicando como mínimo productos, cantidades, precios y monto total, pudiendo asociar opcionalmente un cliente durante la operación cuando corresponda. |
-| RF-VEN-02 | El sistema deberá permitir asociar opcionalmente un cliente a la venta y conservar la relación para fines operativos y de trazabilidad, sin generar comprobantes fiscales. |
+| RF-VEN-01 | El sistema deberá permitir registrar una venta a partir de una cotización aceptada y validada, indicando como mínimo el cliente asociado, los productos, las cantidades, los precios y el monto total. |
+| RF-VEN-02 | El sistema deberá asociar obligatoriamente un cliente registrado a la venta y conservar la relación para fines operativos y de trazabilidad, sin generar comprobantes fiscales. |
 | RF-VEN-03 | El sistema deberá consultar y validar el stock disponible antes de confirmar la venta. |
-| RF-VEN-04 | Al confirmarse la venta, el sistema deberá generar los movimientos correspondientes de salida en el Kardex. |
+| RF-VEN-04 | Al confirmarse el despacho de una venta, el sistema deberá generar los movimientos correspondientes de salida en el Kardex. La aprobación de la venta no deberá generar movimientos de salida. |
 | RF-VEN-05 | El sistema deberá mantener la relación entre la venta y los productos incluidos en ella. |
 | RF-VEN-06 | El sistema deberá permitir consultar las ventas registradas con fines operativos y de trazabilidad. |
 | RF-VEN-07 | El sistema deberá permitir registrar un descuento aplicado a la venta cuando corresponda, bajo criterio del usuario autorizado. |
 | RF-VEN-08 | El registro de una venta no deberá generar cuentas por cobrar, estados de cuenta, operaciones contables ni comprobantes fiscales ante SUNAT. |
-| RF-VEN-09 | El sistema deberá permitir registrar una venta directamente o generarla a partir de una cotización previamente aceptada. |
+| RF-VEN-09 | Toda venta deberá originarse en una cotización aceptada por el cliente y validada por MIGAL. La venta directa registrada desde la interfaz deberá registrar la cotización, su aceptación y su validación en un solo paso transaccional, sin exigir digitación duplicada. |
 | RF-VEN-10 | Cuando una venta se origine a partir de una cotización aceptada, el sistema deberá recuperar los productos, cantidades, precios, descuentos y datos referenciales previamente registrados, evitando su digitación nuevamente. |
-| RF-VEN-11 | El sistema deberá permitir registrar una venta o solicitud de venta cuando el stock disponible sea insuficiente para atender la cantidad solicitada. |
-| RF-VEN-12 | El sistema deberá permitir seleccionar entre atender parcialmente la venta, registrarla como pendiente por abastecimiento o conservarla como solicitud pendiente del cliente. |
-| RF-VEN-13 | El sistema deberá registrar por separado la cantidad solicitada, la cantidad atendida y la cantidad pendiente de cada producto. |
-| RF-VEN-14 | Cuando una venta sea atendida parcialmente, el sistema deberá generar movimientos de salida únicamente por la cantidad atendida. |
-| RF-VEN-15 | Cuando una venta sea registrada como pendiente, el sistema no deberá generar movimientos de salida en el Kardex. |
-| RF-VEN-16 | El sistema no deberá permitir que una venta o atención parcial genere stock negativo. |
-| RF-VEN-17 | El sistema deberá permitir completar posteriormente las cantidades pendientes cuando exista disponibilidad suficiente. |
-| RF-VEN-18 | El sistema deberá conservar la trazabilidad entre la venta original, sus atenciones parciales y los movimientos Kardex generados. |
+| RF-VEN-11 | El sistema deberá permitir aprobar una venta cuando el stock libre sea insuficiente para atender la cantidad solicitada, registrando las cantidades faltantes como pendientes de abastecimiento. |
+| RF-VEN-12 | El sistema deberá reservar, por ubicación, las cantidades disponibles de cada producto de la venta y registrar el resto como pendiente de abastecimiento. El despacho será único y completo, y solo podrá autorizarse cuando todas las cantidades estén reservadas. No existirá despacho parcial. |
+| RF-VEN-13 | El sistema deberá registrar por separado la cantidad solicitada, la cantidad reservada y la cantidad pendiente de abastecimiento de cada producto. |
+| RF-VEN-14 | La reserva de stock no deberá generar movimientos de salida en el Kardex. Las reservas se consumen únicamente al confirmarse el despacho completo de la venta. |
+| RF-VEN-15 | Mientras una venta tenga cantidades pendientes de abastecimiento, el sistema no deberá generar movimientos de salida en el Kardex. |
+| RF-VEN-16 | El sistema no deberá permitir que una reserva supere el stock libre ni que la confirmación de un despacho genere stock negativo. |
+| RF-VEN-17 | El sistema deberá reservar las cantidades pendientes de abastecimiento cuando exista stock libre suficiente y habilitar el despacho cuando todas las cantidades de la venta estén reservadas. |
+| RF-VEN-18 | El sistema deberá conservar la trazabilidad entre la cotización de origen, la venta, sus reservas, su despacho y los movimientos Kardex generados. |
+| RF-VEN-19 | El sistema deberá permitir cancelar una venta antes de su despacho, exigiendo un motivo obligatorio. La cancelación deberá liberar las reservas activas y no deberá generar movimientos de Kardex. |
 
 ### Abastecimiento y órdenes de compra
 
@@ -160,7 +161,7 @@
 | RF-DES-02 | La Orden de Despacho deberá contener como mínimo los productos, cantidades, dirección de entrega y estado. |
 | RF-DES-03 | El sistema deberá permitir imprimir la Orden de Despacho para su utilización durante la entrega física de la mercadería. |
 | RF-DES-04 | La Orden de Despacho deberá mantener referencia a la venta que la originó. |
-| RF-DES-05 | La generación o impresión de una Orden de Despacho no deberá volver a reducir las existencias cuando la salida ya haya sido registrada al confirmarse la venta. |
+| RF-DES-05 | La generación o impresión de una Orden de Despacho no deberá modificar las existencias. La salida de Kardex se registra únicamente al confirmar la salida física del despacho. |
 | RF-DES-06 | El sistema no gestionará rutas, vehículos, choferes, optimización logística ni seguimiento GPS. |
 
 ### Gestión de cotizaciones a clientes
@@ -168,12 +169,12 @@
 | Código | Requerimiento funcional |
 | --- | --- |
 | RF-COT-01 | El sistema deberá permitir al Vendedor registrar una cotización dirigida a un cliente antes de concretar una venta. |
-| RF-COT-02 | La cotización deberá permitir registrar, como mínimo, los productos, cantidades, precios unitarios, descuentos aplicables, condiciones comerciales, fecha de emisión y fecha de vencimiento. La cotización podrá asociarse opcionalmente con un cliente. |
+| RF-COT-02 | La cotización deberá permitir registrar, como mínimo, los productos, cantidades, precios unitarios, descuentos aplicables, condiciones comerciales, fecha de emisión y fecha de vencimiento. La cotización deberá asociarse obligatoriamente con un cliente registrado. |
 | RF-COT-03 | El sistema deberá calcular el monto total de la cotización a partir de los productos, cantidades, precios y descuentos registrados. |
 | RF-COT-04 | El sistema deberá permitir que los productos y cantidades de una cotización puedan ser ingresados manualmente o precargados a partir de información previamente procesada mediante OCR y Fuzzy Matching. |
-| RF-COT-05 | El sistema deberá gestionar el ciclo de vida de la cotización mediante los estados Emitida, Aceptada, Rechazada y Vencida. |
+| RF-COT-05 | El sistema deberá gestionar el ciclo de vida de la cotización mediante los estados Emitida, Aceptada, Validada, Rechazada y Vencida. La validación corresponde a MIGAL y se registra después de la aceptación del cliente. |
 | RF-COT-06 | El sistema deberá identificar como vencida una cotización cuando se haya superado su fecha de vigencia sin haber sido aceptada. |
-| RF-COT-07 | El sistema deberá permitir convertir una cotización aceptada en una venta, reutilizando los datos de productos, cantidades, precios y descuentos registrados. |
+| RF-COT-07 | El sistema deberá permitir convertir una cotización aceptada y validada en una venta, reutilizando los datos de productos, cantidades, precios y descuentos registrados. |
 | RF-COT-08 | La creación, emisión, rechazo o vencimiento de una cotización no deberá modificar ni reservar existencias del inventario. |
 | RF-COT-09 | Antes de confirmar una venta originada a partir de una cotización aceptada, el sistema deberá volver a consultar y validar el stock disponible. |
 
@@ -195,5 +196,5 @@
 | RNF-12 | Recuperabilidad | La base de datos deberá contar con mecanismos periódicos de respaldo. |
 | RNF-13 | Navegadores | La plataforma deberá ser compatible con navegadores web modernos utilizados en los equipos disponibles en la ferretería. |
 | RNF-14 | Mantenibilidad | Los módulos principales deberán encontrarse desacoplados mediante interfaces claramente definidas. |
-| RNF-15 | Integridad transaccional | La confirmación parcial o posterior de una venta deberá actualizar de forma atómica las cantidades atendidas, pendientes y los movimientos Kardex correspondientes. |
-| RNF-16 | Consistencia | El sistema deberá impedir que la cantidad atendida acumulada supere la cantidad solicitada o el stock disponible. |
+| RNF-15 | Integridad transaccional | La reserva de cantidades de una venta y la confirmación de su despacho deberán ejecutarse de forma atómica, actualizando las cantidades reservadas, las cantidades pendientes de abastecimiento y, al confirmar el despacho, los movimientos Kardex correspondientes. |
+| RNF-16 | Consistencia | El sistema deberá impedir que la cantidad reservada acumulada supere la cantidad solicitada o el stock libre. |

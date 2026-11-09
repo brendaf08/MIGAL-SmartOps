@@ -10,6 +10,7 @@ Esta carpeta contiene los registros de decisiones de arquitectura (ADR, Architec
 | [ADR-002](adr-002-sistema-de-diseno.md) | Sistema de diseño del frontend. |
 | [ADR-003](adr-003-reglas-ventas-reservas-despacho.md) | Reglas de ventas, reservas, Kardex y despacho. |
 | [ADR-005](adr-005-base-de-datos.md) | Base de datos, migraciones y concurrencia. |
+| [ADR-006](adr-006-contrato-api.md) | Contrato de la API REST. |
 
 ## Registrar una decisión
 

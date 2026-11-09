@@ -1,6 +1,7 @@
 import { ActionIcon, Group, Pagination as MantinePagination, Text } from '@mantine/core';
 import { formatNumber } from '@/lib/format';
 import { Icon } from '../Icon/Icon';
+import classes from './Pagination.module.css';
 
 export interface PaginationProps {
   /** Página actual, base 1. */
@@ -34,6 +35,7 @@ export function Pagination({ page, total, pageSize = 20, onChange }: PaginationP
         onChange={onChange}
         withEdges
         visibleFrom="sm"
+        classNames={{ control: classes.control }}
         getControlProps={(control) => ({ 'aria-label': CONTROLES[control] })}
         getItemProps={(n) => ({ 'aria-label': `Página ${n}` })}
       />

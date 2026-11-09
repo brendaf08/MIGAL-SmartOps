@@ -9,7 +9,7 @@ import {
   Text,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import type { ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useThemeMode } from '@/theme';
 import { Icon } from '../../ui/Icon/Icon';
 import { NavMenu, type NavGroup } from './NavMenu';
@@ -29,6 +29,10 @@ export interface AppShellProps {
   subtitle?: string;
   /** Contenido de la cabecera a partir de tablet (por ejemplo, la ruta). */
   header?: ReactNode;
+  /** Modo almacén activo: controles de 52 a 56 px y etiquetas de la navegación en tablet. */
+  warehouse?: boolean;
+  /** Sin esta función no se muestra el interruptor del modo almacén; tampoco aparece en teléfono. */
+  onToggleWarehouse?: () => void;
   children: ReactNode;
 }
 
@@ -47,9 +51,19 @@ export function AppShell({
   appName,
   subtitle,
   header,
+  warehouse = false,
+  onToggleWarehouse,
   children,
 }: AppShellProps) {
-  const [open, { toggle, close }] = useDisclosure();
+  const [open, { toggle, close: hide }] = useDisclosure();
+  const [burger, setBurger] = useState<HTMLButtonElement | null>(null);
+  const close = hide;
+  // Al cerrarse el panel (Escape, velo o ítem), el foco regresa al botón de menú.
+  const wasOpen = useRef(false);
+  useEffect(() => {
+    if (wasOpen.current && !open) burger?.focus();
+    wasOpen.current = open;
+  }, [open, burger]);
   const { scheme, toggle: toggleScheme } = useThemeMode();
   const brand = (
     <div className={classes.brand}>
@@ -76,7 +90,11 @@ export function AppShell({
     <MantineAppShell
       layout="alt"
       header={{ height: { base: 56, sm: 64 } }}
-      navbar={{ width: { sm: 72, md: 264 }, breakpoint: 'sm', collapsed: { mobile: true } }}
+      navbar={{
+        width: { sm: warehouse ? 232 : 72, md: 264 },
+        breakpoint: 'sm',
+        collapsed: { mobile: true },
+      }}
     >
       <Anchor href="#contenido" className={classes.skip}>
         Saltar al contenido
@@ -84,9 +102,11 @@ export function AppShell({
 
       <MantineAppShell.Header className={classes.header}>
         <Burger
+          ref={setBurger}
           hiddenFrom="sm"
           opened={open}
           onClick={toggle}
+          className={classes.burger}
           aria-label="Abrir menú"
           aria-controls="panel-navegacion"
           aria-expanded={open}
@@ -95,6 +115,17 @@ export function AppShell({
           {appName}
         </Text>
         <div className={classes.slot}>{header}</div>
+        {onToggleWarehouse && (
+          <ActionIcon
+            visibleFrom="sm"
+            aria-label="Modo almacén"
+            aria-pressed={warehouse}
+            variant={warehouse ? 'filled' : 'subtle'}
+            onClick={onToggleWarehouse}
+          >
+            <Icon name="almacen" />
+          </ActionIcon>
+        )}
         <ActionIcon
           aria-label={scheme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
           onClick={toggleScheme}
@@ -115,7 +146,10 @@ export function AppShell({
         </ActionIcon>
       </MantineAppShell.Header>
 
-      <MantineAppShell.Navbar className={classes.navbar}>
+      <MantineAppShell.Navbar
+        className={classes.navbar}
+        data-warehouse={warehouse ? 'true' : undefined}
+      >
         {brand}
         {menu()}
       </MantineAppShell.Navbar>
@@ -124,6 +158,7 @@ export function AppShell({
         id="panel-navegacion"
         opened={open}
         onClose={close}
+        returnFocus
         hiddenFrom="sm"
         size="min(var(--drawer-width), 86vw)"
         withCloseButton={false}

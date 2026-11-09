@@ -41,6 +41,15 @@ h4 {
   text-wrap: balance;
 }
 
+/*
+ * Papeles tipográficos: Instrument Sans en todos los encabezados (Mantine los resuelve con
+ * --mantine-font-family-headings) y Bricolage Grotesque solo en el título de página (h1).
+ */
+h1,
+.mantine-Title-root[data-order='1'] {
+  font-family: var(--font-heading);
+}
+
 p {
   text-wrap: pretty;
 }
@@ -103,5 +112,25 @@ body {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/*
+ * Modo almacén (por equipo, atributo data-warehouse en la raíz): los controles miden de 52 a 56 px
+ * (--control-xl) y los ítems de navegación, lo mismo. No aplica al teléfono, que ya usa 44 px.
+ */
+@mixin larger-than $mantine-breakpoint-sm {
+  :root[data-warehouse='true'] {
+    & .mantine-Input-input,
+    & .mantine-Button-root,
+    & .mantine-Tabs-tab {
+      height: auto;
+      min-height: var(--control-xl);
+    }
+
+    & .mantine-ActionIcon-root {
+      min-width: var(--control-xl);
+      min-height: var(--control-xl);
+    }
   }
 }

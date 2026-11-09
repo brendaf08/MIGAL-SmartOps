@@ -1,4 +1,6 @@
 import { mockRequest } from '@/api/mock';
+import type { CambioStock } from '@/components/domain/Constancia/Constancia';
+import { PRODUCTOS } from '@/features/inventario/fixtures';
 import type { DocumentoProcesado, LineaRecepcion, Recepcion } from './types';
 
 /** Recepciones de prueba hasta contar con la API. Se modifican en memoria. */
@@ -53,12 +55,39 @@ export const procesarDocumento = (_archivo: File) =>
     1200,
   );
 
-/** CU-13. Los movimientos de entrada al Kardex se generan solo aquí, con las cantidades efectivamente recibidas. */
+/** Recepción confirmada y la existencia del almacén antes y después de cada entrada. */
+export interface ResultadoRecepcion {
+  recepcion: Recepcion;
+  cambios: CambioStock[];
+}
+
+/** Calcula el efecto de las entradas sobre la existencia física del almacén que recibe. */
+function cambiosDeEntrada(almacen: string, lineas: LineaRecepcion[]): CambioStock[] {
+  const campo = almacen === 'Almacén 2' ? 'almacen2' : 'almacen1';
+  return lineas.flatMap((l) => {
+    const producto = PRODUCTOS.find((p) => p.sku === l.sku);
+    if (!producto) return [];
+    return [
+      {
+        producto: producto.nombre,
+        ubicacion: almacen,
+        antes: producto[campo],
+        despues: producto[campo] + l.recibido,
+        unidad: producto.unidad,
+      },
+    ];
+  });
+}
+
+/**
+ * CU-13. Los movimientos de entrada al Kardex se generan solo aquí, con las cantidades efectivamente recibidas.
+ * El inventario simulado no se modifica; la API real devolverá la existencia antes y después.
+ */
 export const confirmarRecepcion = (
   doc: Pick<DocumentoProcesado, 'orden' | 'proveedor' | 'almacen'>,
   lineas: LineaRecepcion[],
 ) =>
-  mockRequest<Recepcion>(() => {
+  mockRequest<ResultadoRecepcion>(() => {
     if (lineas.some((l) => !l.sku))
       throw new Error('Asociar un producto a cada línea antes de confirmar.');
     const recepcion: Recepcion = {
@@ -68,5 +97,5 @@ export const confirmarRecepcion = (
       estado: 'Validada',
     };
     RECEPCIONES.unshift(recepcion);
-    return recepcion;
+    return { recepcion, cambios: cambiosDeEntrada(doc.almacen, lineas) };
   });

@@ -1,0 +1,14 @@
+/* Números de página: 44 px en pantallas táctiles y 48 px en tablet. */
+@media (pointer: coarse) {
+  .control {
+    min-width: var(--touch-min);
+    min-height: var(--touch-min);
+  }
+
+  @mixin smaller-than $mantine-breakpoint-md {
+    .control {
+      min-width: var(--control-lg);
+      min-height: var(--control-lg);
+    }
+  }
+}

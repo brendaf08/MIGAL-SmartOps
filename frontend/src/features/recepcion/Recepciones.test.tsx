@@ -1,9 +1,12 @@
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { axe } from 'vitest-axe';
+import * as matchers from 'vitest-axe/matchers';
 import { afterEach, describe, expect, it } from 'vitest';
 import { renderApp } from '@/test/renderApp';
 import { RECEPCIONES } from './api';
 
+expect.extend(matchers);
 afterEach(() => window.sessionStorage.clear());
 
 const guia = new File(['x'], 'guia-proveedor.jpg', { type: 'image/jpeg' });
@@ -36,6 +39,44 @@ describe('Recepciones', () => {
     expect(screen.getByRole('button', { name: 'Confirmar recepción' })).toBeDisabled();
   });
 
+  it('explica el bloqueo en la barra de acciones y resume las líneas por estado', async () => {
+    await cargarDocumento();
+
+    const barra = screen.getByRole('region', { name: 'Resumen y confirmación de la recepción' });
+    expect(within(barra).getByRole('status')).toHaveTextContent(
+      'Falta asociar 1 línea a un producto del catálogo.',
+    );
+    expect(barra).toHaveTextContent('3 líneas');
+    expect(barra).toHaveTextContent('1 sin asociar');
+    expect(within(barra).getByRole('button', { name: 'Confirmar recepción' })).toBeDisabled();
+    expect(screen.getByText('Sin asociar')).toBeInTheDocument();
+  });
+
+  it('la revisión con la barra de acciones no tiene violaciones de accesibilidad', async () => {
+    await cargarDocumento();
+
+    expect(
+      await axe(document.body, { rules: { 'color-contrast': { enabled: false } } }),
+    ).toHaveNoViolations();
+  });
+
+  it('iguala lo recibido al pedido de una línea con su botón', async () => {
+    await cargarDocumento();
+
+    expect(screen.getByText('Faltan 20')).toBeInTheDocument();
+    expect(screen.getAllByText('Completa')).toHaveLength(1);
+
+    // Solo la línea con diferencia y producto asociado admite igualar al pedido.
+    const habilitados = screen
+      .getAllByRole('button', { name: /^Igual al pedido/ })
+      .filter((b) => !(b as HTMLButtonElement).disabled);
+    expect(habilitados).toHaveLength(1);
+    await userEvent.click(habilitados[0]!);
+
+    expect(screen.queryByText('Faltan 20')).not.toBeInTheDocument();
+    expect(screen.getAllByText('Completa')).toHaveLength(2);
+  });
+
   it('confirma la recepción tras asociar el producto y aceptar las consecuencias', async () => {
     await cargarDocumento();
     const antes = RECEPCIONES.length;
@@ -54,7 +95,13 @@ describe('Recepciones', () => {
     expect(dialog).toHaveTextContent('recepción parcial');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Confirmar recepción' }));
 
-    expect(await screen.findByText(/Se registró la recepción/)).toBeInTheDocument();
+    const constancia = await screen.findByRole('status', { name: /Recepción R-\d+ registrada/ });
+    expect(within(constancia).getByText('Validada')).toBeInTheDocument();
+    const tabla = within(constancia).getByRole('table', { name: 'Existencia antes y después' });
+    // Fierro: se esperaban 60 y se recibieron 40, de modo que quedan 20 por recibir.
+    expect(tabla).toHaveTextContent('Cemento Sol tipo I');
+    expect(constancia).toHaveTextContent('quedan por recibir 20 unidades en 1 línea');
+    expect(within(constancia).getByRole('button', { name: 'Ver movimientos en el Kardex' })).toBeEnabled();
     expect(RECEPCIONES).toHaveLength(antes + 1);
     RECEPCIONES.shift();
   });

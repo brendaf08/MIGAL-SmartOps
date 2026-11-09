@@ -14,7 +14,12 @@
  *  4. Los estilos específicos de cada componente se escriben en CSS Modules y consumen las variables de
  *     tokens.css (--brand, --surface, --space-4, --radius-md), sin valores literales.
  */
-import { createTheme, type MantineColorsTuple } from '@mantine/core';
+import {
+  createTheme,
+  defaultVariantColorsResolver,
+  type MantineColorsTuple,
+  type VariantColorsResolver,
+} from '@mantine/core';
 
 /** Paleta de marca: azul Progresol (índice 7 = #00339F). */
 const brand: MantineColorsTuple = [
@@ -55,7 +60,19 @@ const info: MantineColorsTuple = [
   '#1F87C4', '#0B6BA8', '#0A5282', '#083F66', '#052C47',
 ];
 
+/**
+ * Mantine fija el texto de los componentes rellenos al renderizar, con el esquema "auto" como claro, y deja texto blanco
+ * sobre el azul pálido del tema oscuro (contraste cercano a 1.6:1). Los rellenos del color de marca toman el texto del
+ * token `--on-brand`, que cambia con `data-theme` y cumple WCAG AA en ambos temas.
+ */
+const variantColorResolver: VariantColorsResolver = (input) => {
+  const base = defaultVariantColorsResolver(input);
+  const esMarca = input.color === undefined || input.color === 'brand';
+  return input.variant === 'filled' && esMarca ? { ...base, color: 'var(--on-brand)' } : base;
+};
+
 export const theme = createTheme({
+  variantColorResolver,
   colors: { brand, gray, accent, success, warning, danger, info },
   primaryColor: 'brand',
   primaryShade: { light: 7, dark: 2 },
@@ -66,8 +83,9 @@ export const theme = createTheme({
   /** Fuente de cifras grandes y sello de documento (nunca en datos de tabla ni etiquetas): usar var(--font-display) en los CSS Modules. */
   other: { fontFamilyDisplay: '"Barlow Semi Condensed", "Arial Narrow", "Instrument Sans", system-ui, sans-serif' },
   fontFamilyMonospace: '"IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace',
+  /** Bricolage Grotesque solo en el título de página (h1): lo aplica global.css con var(--font-heading). Los demás encabezados usan Instrument Sans. */
   headings: {
-    fontFamily: '"Bricolage Grotesque", "Instrument Sans", system-ui, sans-serif',
+    fontFamily: '"Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif',
     fontWeight: '700',
     sizes: {
       h1: { fontSize: '28px', lineHeight: '36px', fontWeight: '700' },

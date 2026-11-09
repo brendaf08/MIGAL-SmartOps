@@ -1,0 +1,98 @@
+.root {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cell {
+  display: flex;
+  flex: 1 1 96px;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+/* Una ubicación sin existencia se dibuja con borde punteado: el vacío también se ve. */
+.empty {
+  border-style: dashed;
+  background: transparent;
+}
+
+.name {
+  overflow: hidden;
+  color: var(--ink-muted);
+  font-size: 12px;
+  line-height: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.figure {
+  position: relative;
+  color: var(--ink);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 24px;
+  font-variant-numeric: tabular-nums;
+
+  & small {
+    color: var(--ink-muted);
+    font-size: 12px;
+    font-weight: 400;
+  }
+}
+
+.none {
+  color: var(--ink-muted);
+  font-size: 13px;
+  line-height: 24px;
+}
+
+.bar {
+  display: flex;
+  height: 6px;
+  overflow: hidden;
+  border-radius: var(--radius-full);
+  background: var(--surface-sunken);
+}
+
+.free {
+  flex-basis: 0;
+  background: var(--success);
+}
+
+.held {
+  flex-basis: 0;
+  background: var(--brand);
+}
+
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Teléfono: tres celdas iguales en una fila dentro de la ficha. */
+.compact {
+  flex-wrap: nowrap;
+
+  & .cell {
+    flex: 1 1 0;
+    padding: var(--space-1) var(--space-2);
+  }
+
+  & .figure {
+    font-size: 16px;
+    line-height: 20px;
+  }
+}

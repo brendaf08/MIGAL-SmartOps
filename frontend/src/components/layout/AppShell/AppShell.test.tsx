@@ -1,8 +1,9 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AppProviders } from '@/app/AppProviders';
 import { NAV } from '@/routes/navigation';
+import { WAREHOUSE_MODE_STORAGE_KEY, useWarehouseMode } from '@/theme';
 import { AppShell } from './AppShell';
 
 const renderShell = (role: string, onNavigate = vi.fn()) => {
@@ -62,8 +63,104 @@ describe('AppShell', () => {
     expect(menu).toHaveAttribute('aria-expanded', 'true');
 
     // El panel abierto añade una segunda copia de la navegación; se elige la del panel.
-    const items = await screen.findAllByRole('button', { name: 'Despachos', hidden: true });
-    await userEvent.click(items[items.length - 1]!);
+    const panel = await screen.findByRole('dialog', { hidden: true });
+    await userEvent.click(within(panel).getByRole('button', { name: 'Despachos', hidden: true }));
     expect(onNavigate).toHaveBeenCalledWith('despachos');
+    await waitFor(() =>
+      expect(screen.getByLabelText('Abrir menú')).toHaveAttribute('aria-expanded', 'false'),
+    );
+  });
+
+  it('cierra el panel con Escape', async () => {
+    renderShell('Almacenero');
+    const menu = screen.getByLabelText('Abrir menú');
+
+    await userEvent.click(menu);
+    expect(menu).toHaveAttribute('aria-expanded', 'true');
+    expect(menu).toHaveAttribute('aria-controls', 'panel-navegacion');
+
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(menu).toHaveAttribute('aria-expanded', 'false'));
+    // jsdom no evalúa las reglas @media: el foco real se comprueba en el navegador (390 px).
+  });
+
+  it('conserva el título de cada ítem para la barra de íconos de la tablet', () => {
+    renderShell('Almacenero');
+
+    expect(screen.getAllByRole('button', { name: 'Despachos', hidden: true })[0]).toHaveAttribute(
+      'title',
+      'Despachos',
+    );
+  });
+
+  it('ofrece el interruptor del modo almacén solo cuando se le pasa la acción', () => {
+    renderShell('Almacenero');
+    expect(screen.queryByRole('button', { name: 'Modo almacén', hidden: true })).toBeNull();
+  });
+});
+
+const ROL = 'Almacenero';
+
+/** Estructura conectada al hook del modo almacén, como la usa `ShellLayout`. */
+function ShellLayoutPrueba() {
+  const { warehouse, toggle } = useWarehouseMode();
+  return (
+    <AppShell
+      nav={NAV}
+      role={ROL}
+      current="disponibilidad"
+      onNavigate={vi.fn()}
+      user={{ name: 'Ana Ruiz', role: ROL }}
+      onLogout={vi.fn()}
+      logo="/logo.png"
+      appName="MIGAL SmartOps"
+      warehouse={warehouse}
+      onToggleWarehouse={toggle}
+    >
+      <h1>Contenido</h1>
+    </AppShell>
+  );
+}
+
+describe('Modo almacén', () => {
+  afterEach(() => {
+    window.localStorage.clear();
+    delete document.documentElement.dataset.warehouse;
+  });
+
+  it('se activa con el interruptor, queda marcado como presionado y se conserva en el equipo', async () => {
+    render(
+      <AppProviders>
+        <ShellLayoutPrueba />
+      </AppProviders>,
+    );
+    const boton = screen.getByRole('button', { name: 'Modo almacén', hidden: true });
+    expect(boton).toHaveAttribute('aria-pressed', 'false');
+
+    await userEvent.click(boton);
+
+    expect(boton).toHaveAttribute('aria-pressed', 'true');
+    expect(document.documentElement.dataset.warehouse).toBe('true');
+    expect(window.localStorage.getItem(WAREHOUSE_MODE_STORAGE_KEY)).toBe('true');
+
+    await userEvent.click(boton);
+    expect(document.documentElement.dataset.warehouse).toBeUndefined();
+    expect(window.localStorage.getItem(WAREHOUSE_MODE_STORAGE_KEY)).toBe('false');
+  });
+
+  it('recupera el modo guardado al abrir la aplicación', async () => {
+    window.localStorage.setItem(WAREHOUSE_MODE_STORAGE_KEY, 'true');
+
+    render(
+      <AppProviders>
+        <ShellLayoutPrueba />
+      </AppProviders>,
+    );
+
+    expect(screen.getByRole('button', { name: 'Modo almacén', hidden: true })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(document.documentElement.dataset.warehouse).toBe('true');
   });
 });

@@ -4,7 +4,7 @@ Aplicación web de MIGAL SmartOps (SPA en React). La decisión de stack se encue
 
 ## Estado
 
-Incluye la configuración base, el tema claro y oscuro, el layout responsive (teléfono, tablet y escritorio), los primitivos y componentes de dominio del sistema de diseño, la sesión con rutas protegidas por rol y las pantallas de todos los módulos de la navegación: disponibilidad, catálogo, Kardex, despachos, recepciones con OCR, documentos, cotizaciones, proveedores y compras, agente de IA y usuarios. Las pantallas de referencia del diseño (acceso, disponibilidad, cotización, recepción con OCR, despacho y agente de IA) tienen implementación completa; el resto son listados.
+Incluye la configuración base, el tema claro y oscuro, el layout responsive (teléfono, tablet y escritorio), los primitivos y componentes de dominio del sistema de diseño, la sesión con rutas protegidas por rol y las pantallas de todos los módulos de la navegación: disponibilidad, catálogo, Kardex, despachos, recepciones con OCR, documentos, cotizaciones, proveedores y compras, agente de IA y usuarios. Incorpora además la barra de acciones con diferencias y bloqueo con motivo en la recepción, las ubicaciones de stock (`StockLocations`), la constancia de cierre de recepciones y salidas, y el modo almacén por equipo. Las pantallas de referencia del diseño (acceso, disponibilidad, cotización, recepción con OCR, despacho y agente de IA) tienen implementación completa; el resto son listados.
 
 El backend aún no existe (la carpeta `backend/` solo contiene su README). Los datos provienen de una capa simulada, descrita en [Datos simulados](#datos-simulados-y-usuarios-de-prueba).
 
@@ -37,6 +37,8 @@ La aplicación queda disponible en `http://localhost:5173`.
 | `npm run format:check` | Verifica el formato sin modificar archivos. |
 | `npm test` | Ejecuta las pruebas con Vitest y Testing Library. |
 | `npm run test:watch` | Ejecuta las pruebas en modo interactivo. |
+| `npm run storybook` | Inicia el catálogo de componentes en `http://localhost:6006`. |
+| `npm run build-storybook` | Genera el catálogo estático en `storybook-static/`. |
 
 Antes de abrir un pull request, ejecutar `npm run lint`, `npm run typecheck`, `npm test` y `npm run build`, y registrar los resultados en la descripción.
 
@@ -136,9 +138,18 @@ La aplicación queda disponible en `http://localhost:8080`.
 - [Componentes y pantallas de referencia](../docs/diseno/componentes/README.md).
 - [Prototipo de referencia](../docs/diseno/prototipo/README.md).
 
-## Dependencias de diseño pendientes
+## Catálogo de componentes y accesibilidad
 
-Storybook se incorpora conforme a ADR-002 y aún no está instalado. La accesibilidad se verifica con `vitest-axe` (`src/a11y.test.tsx`, sin la regla de contraste, que depende de los tokens y no de jsdom), pruebas de Testing Library (roles, nombres accesibles y teclado) y `eslint-plugin-jsx-a11y`.
+El catálogo vive en Storybook (`.storybook/`) y contiene una historia por componente de `components/ui/`, `components/domain/` y `components/layout/`, en archivos `*.stories.tsx` junto a cada componente. La barra de herramientas permite alternar entre el tema claro y el oscuro tenue, y el complemento de accesibilidad de Storybook ejecuta `axe` sobre cada historia. La telemetría de Storybook está desactivada.
+
+La accesibilidad se verifica en cuatro niveles:
+
+- `eslint-plugin-jsx-a11y` durante `npm run lint`.
+- Pruebas de Testing Library con roles, nombres accesibles y teclado.
+- `vitest-axe` por pantalla (`src/a11y.test.tsx`) y por historia (`src/historias.a11y.test.tsx`), sin la regla de contraste, que depende de los tokens y no de jsdom, ni la de regiones, que corresponde a páginas completas.
+- El complemento de accesibilidad de Storybook, de forma interactiva.
+
+Una historia nueva se agrega junto al componente y la prueba de `src/historias.a11y.test.tsx` la recoge sin cambios adicionales.
 
 ## Verificación responsive pendiente
 

@@ -1,4 +1,5 @@
-import { Badge, Group, Progress, Text } from '@mantine/core';
+import { Badge, Group, Progress, Text, VisuallyHidden } from '@mantine/core';
+import { useId } from 'react';
 import { Icon } from '../../ui/Icon/Icon';
 
 export interface MatchConfidenceProps {
@@ -6,6 +7,8 @@ export interface MatchConfidenceProps {
   score: number;
   /** Umbrales de ejemplo, pendientes de definir en el servicio Python. */
   thresholds?: { high: number; low: number };
+  /** Versión para celdas de tabla: sin el texto de validación, que ya expone la fila. */
+  compact?: boolean;
 }
 
 const LEVELS = {
@@ -18,18 +21,20 @@ const LEVELS = {
 export function MatchConfidence({
   score,
   thresholds = { high: 0.85, low: 0.6 },
+  compact = false,
 }: MatchConfidenceProps) {
   const level = score >= thresholds.high ? 'high' : score >= thresholds.low ? 'mid' : 'low';
   const { color, icon, text } = LEVELS[level];
   const percent = Math.round(score * 100);
+  const labelId = useId();
 
   return (
     <div>
       <Group justify="space-between" wrap="nowrap" mb={4}>
-        <Badge color={color} leftSection={<Icon name={icon} size={16} />}>
+        <Badge flex="none" color={color} leftSection={<Icon name={icon} size={16} />}>
           {text}
         </Badge>
-        <Text fw={600} ff="var(--font-display)">
+        <Text fw={600} style={{ fontVariantNumeric: 'tabular-nums' }}>
           {percent} %
         </Text>
       </Group>
@@ -42,8 +47,10 @@ export function MatchConfidence({
         aria-valuemax={100}
         aria-valuenow={percent}
         aria-label="Similitud con el catálogo"
+        aria-labelledby={labelId}
       />
-      {level === 'low' && (
+      <VisuallyHidden id={labelId}>Similitud con el catálogo</VisuallyHidden>
+      {level === 'low' && !compact && (
         <Text size="sm" c="dimmed" mt={4}>
           Se requiere validación manual antes de continuar.
         </Text>

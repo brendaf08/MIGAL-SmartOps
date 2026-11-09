@@ -19,6 +19,11 @@
   background: var(--surface);
 }
 
+.burger {
+  min-width: var(--touch-min);
+  min-height: var(--touch-min);
+}
+
 .appName {
   flex: 1;
   min-width: 0;
@@ -111,9 +116,20 @@
   margin-inline-end: var(--space-3);
 }
 
-/* Tablet: barra de íconos; cada ítem conserva su `title`. En teléfono la barra está oculta. */
+/* Tablet: ítems de 48 px (--control-lg) para el toque; 56 px con el modo almacén. */
 @mixin smaller-than $mantine-breakpoint-md {
-  .navbar {
+  .link {
+    min-height: var(--control-lg);
+  }
+
+  .navbar[data-warehouse] .link {
+    min-height: var(--control-xl);
+  }
+}
+
+/* Tablet: barra de íconos; cada ítem conserva su `title`. Con el modo almacén las etiquetas se muestran. */
+@mixin smaller-than $mantine-breakpoint-md {
+  .navbar:not([data-warehouse]) {
     & .groupLabel,
     & .linkLabel,
     & .brand > div {
@@ -126,13 +142,24 @@
   }
 }
 
+/*
+ * El relleno se expresa por lado para conservar los desplazamientos que Mantine calcula para la barra lateral y la
+ * cabecera; un `padding` abreviado los anularía y dejaría el contenido bajo ambas.
+ */
 .main {
-  padding: var(--space-4) max(var(--space-4), env(safe-area-inset-right))
-    calc(var(--space-6) + env(safe-area-inset-bottom))
-    max(var(--space-4), env(safe-area-inset-left));
+  --main-pad-x: var(--space-4);
+  --main-pad-y: var(--space-4);
+
+  padding-inline-start: calc(
+    var(--app-shell-navbar-offset, 0rem) + max(var(--main-pad-x), env(safe-area-inset-left))
+  );
+  padding-inline-end: max(var(--main-pad-x), env(safe-area-inset-right));
+  padding-top: calc(var(--app-shell-header-offset, 0rem) + var(--main-pad-y));
+  padding-bottom: calc(var(--space-6) + env(safe-area-inset-bottom));
 
   @mixin larger-than $mantine-breakpoint-sm {
-    padding: var(--space-5) var(--space-6);
+    --main-pad-x: var(--space-6);
+    --main-pad-y: var(--space-5);
   }
 }
 

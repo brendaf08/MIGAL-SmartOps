@@ -54,6 +54,26 @@
   }
 }
 
+/* Fila cuyo dato cambió: de brand-soft a transparente en 1.2 s. */
+.changed {
+  animation: highlight 1.2s ease-out;
+}
+
+@keyframes highlight {
+  from {
+    background: var(--brand-soft);
+  }
+
+  to {
+    background: transparent;
+  }
+}
+
+/* Columna exclusiva de las fichas del teléfono. */
+.phoneOnly {
+  display: none;
+}
+
 /* Teléfono: una ficha por fila; el encabezado queda solo para lectores de pantalla. */
 @mixin smaller-than $mantine-breakpoint-sm {
   .stack {
@@ -118,6 +138,10 @@
     & td:empty,
     & .hidePhone {
       display: none;
+    }
+
+    & .phoneOnly {
+      display: flex;
     }
 
     & .primary {

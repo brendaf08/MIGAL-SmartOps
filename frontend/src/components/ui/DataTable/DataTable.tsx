@@ -1,5 +1,5 @@
 import { Skeleton, Table, UnstyledButton, VisuallyHidden } from '@mantine/core';
-import type { KeyboardEvent, ReactNode } from 'react';
+import { useState, type KeyboardEvent, type ReactNode } from 'react';
 import { cx } from '@/lib/cx';
 import { EmptyState } from '../EmptyState/EmptyState';
 import { Icon } from '../Icon/Icon';
@@ -21,6 +21,8 @@ export interface Column<T> {
   phone?: boolean;
   /** Teléfono: etiqueta sobre el contenido, a ancho completo. */
   block?: boolean;
+  /** Muestra la columna solo en las fichas del teléfono (por ejemplo, las ubicaciones). */
+  phoneOnly?: boolean;
 }
 
 export interface Sort {
@@ -39,6 +41,8 @@ export interface DataTableProps<T> {
   empty?: ReactNode;
   onRowClick?: (row: T) => void;
   selectedKey?: string | number;
+  /** Fila cuyo dato cambió tras una acción: se resalta 1.2 s. No se anima si ya estaba definida en la carga inicial. */
+  changedKey?: string | number;
   sort?: Sort;
   onSort?: (sort: Sort) => void;
   /** Totales: una fila (o varias, como subtotal, descuento y total) con el contenido por clave de columna. */
@@ -59,11 +63,14 @@ export function DataTable<T>({
   empty,
   onRowClick,
   selectedKey,
+  changedKey,
   sort,
   onSort,
   footer,
   stack = true,
 }: DataTableProps<T>) {
+  const [initialChangedKey] = useState(changedKey);
+  const visibleColumns = stack ? columns : columns.filter((col) => !col.phoneOnly);
   const keyOf = (row: T) =>
     typeof rowKey === 'function' ? rowKey(row) : (row[rowKey] as string | number);
   const cellClass = (col: Column<T>) =>
@@ -73,6 +80,7 @@ export function DataTable<T>({
       col.primary && classes.primary,
       col.block && classes.block,
       col.phone === false && classes.hidePhone,
+      col.phoneOnly && classes.phoneOnly,
     );
   // La etiqueta se muestra en la ficha del teléfono mediante `attr(data-label)`.
   const cellProps = (col: Column<T>) => ({ className: cellClass(col), 'data-label': col.header });
@@ -96,7 +104,7 @@ export function DataTable<T>({
         <Table.Caption className={classes.caption}>{caption}</Table.Caption>
         <Table.Thead>
           <Table.Tr>
-            {columns.map((col) => (
+            {visibleColumns.map((col) => (
               <Table.Th
                 key={col.key}
                 scope="col"
@@ -125,7 +133,7 @@ export function DataTable<T>({
           {loading
             ? Array.from({ length: SKELETON_ROWS }, (_, i) => (
                 <Table.Tr key={i}>
-                  {columns.map((col) => (
+                  {visibleColumns.map((col) => (
                     <Table.Td key={col.key} {...cellProps(col)}>
                       <Skeleton height={16} />
                     </Table.Td>
@@ -139,12 +147,15 @@ export function DataTable<T>({
                     key={key}
                     // Fila navegable: se activa con Enter y Espacio, además del clic.
                     tabIndex={onRowClick ? 0 : undefined}
-                    className={cx(onRowClick && classes.clickable)}
+                    className={cx(
+                      onRowClick && classes.clickable,
+                      key === changedKey && key !== initialChangedKey && classes.changed,
+                    )}
                     data-selected={key === selectedKey || undefined}
                     onClick={onRowClick && (() => onRowClick(row))}
                     onKeyDown={onRowClick && ((e) => activate(e, row))}
                   >
-                    {columns.map((col) => (
+                    {visibleColumns.map((col) => (
                       <Table.Td key={col.key} {...cellProps(col)}>
                         {col.render ? col.render(row) : (row[col.key as keyof T] as ReactNode)}
                       </Table.Td>
@@ -157,7 +168,7 @@ export function DataTable<T>({
           <Table.Tfoot>
             {[footer].flat().map((row, i) => (
               <Table.Tr key={i}>
-                {columns.map((col) => (
+                {visibleColumns.map((col) => (
                   <Table.Td key={col.key} {...cellProps(col)}>
                     {row[col.key]}
                   </Table.Td>

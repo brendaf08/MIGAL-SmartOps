@@ -69,4 +69,48 @@ describe('DataTable', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Cargando datos');
     expect(screen.queryByText('Sin resultados')).not.toBeInTheDocument();
   });
+
+  it('marca la columna principal, omite las de teléfono y etiqueta las de bloque', () => {
+    const cols: Column<Row>[] = [
+      { key: 'nombre', header: 'Producto', primary: true },
+      { key: 'sku', header: 'SKU', phone: false },
+      { key: 'stock', header: 'Ubicaciones', phoneOnly: true, block: true },
+    ];
+    renderTable({ columns: cols });
+
+    expect(screen.getByText('Martillo').className).toMatch(/primary/);
+    expect(screen.getByText('A-1').className).toMatch(/hidePhone/);
+    expect(screen.getAllByText('4')[0]!.className).toMatch(/phoneOnly/);
+    expect(screen.getAllByText('4')[0]!.className).toMatch(/block/);
+  });
+
+  it('retira las columnas phoneOnly cuando las fichas están desactivadas', () => {
+    const cols: Column<Row>[] = [
+      { key: 'nombre', header: 'Producto' },
+      { key: 'stock', header: 'Ubicaciones', phoneOnly: true },
+    ];
+    renderTable({ columns: cols, stack: false });
+
+    expect(screen.queryByRole('columnheader', { name: 'Ubicaciones' })).not.toBeInTheDocument();
+  });
+
+  it('resalta la fila cambiada solo cuando cambia después de la carga', () => {
+    const view = (changedKey?: string) => (
+      <AppProviders>
+        <DataTable
+          columns={columns}
+          rows={rows}
+          rowKey="sku"
+          caption="Inventario"
+          changedKey={changedKey}
+        />
+      </AppProviders>
+    );
+    const { rerender } = render(view('A-1'));
+    expect(screen.getByText('Martillo').closest('tr')?.className ?? '').not.toMatch(/changed/);
+
+    rerender(view('B-2'));
+    expect(screen.getByText('Taladro').closest('tr')?.className).toMatch(/changed/);
+    expect(screen.getByText('Martillo').closest('tr')?.className ?? '').not.toMatch(/changed/);
+  });
 });

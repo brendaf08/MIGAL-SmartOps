@@ -4,6 +4,10 @@
   gap: var(--space-2);
 }
 
+.trackWrap {
+  position: relative;
+}
+
 .track {
   display: flex;
   height: 12px;
@@ -18,7 +22,11 @@
   }
 }
 
-/* Regla graduada, como una cinta métrica, con la escala de 0 al total. */
+.compact .track {
+  height: 8px;
+}
+
+/* Regla graduada, como una cinta métrica; `--tick` fija la distancia entre marcas (múltiplos del empaque). */
 .scale {
   display: flex;
   justify-content: space-between;
@@ -26,8 +34,12 @@
   color: var(--ink-muted);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
-  background: repeating-linear-gradient(90deg, var(--line-strong) 0 1px, transparent 1px 10%) top /
-    100% 6px no-repeat;
+  background: repeating-linear-gradient(
+      90deg,
+      var(--line-strong) 0 1px,
+      transparent 1px var(--tick, 10%)
+    )
+    top / 100% 6px no-repeat;
 }
 
 .libre {
@@ -41,6 +53,26 @@
 /* Las rayas distinguen lo pendiente sin depender solo del color. */
 .pendiente {
   background: repeating-linear-gradient(45deg, var(--warning) 0 3px, var(--warning-soft) 3px 6px);
+}
+
+/* Marcadores de estante: la forma (cuadrado o círculo) los distingue sin depender del color. */
+.marker {
+  position: absolute;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--surface);
+  background: var(--ink);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.marker.minimo {
+  border-radius: 2px;
+}
+
+.marker.reposicion {
+  border-radius: var(--radius-full);
 }
 
 .legend {
@@ -69,4 +101,13 @@
   height: 10px;
   flex: none;
   border-radius: 3px;
+}
+
+.minimoSwatch,
+.reposicionSwatch {
+  background: var(--ink);
+}
+
+.reposicionSwatch {
+  border-radius: var(--radius-full);
 }

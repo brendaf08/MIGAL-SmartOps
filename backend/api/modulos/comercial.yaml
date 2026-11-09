@@ -1,10 +1,11 @@
 # Contrato OpenAPI del módulo comercial, conforme al ADR-006 y al ADR-008.
-# Cubre la gestión de clientes. Los esquemas llevan el prefijo Cliente para evitar colisiones al unirse con join.
+# Cubre clientes (gestión de clientes) y cotizaciones (CU-09). Las ventas se describen en ventas.yaml.
+# Los esquemas llevan el prefijo Cliente o Cotizacion para evitar colisiones al unirse con join.
 openapi: 3.1.0
 info:
   title: MIGAL SmartOps - Comercial
   version: 1.0.0
-  description: Contrato del módulo comercial de la API REST de MIGAL SmartOps. Define la gestión de clientes. La autorización por rol se declara en la extensión x-roles de cada operación.
+  description: Contrato del módulo comercial de la API REST de MIGAL SmartOps. Define la gestión de clientes y el ciclo de vida de las cotizaciones. La autorización por rol se declara en la extensión x-roles de cada operación.
 servers:
   - url: /api/v1
 security:
@@ -12,6 +13,8 @@ security:
 tags:
   - name: Clientes
     description: Registro, consulta, actualización y vigencia de los clientes.
+  - name: Cotizaciones
+    description: Ciclo de vida de las cotizaciones emitidas a clientes registrados (CU-09).
 components:
   securitySchemes:
     bearerAuth:
@@ -29,6 +32,30 @@ components:
       required: false
       description: Filtra los clientes por vigencia. El valor true incluye solo clientes activos.
       schema: {type: boolean}
+    CotizacionId:
+      name: id
+      in: path
+      required: true
+      description: Identificador técnico de la cotización.
+      schema: {$ref: ../componentes/esquemas-comunes.yaml#/Identificador}
+    FiltroEstadoCotizacion:
+      name: estado
+      in: query
+      required: false
+      description: Filtra por uno o varios estados separados por coma, por ejemplo emitida,aceptada.
+      schema:
+        type: string
+        pattern: '^(emitida|aceptada|validada|rechazada|vencida)(,(emitida|aceptada|validada|rechazada|vencida))*$'
+    FiltroClienteCotizacion:
+      name: clienteId
+      in: query
+      required: false
+      description: Filtra las cotizaciones de un cliente.
+      schema: {$ref: ../componentes/esquemas-comunes.yaml#/Identificador}
+  headers:
+    IdempotentReplayed:
+      description: Presente con el valor true cuando la respuesta se reproduce desde una clave ya procesada.
+      schema: {type: string, enum: ['true']}
   schemas:
     TipoDocumentoCliente:
       type: string
@@ -68,6 +95,15 @@ components:
         estadoActivo: {type: boolean, description: Vigencia del cliente. Un cliente inactivo no puede asociarse a nuevas cotizaciones.}
         fechaRegistro: {$ref: ../componentes/esquemas-comunes.yaml#/FechaHora}
       example: {id: '57', tipoDocumento: ruc, numeroDocumento: '20601234567', nombreRazonSocial: Constructora Andina S.A.C., estadoActivo: true, fechaRegistro: '2026-02-10T10:20:00-05:00'}
+    ClienteResumen:
+      type: object
+      description: Identificación resumida de un cliente, embebida en las cotizaciones. No incluye datos de contacto.
+      required: [id, nombreRazonSocial, estadoActivo]
+      properties:
+        id: {$ref: ../componentes/esquemas-comunes.yaml#/Identificador}
+        nombreRazonSocial: {type: string, minLength: 1, maxLength: 200}
+        estadoActivo: {type: boolean}
+      example: {id: '57', nombreRazonSocial: Constructora Andina S.A.C., estadoActivo: true}
     ClientePagina:
       description: Página de clientes con el sobre de paginación común.
       allOf:
@@ -86,6 +122,130 @@ components:
       properties:
         estadoActivo: {type: boolean, description: Verdadero para activar el cliente y falso para desactivarlo.}
       example: {estadoActivo: false}
+
+    CotizacionEstado:
+      type: string
+      description: >-
+        Estado comercial de la cotización (columna estado de la tabla cotizacion, ADR-008). Emitida pasa a aceptada,
+        rechazada o vencida; aceptada pasa a validada, rechazada o vencida; validada pasa a vencida si no se convirtió
+        en venta antes de fechaVencimiento. Rechazada y vencida son estados finales.
+      enum: [emitida, aceptada, validada, rechazada, vencida]
+      example: emitida
+    OrigenRechazoCotizacion:
+      type: string
+      description: Parte que rechaza la cotización. El cliente rechaza una cotización emitida y MIGAL rechaza una cotización aceptada, rechazo que solo registra el rol Administrador.
+      enum: [cliente, migal]
+      example: cliente
+    CotizacionLineaDatos:
+      type: object
+      description: Línea de una cotización. Un producto aparece una sola vez en cada cotización. El precio unitario puede diferir del precio referencial del producto.
+      additionalProperties: false
+      required: [productoId, cantidad, precioUnitario]
+      properties:
+        productoId: {$ref: ../componentes/esquemas-comunes.yaml#/Identificador}
+        cantidad: {$ref: ../componentes/esquemas-comunes.yaml#/Cantidad, exclusiveMinimum: 0, description: Cantidad cotizada mayor que cero.}
+        precioUnitario: {$ref: ../componentes/esquemas-comunes.yaml#/Importe, minimum: 0, description: Precio unitario acordado.}
+    CotizacionLinea:
+      type: object
+      description: Línea de una cotización registrada. Los campos derivados se calculan en el servidor y son de solo lectura.
+      required: [productoId, sku, nombreProducto, cantidad, precioUnitario, subtotal]
+      properties:
+        productoId: {$ref: ../componentes/esquemas-comunes.yaml#/Identificador}
+        sku: {$ref: ../componentes/esquemas-comunes.yaml#/Sku, readOnly: true}
+        nombreProducto: {type: string, readOnly: true, description: Nombre oficial del producto en el catálogo. Dato derivado.}
+        cantidad: {$ref: ../componentes/esquemas-comunes.yaml#/Cantidad}
+        precioUnitario: {$ref: ../componentes/esquemas-comunes.yaml#/Importe}
+        subtotal: {$ref: ../componentes/esquemas-comunes.yaml#/Importe, readOnly: true, description: Derivado. Cantidad por precio unitario.}
+    CotizacionRechazo:
+      type: object
+      description: Registro del rechazo de una cotización. Indica la parte que lo realizó y el usuario que lo registró.
+      required: [origen, usuarioId, fechaRechazo, motivo]
+      properties:
+        origen: {$ref: '#/components/schemas/OrigenRechazoCotizacion'}
+        usuarioId: {$ref: ../componentes/esquemas-comunes.yaml#/Identificador, description: Usuario que registró el rechazo tomado del token de acceso.}
+        fechaRechazo: {$ref: ../componentes/esquemas-comunes.yaml#/FechaHora}
+        motivo: {type: [string, 'null'], maxLength: 500, description: Motivo informado. Nulo cuando no se informa.}
+    CotizacionRegistrada:
+      type: object
+      description: >-
+        Cotización registrada. Corresponde a la entidad Cotizacion del diccionario de datos. Subtotal y total son derivados
+        de solo lectura; total es el subtotal menos el descuento. La cotización no reserva ni modifica existencias.
+      required: [id, estado, cliente, usuarioResponsableId, fechaEmision, fechaVencimiento, descuento, lineas, subtotal, total]
+      properties:
+        id: {$ref: ../componentes/esquemas-comunes.yaml#/Identificador}
+        estado: {$ref: '#/components/schemas/CotizacionEstado'}
+        cliente: {allOf: [{$ref: '#/components/schemas/ClienteResumen'}], description: Cliente destinatario. Toda cotización tiene un cliente.}
+        usuarioResponsableId: {$ref: ../componentes/esquemas-comunes.yaml#/Identificador, description: Usuario que elaboró la cotización.}
+        fechaEmision: {$ref: ../componentes/esquemas-comunes.yaml#/FechaHora}
+        fechaVencimiento: {$ref: ../componentes/esquemas-comunes.yaml#/Fecha}
+        condicionesComerciales: {type: [string, 'null'], description: Condiciones comerciales de la propuesta. Nulas cuando no se registran.}
+        descuento: {$ref: ../componentes/esquemas-comunes.yaml#/Importe, minimum: 0, description: Descuento monetario general.}
+        lineas: {type: array, items: {$ref: '#/components/schemas/CotizacionLinea'}}
+        subtotal: {$ref: ../componentes/esquemas-comunes.yaml#/Importe, readOnly: true, description: Derivado. Suma de los subtotales de las líneas.}
+        total: {$ref: ../componentes/esquemas-comunes.yaml#/Importe, readOnly: true, description: Derivado. Subtotal menos el descuento.}
+        fechaAceptacionCliente: {description: Fecha de aceptación del cliente. Nula mientras no se acepte., anyOf: [{$ref: ../componentes/esquemas-comunes.yaml#/FechaHora}, {type: 'null'}]}
+        fechaValidacionMigal: {description: Fecha de validación de viabilidad por MIGAL. Nula mientras no se valide., anyOf: [{$ref: ../componentes/esquemas-comunes.yaml#/FechaHora}, {type: 'null'}]}
+        rechazo: {description: Registro del rechazo. Nulo mientras la cotización no esté rechazada., anyOf: [{$ref: '#/components/schemas/CotizacionRechazo'}, {type: 'null'}]}
+      example: {id: '812', estado: emitida, cliente: {id: '57', nombreRazonSocial: Constructora Andina S.A.C., estadoActivo: true}, usuarioResponsableId: '7', fechaEmision: '2026-11-02T15:00:00-05:00', fechaVencimiento: '2026-11-09', descuento: 25, lineas: [{productoId: '101', sku: CEM-049, nombreProducto: Cemento Sol tipo I 42.5 kg, cantidad: 40, precioUnitario: 28.5, subtotal: 1140}], subtotal: 1140, total: 1115, fechaAceptacionCliente: null, fechaValidacionMigal: null, rechazo: null}
+    CotizacionPagina:
+      description: Página de cotizaciones con el sobre de paginación común.
+      allOf:
+        - $ref: ../componentes/esquemas-comunes.yaml#/Pagina
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: {$ref: '#/components/schemas/CotizacionRegistrada'}
+    CotizacionDatos:
+      type: object
+      description: >-
+        Datos para crear o modificar una cotización (CU-09). Toda cotización se asocia a un cliente activo: sin cliente
+        responde CLIENTE_REQUERIDO y con cliente inactivo responde CLIENTE_INACTIVO. La fecha de vencimiento resulta de
+        sumar validezDias a la fecha de emisión. El descuento no puede superar el subtotal de las líneas.
+      additionalProperties: false
+      required: [clienteId, lineas]
+      properties:
+        clienteId:
+          anyOf: [{$ref: ../componentes/esquemas-comunes.yaml#/Identificador}, {type: 'null'}]
+          description: Cliente destinatario. El valor nulo responde CLIENTE_REQUERIDO.
+        lineas: {type: array, minItems: 1, items: {$ref: '#/components/schemas/CotizacionLineaDatos'}, description: Líneas de la cotización. Los productos no pueden repetirse.}
+        descuento: {$ref: ../componentes/esquemas-comunes.yaml#/Importe, minimum: 0, default: 0, description: Descuento monetario general. Se redondea a céntimos.}
+        validezDias: {type: integer, minimum: 1, maximum: 60, default: 7, description: Días de vigencia desde la fecha de emisión.}
+        condicionesComerciales: {type: [string, 'null'], description: Condiciones comerciales como forma de pago o plazo de entrega.}
+      example: {clienteId: '57', lineas: [{productoId: '101', cantidad: 40, precioUnitario: 28.5}], descuento: 25, validezDias: 7}
+    CotizacionRechazoSolicitud:
+      type: object
+      description: Registro del rechazo de una cotización. El origen determina el estado de partida permitido y el rol requerido.
+      additionalProperties: false
+      required: [origen]
+      properties:
+        origen: {$ref: '#/components/schemas/OrigenRechazoCotizacion'}
+        motivo: {type: [string, 'null'], maxLength: 500, description: Motivo del rechazo. Opcional.}
+      example: {origen: cliente, motivo: 'El cliente solicita un plazo de entrega distinto.'}
+    CotizacionDivisionLinea:
+      type: object
+      description: Cantidad de un producto que pasa de la cotización original a la cotización nueva.
+      additionalProperties: false
+      required: [productoId, cantidad]
+      properties:
+        productoId: {$ref: ../componentes/esquemas-comunes.yaml#/Identificador}
+        cantidad: {$ref: ../componentes/esquemas-comunes.yaml#/Cantidad, exclusiveMinimum: 0, description: Cantidad que pasa a la cotización nueva. No puede superar la cantidad cotizada.}
+    CotizacionDivisionSolicitud:
+      type: object
+      description: Líneas que se trasladan a la cotización nueva para entregas escalonadas (ADR-003). La original debe conservar al menos una línea con cantidad mayor que cero.
+      additionalProperties: false
+      required: [lineas]
+      properties:
+        lineas: {type: array, minItems: 1, items: {$ref: '#/components/schemas/CotizacionDivisionLinea'}}
+      example: {lineas: [{productoId: '101', cantidad: 20}]}
+    CotizacionDivisionResultado:
+      type: object
+      description: Resultado de la división. La cotización nueva conserva el cliente, las condiciones y las fechas de emisión y de vencimiento de la original.
+      required: [cotizacionOriginal, cotizacionNueva]
+      properties:
+        cotizacionOriginal: {$ref: '#/components/schemas/CotizacionRegistrada'}
+        cotizacionNueva: {$ref: '#/components/schemas/CotizacionRegistrada'}
 
 paths:
   /clientes:
@@ -182,5 +342,196 @@ paths:
         '401': {$ref: ../componentes/errores.yaml#/Error401}
         '403': {$ref: ../componentes/errores.yaml#/Error403}
         '404': {$ref: ../componentes/errores.yaml#/Error404}
+        '422': {$ref: ../componentes/errores.yaml#/Error422}
+        '500': {$ref: ../componentes/errores.yaml#/Error500}
+
+  /cotizaciones:
+    get:
+      operationId: listarCotizaciones
+      summary: Listar cotizaciones
+      description: Devuelve una página de cotizaciones con su estado vigente a la fecha de consulta. El parámetro q busca por nombre o razón social del cliente. El filtro estado admite varios valores separados por coma. Campos ordenables, fechaEmision y fechaVencimiento. Orden predeterminado fechaEmision:desc. Un campo fuera de la lista genera VALIDACION_FALLIDA.
+      tags: [Cotizaciones]
+      security: [{bearerAuth: []}]
+      x-roles: [Vendedor, Administrador]
+      parameters:
+        - {$ref: ../componentes/parametros.yaml#/page}
+        - {$ref: ../componentes/parametros.yaml#/pageSize}
+        - {$ref: ../componentes/parametros.yaml#/orden}
+        - {$ref: ../componentes/parametros.yaml#/q}
+        - {$ref: '#/components/parameters/FiltroEstadoCotizacion'}
+        - {$ref: '#/components/parameters/FiltroClienteCotizacion'}
+        - {$ref: ../componentes/parametros.yaml#/desde}
+        - {$ref: ../componentes/parametros.yaml#/hasta}
+      responses:
+        '200': {description: Página de cotizaciones., content: {application/json: {schema: {$ref: '#/components/schemas/CotizacionPagina'}}}}
+        '401': {$ref: ../componentes/errores.yaml#/Error401}
+        '403': {$ref: ../componentes/errores.yaml#/Error403}
+        '422': {$ref: ../componentes/errores.yaml#/Error422}
+        '500': {$ref: ../componentes/errores.yaml#/Error500}
+    post:
+      operationId: crearCotizacion
+      summary: Crear cotización
+      description: Emite una cotización nueva con estado emitida. Sin cliente responde CLIENTE_REQUERIDO y con cliente inactivo responde CLIENTE_INACTIVO. La existencia del cliente y de los productos, la ausencia de productos repetidos y un descuento no mayor que el subtotal generan VALIDACION_FALLIDA. No reserva ni modifica existencias.
+      tags: [Cotizaciones]
+      security: [{bearerAuth: []}]
+      x-roles: [Vendedor]
+      requestBody:
+        required: true
+        content: {application/json: {schema: {$ref: '#/components/schemas/CotizacionDatos'}}}
+      responses:
+        '201': {description: Cotización emitida., content: {application/json: {schema: {$ref: '#/components/schemas/CotizacionRegistrada'}}}}
+        '400': {$ref: ../componentes/errores.yaml#/Error400}
+        '401': {$ref: ../componentes/errores.yaml#/Error401}
+        '403': {$ref: ../componentes/errores.yaml#/Error403}
+        '422': {$ref: ../componentes/errores.yaml#/Error422}
+        '500': {$ref: ../componentes/errores.yaml#/Error500}
+
+  /cotizaciones/{id}:
+    parameters:
+      - {$ref: '#/components/parameters/CotizacionId'}
+    get:
+      operationId: consultarCotizacion
+      summary: Consultar cotización
+      description: Devuelve el detalle de una cotización con sus líneas, sus totales derivados y su estado vigente. Responde RECURSO_NO_ENCONTRADO si el identificador no existe.
+      tags: [Cotizaciones]
+      security: [{bearerAuth: []}]
+      x-roles: [Vendedor, Administrador]
+      responses:
+        '200': {description: Cotización encontrada., content: {application/json: {schema: {$ref: '#/components/schemas/CotizacionRegistrada'}}}}
+        '401': {$ref: ../componentes/errores.yaml#/Error401}
+        '403': {$ref: ../componentes/errores.yaml#/Error403}
+        '404': {$ref: ../componentes/errores.yaml#/Error404}
+        '500': {$ref: ../componentes/errores.yaml#/Error500}
+    put:
+      operationId: actualizarCotizacion
+      summary: Actualizar cotización
+      description: Modifica una cotización emitida antes de su aceptación. La fecha de emisión se conserva y la fecha de vencimiento se recalcula con validezDias. Una cotización que no está emitida responde COTIZACION_NO_EDITABLE. Una cotización emitida cuyo vencimiento ya superó la fecha de consulta responde COTIZACION_VENCIDA.
+      tags: [Cotizaciones]
+      security: [{bearerAuth: []}]
+      x-roles: [Vendedor]
+      requestBody:
+        required: true
+        content: {application/json: {schema: {$ref: '#/components/schemas/CotizacionDatos'}}}
+      responses:
+        '200': {description: Cotización actualizada., content: {application/json: {schema: {$ref: '#/components/schemas/CotizacionRegistrada'}}}}
+        '400': {$ref: ../componentes/errores.yaml#/Error400}
+        '401': {$ref: ../componentes/errores.yaml#/Error401}
+        '403': {$ref: ../componentes/errores.yaml#/Error403}
+        '404': {$ref: ../componentes/errores.yaml#/Error404}
+        '409': {$ref: ../componentes/errores.yaml#/Error409}
+        '422': {$ref: ../componentes/errores.yaml#/Error422}
+        '500': {$ref: ../componentes/errores.yaml#/Error500}
+
+  /cotizaciones/{id}/aceptacion:
+    parameters:
+      - {$ref: '#/components/parameters/CotizacionId'}
+    post:
+      operationId: registrarAceptacionCotizacion
+      summary: Registrar aceptación del cliente
+      description: Registra la aceptación de la propuesta por el cliente y cambia el estado de emitida a aceptada (CU-09, flujo alternativo 1). Fija fechaAceptacionCliente y no reserva existencias (RF-COT-08). Una cotización vencida responde COTIZACION_VENCIDA. Cualquier otro estado distinto de emitida responde COTIZACION_NO_EDITABLE.
+      tags: [Cotizaciones]
+      security: [{bearerAuth: []}]
+      x-roles: [Vendedor]
+      parameters:
+        - {$ref: ../componentes/parametros.yaml#/IdempotencyKey}
+      responses:
+        '200': {description: Aceptación registrada. Un reintento con la misma clave devuelve la respuesta original., headers: {Idempotent-Replayed: {$ref: '#/components/headers/IdempotentReplayed'}}, content: {application/json: {schema: {$ref: '#/components/schemas/CotizacionRegistrada'}}}}
+        '400': {$ref: ../componentes/errores.yaml#/Error400}
+        '401': {$ref: ../componentes/errores.yaml#/Error401}
+        '403': {$ref: ../componentes/errores.yaml#/Error403}
+        '404': {$ref: ../componentes/errores.yaml#/Error404}
+        '409': {$ref: ../componentes/errores.yaml#/Error409}
+        '500': {$ref: ../componentes/errores.yaml#/Error500}
+
+  /cotizaciones/{id}/validacion:
+    parameters:
+      - {$ref: '#/components/parameters/CotizacionId'}
+    post:
+      operationId: validarCotizacion
+      summary: Validar viabilidad por MIGAL
+      description: Registra la validación de viabilidad comercial de una cotización aceptada y cambia su estado de aceptada a validada. Fija fechaValidacionMigal. La realiza la propietaria responsable del abastecimiento, representada por el rol Administrador (ADR-008). Una cotización que no está aceptada responde COTIZACION_NO_CONVERTIBLE. Una cotización cuyo vencimiento ya pasó responde COTIZACION_VENCIDA.
+      tags: [Cotizaciones]
+      security: [{bearerAuth: []}]
+      x-roles: [Administrador]
+      parameters:
+        - {$ref: ../componentes/parametros.yaml#/IdempotencyKey}
+      responses:
+        '200': {description: Cotización validada. Un reintento con la misma clave devuelve la respuesta original., headers: {Idempotent-Replayed: {$ref: '#/components/headers/IdempotentReplayed'}}, content: {application/json: {schema: {$ref: '#/components/schemas/CotizacionRegistrada'}}}}
+        '400': {$ref: ../componentes/errores.yaml#/Error400}
+        '401': {$ref: ../componentes/errores.yaml#/Error401}
+        '403': {$ref: ../componentes/errores.yaml#/Error403}
+        '404': {$ref: ../componentes/errores.yaml#/Error404}
+        '409': {$ref: ../componentes/errores.yaml#/Error409}
+        '500': {$ref: ../componentes/errores.yaml#/Error500}
+
+  /cotizaciones/{id}/rechazo:
+    parameters:
+      - {$ref: '#/components/parameters/CotizacionId'}
+    post:
+      operationId: registrarRechazoCotizacion
+      summary: Registrar rechazo de la cotización
+      description: Registra el rechazo de una cotización, que pasa a rechazada (estado final). Con origen cliente, la cotización debe estar emitida (COTIZACION_NO_EDITABLE si no lo está) y lo registran los roles Vendedor y Administrador. Con origen migal, la cotización debe estar aceptada (COTIZACION_NO_CONVERTIBLE si no lo está) y solo lo registra el rol Administrador; un Vendedor que lo intente recibe PERMISO_INSUFICIENTE. El registro indica el origen, el usuario, la fecha y el motivo opcional. No reserva ni libera existencias.
+      tags: [Cotizaciones]
+      security: [{bearerAuth: []}]
+      x-roles: [Vendedor, Administrador]
+      parameters:
+        - {$ref: ../componentes/parametros.yaml#/IdempotencyKey}
+      requestBody:
+        required: true
+        content: {application/json: {schema: {$ref: '#/components/schemas/CotizacionRechazoSolicitud'}}}
+      responses:
+        '200': {description: Rechazo registrado. Un reintento con la misma clave devuelve la respuesta original., headers: {Idempotent-Replayed: {$ref: '#/components/headers/IdempotentReplayed'}}, content: {application/json: {schema: {$ref: '#/components/schemas/CotizacionRegistrada'}}}}
+        '400': {$ref: ../componentes/errores.yaml#/Error400}
+        '401': {$ref: ../componentes/errores.yaml#/Error401}
+        '403': {$ref: ../componentes/errores.yaml#/Error403}
+        '404': {$ref: ../componentes/errores.yaml#/Error404}
+        '409': {$ref: ../componentes/errores.yaml#/Error409}
+        '422': {$ref: ../componentes/errores.yaml#/Error422}
+        '500': {$ref: ../componentes/errores.yaml#/Error500}
+
+  /cotizaciones/{id}/division:
+    parameters:
+      - {$ref: '#/components/parameters/CotizacionId'}
+    post:
+      operationId: dividirCotizacion
+      summary: Dividir cotización para entregas escalonadas
+      description: Divide una cotización emitida en dos (ADR-003, regla 4). Traslada las cantidades indicadas a una cotización nueva, con el mismo cliente, condiciones y fechas, y conserva el resto en la original. Cada una podrá convertirse en su propia venta. Una cotización que no está emitida responde COTIZACION_NO_EDITABLE. Una cantidad superior a la cotizada, un producto ajeno a la cotización o la omisión de todas las líneas de la original generan VALIDACION_FALLIDA. No reserva existencias.
+      tags: [Cotizaciones]
+      security: [{bearerAuth: []}]
+      x-roles: [Vendedor]
+      parameters:
+        - {$ref: ../componentes/parametros.yaml#/IdempotencyKey}
+      requestBody:
+        required: true
+        content: {application/json: {schema: {$ref: '#/components/schemas/CotizacionDivisionSolicitud'}}}
+      responses:
+        '201': {description: Cotización dividida. Devuelve la cotización original y la nueva., headers: {Idempotent-Replayed: {$ref: '#/components/headers/IdempotentReplayed'}}, content: {application/json: {schema: {$ref: '#/components/schemas/CotizacionDivisionResultado'}}}}
+        '400': {$ref: ../componentes/errores.yaml#/Error400}
+        '401': {$ref: ../componentes/errores.yaml#/Error401}
+        '403': {$ref: ../componentes/errores.yaml#/Error403}
+        '404': {$ref: ../componentes/errores.yaml#/Error404}
+        '409': {$ref: ../componentes/errores.yaml#/Error409}
+        '422': {$ref: ../componentes/errores.yaml#/Error422}
+        '500': {$ref: ../componentes/errores.yaml#/Error500}
+
+  /cotizaciones/{id}/vencimiento:
+    parameters:
+      - {$ref: '#/components/parameters/CotizacionId'}
+    post:
+      operationId: registrarVencimientoCotizacion
+      summary: Registrar vencimiento de la cotización
+      description: Cambia a vencida una cotización cuya fecha de vencimiento ya superó la fecha de consulta (CU-09, flujo alternativo 3). El servidor aplica este cambio de forma automática y la operación permite registrarlo de forma explícita. Si la fecha no se ha superado responde VALIDACION_FALLIDA. Una cotización rechazada o vencida responde COTIZACION_NO_EDITABLE. Una cotización validada que ya originó una venta responde COTIZACION_YA_CONVERTIDA.
+      tags: [Cotizaciones]
+      security: [{bearerAuth: []}]
+      x-roles: [Vendedor, Administrador]
+      parameters:
+        - {$ref: ../componentes/parametros.yaml#/IdempotencyKey}
+      responses:
+        '200': {description: Vencimiento registrado. Un reintento con la misma clave devuelve la respuesta original., headers: {Idempotent-Replayed: {$ref: '#/components/headers/IdempotentReplayed'}}, content: {application/json: {schema: {$ref: '#/components/schemas/CotizacionRegistrada'}}}}
+        '400': {$ref: ../componentes/errores.yaml#/Error400}
+        '401': {$ref: ../componentes/errores.yaml#/Error401}
+        '403': {$ref: ../componentes/errores.yaml#/Error403}
+        '404': {$ref: ../componentes/errores.yaml#/Error404}
+        '409': {$ref: ../componentes/errores.yaml#/Error409}
         '422': {$ref: ../componentes/errores.yaml#/Error422}
         '500': {$ref: ../componentes/errores.yaml#/Error500}

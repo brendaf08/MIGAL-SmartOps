@@ -231,8 +231,9 @@ Las cantidades recibidas se registran en `Detalle_Recepcion` y generan movimient
 | `id_guia` | Opcional (FK) | Referencia a la guía cuando el movimiento proviene de un despacho. |
 | `id_recepcion` | Opcional (FK) | Referencia a la recepción cuando el movimiento corresponde a una entrada de abastecimiento. |
 | `referencia_traslado` | Opcional | Identificador compartido por los movimientos de salida y entrada de un traslado interno. |
+| `id_movimiento_corregido` | Opcional (FK) | Referencia al movimiento que corrige, cuando el registro es un movimiento compensatorio. |
 
-Los movimientos de Kardex representan variaciones reales del inventario físico.
+Los movimientos de Kardex representan variaciones reales del inventario físico. El registro es de solo anexión: no se modifican ni se eliminan movimientos. Una corrección se registra como un movimiento compensatorio de tipo opuesto, con origen Ajuste, motivo obligatorio y referencia al movimiento corregido.
 
 Cada movimiento se vincula a un inventario específico, evitando registrar separadamente referencias redundantes a producto y almacén cuando ambos ya se encuentran identificados mediante `id_inventario`.
 
@@ -392,6 +393,7 @@ Las relaciones sin atributos representan asociaciones directas entre entidades q
 | Genera_Ingreso | Orden_Recepcion + Movimiento_Kardex | Una recepción validada puede generar múltiples movimientos de entrada. Cada movimiento de recepción se vincula a una única recepción de origen. |
 | Tiene_Ordenes | Proveedor + Orden_Compra | Un proveedor puede tener cero o múltiples órdenes de compra; cada orden corresponde a un único proveedor. |
 | Deriva_En | Orden_Compra + Orden_Recepcion | Una orden de compra puede originar cero o múltiples recepciones; cada recepción corresponde a una única orden de compra. |
+| Corrige | Movimiento_Kardex + Movimiento_Kardex | Un movimiento puede ser corregido por cero o múltiples movimientos compensatorios; cada movimiento compensatorio corrige a un único movimiento. |
 | Sube | Usuario + Documento_Digital | Un usuario puede cargar múltiples documentos; cada documento identifica a un único usuario responsable. |
 | Contiene | Documento_Digital + Detalle_Extraido | Un documento puede contener cero o múltiples elementos extraídos; cada detalle pertenece a un único documento. |
 | Asociado | Producto + Detalle_Extraido | Un producto puede asociarse a múltiples detalles extraídos; cada detalle puede asociarse opcionalmente a un único producto. |

@@ -1,17 +1,620 @@
+# Contrato OpenAPI del módulo de catálogo (CU-03), conforme al ADR-006 y al ADR-008.
+# Cubre el catálogo maestro de productos, la lista de almacenes (tienda principal y
+# almacenes 1 y 2) y la consulta de categorías. Las operaciones de este módulo no afectan
+# inventario ni reservas, por lo que no declaran la cabecera Idempotency-Key.
+# Los identificadores de ruta son técnicos y opacos (ADR-008); el SKU se usa solo como filtro.
+# Los esquemas de este documento se referencian desde las rutas con #/components/schemas.
 openapi: 3.1.0
 info:
   title: MIGAL SmartOps - Catálogo
   version: 1.0.0
-  description: Documento base del módulo de catálogo (CU-03). Sus operaciones se definen en el pull request del módulo.
+  description: >-
+    Contrato del módulo de catálogo de la API REST de MIGAL SmartOps. Define la gestión del
+    catálogo maestro de productos (CU-03), el estado de activación de productos y almacenes,
+    la lista de almacenes y la consulta de categorías. La autenticación se realiza mediante
+    JWT de usuario y la autorización por rol se declara en la extensión x-roles de cada operación.
 servers:
   - url: /api/v1
 security:
   - bearerAuth: []
 tags:
   - name: Catálogo
-    description: Productos, categorías y almacenes.
+    description: Productos, almacenes y categorías.
 components:
   securitySchemes:
     bearerAuth:
       $ref: ../componentes/seguridad.yaml#/bearerAuth
-paths: {}
+
+  parameters:
+    productoId:
+      name: id
+      in: path
+      required: true
+      description: Identificador técnico del producto.
+      schema:
+        $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+    almacenId:
+      name: id
+      in: path
+      required: true
+      description: Identificador técnico del almacén o de la tienda principal.
+      schema:
+        $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+    sku:
+      name: sku
+      in: query
+      description: Filtro por SKU exacto. Permite localizar un producto por su clave natural.
+      schema:
+        $ref: ../componentes/esquemas-comunes.yaml#/Sku
+    idCategoria:
+      name: idCategoria
+      in: query
+      description: Filtro por categoría. Incluye solo los productos clasificados en la categoría indicada.
+      schema:
+        $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+    estadoActivo:
+      name: estadoActivo
+      in: query
+      description: Filtro por indicador de vigencia del producto. Si se omite, se devuelven productos activos e inactivos.
+      schema:
+        type: boolean
+
+  schemas:
+    Producto:
+      type: object
+      description: >-
+        Producto del catálogo maestro. Su clave natural es el SKU, único en el catálogo. La
+        categoría se expresa mediante idCategoria (referencia a Categoria). Los atributos
+        siguen el diccionario de datos (Producto) con nombres en camelCase.
+      required:
+        - id
+        - sku
+        - nombreOficial
+        - unidadMedida
+        - precioReferencial
+        - stockMinimo
+        - estadoActivo
+        - idCategoria
+        - fechaRegistro
+      properties:
+        id:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        sku:
+          $ref: ../componentes/esquemas-comunes.yaml#/Sku
+        nombreOficial:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: Denominación utilizada dentro del catálogo maestro.
+        descripcion:
+          type: [string, 'null']
+          description: Características y especificaciones adicionales. Nulo cuando no se registra.
+        unidadMedida:
+          type: string
+          maxLength: 30
+          description: Unidad de manejo, por ejemplo bolsa, unidad, kg o m³.
+        precioReferencial:
+          $ref: ../componentes/esquemas-comunes.yaml#/Importe
+          minimum: 0
+          description: Precio comercial de referencia para cotizaciones y ventas.
+        stockMinimo:
+          $ref: ../componentes/esquemas-comunes.yaml#/Cantidad
+          minimum: 0
+          description: Umbral utilizado para generar alertas de reposición.
+        estadoActivo:
+          type: boolean
+          description: Indicador de vigencia del producto. Un producto inactivo se conserva en el catálogo.
+        idCategoria:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+          description: Categoría comercial del producto. Referencia a Categoria.id.
+        marca:
+          type: [string, 'null']
+          maxLength: 100
+          description: Marca comercial del producto. Nula cuando no se registra.
+        presentacion:
+          type: [string, 'null']
+          maxLength: 100
+          description: Presentación o formato de comercialización. Nula cuando no se registra.
+        fechaRegistro:
+          $ref: ../componentes/esquemas-comunes.yaml#/FechaHora
+        fechaActualizacion:
+          type: [string, 'null']
+          format: date-time
+          description: Marca de la última modificación. Nula si el producto no se ha modificado.
+      example:
+        id: '101'
+        sku: CEM-049
+        nombreOficial: Cemento Sol tipo I 42.5 kg
+        descripcion: Cemento de uso general en bolsa de 42.5 kg.
+        unidadMedida: bolsa
+        precioReferencial: 28.5
+        stockMinimo: 20
+        estadoActivo: true
+        idCategoria: '3'
+        marca: Sol
+        presentacion: Bolsa 42.5 kg
+        fechaRegistro: '2026-01-15T09:30:00-05:00'
+        fechaActualizacion: null
+
+    ProductoRegistro:
+      type: object
+      description: >-
+        Datos para registrar un producto nuevo. Un producto nuevo no tiene existencias; las
+        cantidades se incorporan mediante recepciones. Si se omite estadoActivo, el producto
+        se registra como activo.
+      additionalProperties: false
+      required:
+        - sku
+        - nombreOficial
+        - unidadMedida
+        - precioReferencial
+        - stockMinimo
+        - idCategoria
+      properties:
+        sku:
+          $ref: ../componentes/esquemas-comunes.yaml#/Sku
+        nombreOficial:
+          type: string
+          minLength: 1
+          maxLength: 200
+        descripcion:
+          type: [string, 'null']
+        unidadMedida:
+          type: string
+          minLength: 1
+          maxLength: 30
+        precioReferencial:
+          $ref: ../componentes/esquemas-comunes.yaml#/Importe
+          minimum: 0
+        stockMinimo:
+          $ref: ../componentes/esquemas-comunes.yaml#/Cantidad
+          minimum: 0
+        idCategoria:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        marca:
+          type: [string, 'null']
+          maxLength: 100
+        presentacion:
+          type: [string, 'null']
+          maxLength: 100
+        estadoActivo:
+          type: boolean
+          default: true
+          description: Indicador de vigencia inicial del producto.
+      example:
+        sku: CEM-049
+        nombreOficial: Cemento Sol tipo I 42.5 kg
+        descripcion: Cemento de uso general en bolsa de 42.5 kg.
+        unidadMedida: bolsa
+        precioReferencial: 28.5
+        stockMinimo: 20
+        idCategoria: '3'
+        marca: Sol
+        presentacion: Bolsa 42.5 kg
+
+    ProductoActualizacion:
+      type: object
+      description: >-
+        Datos para modificar un producto existente. El SKU no se modifica y el estado de
+        vigencia se cambia mediante PUT /productos/{id}/estado.
+      additionalProperties: false
+      required:
+        - nombreOficial
+        - unidadMedida
+        - precioReferencial
+        - stockMinimo
+        - idCategoria
+      properties:
+        nombreOficial:
+          type: string
+          minLength: 1
+          maxLength: 200
+        descripcion:
+          type: [string, 'null']
+        unidadMedida:
+          type: string
+          minLength: 1
+          maxLength: 30
+        precioReferencial:
+          $ref: ../componentes/esquemas-comunes.yaml#/Importe
+          minimum: 0
+        stockMinimo:
+          $ref: ../componentes/esquemas-comunes.yaml#/Cantidad
+          minimum: 0
+        idCategoria:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        marca:
+          type: [string, 'null']
+          maxLength: 100
+        presentacion:
+          type: [string, 'null']
+          maxLength: 100
+      example:
+        nombreOficial: Cemento Sol tipo I 42.5 kg
+        descripcion: Cemento de uso general en bolsa de 42.5 kg.
+        unidadMedida: bolsa
+        precioReferencial: 29
+        stockMinimo: 25
+        idCategoria: '3'
+        marca: Sol
+        presentacion: Bolsa 42.5 kg
+
+    ProductoPagina:
+      description: Página de productos con el sobre de paginación común.
+      allOf:
+        - $ref: ../componentes/esquemas-comunes.yaml#/Pagina
+        - type: object
+          required:
+            - items
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/Producto'
+
+    Almacen:
+      type: object
+      description: >-
+        Ubicación física donde se mantienen existencias: la tienda principal o un almacén. Las
+        existencias por ubicación se consultan en el módulo de inventario mediante ubicacionId.
+      required:
+        - id
+        - nombre
+        - tipoUbicacion
+        - direccionReferencia
+        - estadoActivo
+      properties:
+        id:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        nombre:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Nombre descriptivo de la tienda o del almacén.
+        tipoUbicacion:
+          type: string
+          maxLength: 30
+          description: Clasificación de la ubicación dentro de la infraestructura de MIGAL. La base de datos no restringe sus valores.
+        direccionReferencia:
+          type: [string, 'null']
+          maxLength: 255
+          description: Dirección o referencia física de la ubicación. Nula cuando no se registra.
+        estadoActivo:
+          type: boolean
+          description: Indicador de disponibilidad de la ubicación para operaciones de inventario.
+      example:
+        id: '1'
+        nombre: Tienda principal
+        tipoUbicacion: tienda
+        direccionReferencia: null
+        estadoActivo: true
+
+    Categoria:
+      type: object
+      description: >-
+        Categoría comercial de productos, de solo lectura en la versión 1. Las categorías forman
+        una jerarquía mediante idCategoriaPadre. La categoría indica si la viabilidad de
+        abastecimiento es automática (ADR-006, reglas de negocio).
+      required:
+        - id
+        - nombre
+        - idCategoriaPadre
+        - aprobacionAutomatica
+      properties:
+        id:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        nombre:
+          type: string
+          minLength: 1
+          description: Denominación de la categoría.
+        idCategoriaPadre:
+          type: [string, 'null']
+          description: Identificador de la categoría padre. Nulo en las categorías de primer nivel.
+        aprobacionAutomatica:
+          type: boolean
+          description: >-
+            Verdadero cuando la validación de viabilidad de abastecimiento se acepta
+            automáticamente (cemento, ladrillos, fierros y agregados).
+      example:
+        id: '3'
+        nombre: Cemento
+        idCategoriaPadre: null
+        aprobacionAutomatica: true
+
+    ActualizacionEstado:
+      type: object
+      description: Cambio de estado de activación de un maestro. La desactivación es lógica y conserva el registro.
+      additionalProperties: false
+      required:
+        - estadoActivo
+      properties:
+        estadoActivo:
+          type: boolean
+          description: Verdadero para activar el registro y falso para desactivarlo.
+      example:
+        estadoActivo: false
+
+paths:
+  /productos:
+    get:
+      operationId: listarProductos
+      summary: Listar productos
+      description: >-
+        Devuelve la página de productos del catálogo maestro. El parámetro q busca por SKU o
+        nombre; sku filtra por SKU exacto; idCategoria y estadoActivo filtran por categoría y
+        vigencia. Campos ordenables: sku, nombreOficial y fechaRegistro. El orden predeterminado
+        es sku:asc. Un campo de orden fuera de la lista genera VALIDACION_FALLIDA. Los
+        productos inactivos se incluyen salvo que se filtre por estadoActivo=true.
+      tags:
+        - Catálogo
+      security:
+        - bearerAuth: []
+      x-roles: [Almacenero, Administrador]
+      parameters:
+        - $ref: ../componentes/parametros.yaml#/page
+        - $ref: ../componentes/parametros.yaml#/pageSize
+        - $ref: ../componentes/parametros.yaml#/orden
+        - $ref: ../componentes/parametros.yaml#/q
+        - $ref: '#/components/parameters/sku'
+        - $ref: '#/components/parameters/idCategoria'
+        - $ref: '#/components/parameters/estadoActivo'
+      responses:
+        '200':
+          description: Página de productos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductoPagina'
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
+        '422':
+          $ref: ../componentes/errores.yaml#/Error422
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500
+    post:
+      operationId: registrarProducto
+      summary: Registrar producto
+      description: >-
+        Registra un producto nuevo en el catálogo maestro (CU-03, flujo alternativo 1). El SKU
+        debe ser único; si ya existe, responde SKU_DUPLICADO y no se crea el producto. El
+        producto se registra sin existencias. Las reglas de los campos y la existencia de la
+        categoría indicada generan VALIDACION_FALLIDA.
+      tags:
+        - Catálogo
+      security:
+        - bearerAuth: []
+      x-roles: [Almacenero, Administrador]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductoRegistro'
+      responses:
+        '201':
+          description: Producto registrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Producto'
+        '400':
+          $ref: ../componentes/errores.yaml#/Error400
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
+        '409':
+          $ref: ../componentes/errores.yaml#/Error409
+        '422':
+          $ref: ../componentes/errores.yaml#/Error422
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500
+
+  /productos/{id}:
+    parameters:
+      - $ref: '#/components/parameters/productoId'
+    get:
+      operationId: consultarProducto
+      summary: Consultar producto
+      description: Devuelve el detalle de un producto del catálogo maestro, activo o inactivo. Responde RECURSO_NO_ENCONTRADO si el identificador no existe.
+      tags:
+        - Catálogo
+      security:
+        - bearerAuth: []
+      x-roles: [Almacenero, Administrador]
+      responses:
+        '200':
+          description: Producto encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Producto'
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
+        '404':
+          $ref: ../componentes/errores.yaml#/Error404
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500
+    put:
+      operationId: actualizarProducto
+      summary: Actualizar producto
+      description: >-
+        Modifica los datos de un producto existente (CU-03, flujo alternativo 2). El SKU no se
+        modifica y el cuerpo no lo admite. El estado de vigencia se cambia mediante
+        PUT /productos/{id}/estado. Las reglas de los campos generan VALIDACION_FALLIDA.
+      tags:
+        - Catálogo
+      security:
+        - bearerAuth: []
+      x-roles: [Almacenero, Administrador]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductoActualizacion'
+      responses:
+        '200':
+          description: Producto actualizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Producto'
+        '400':
+          $ref: ../componentes/errores.yaml#/Error400
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
+        '404':
+          $ref: ../componentes/errores.yaml#/Error404
+        '422':
+          $ref: ../componentes/errores.yaml#/Error422
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500
+
+  /productos/{id}/estado:
+    parameters:
+      - $ref: '#/components/parameters/productoId'
+    put:
+      operationId: actualizarEstadoProducto
+      summary: Activar o desactivar producto
+      description: >-
+        Establece la vigencia del producto. La desactivación es lógica: el producto se conserva
+        con su historial y deja de utilizarse en nuevas operaciones. Responde
+        RECURSO_NO_ENCONTRADO si el identificador no existe.
+      tags:
+        - Catálogo
+      security:
+        - bearerAuth: []
+      x-roles: [Almacenero, Administrador]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActualizacionEstado'
+      responses:
+        '200':
+          description: Estado actualizado. Devuelve el producto con su nuevo estado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Producto'
+        '400':
+          $ref: ../componentes/errores.yaml#/Error400
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
+        '404':
+          $ref: ../componentes/errores.yaml#/Error404
+        '422':
+          $ref: ../componentes/errores.yaml#/Error422
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500
+
+  /almacenes:
+    get:
+      operationId: listarAlmacenes
+      summary: Listar almacenes
+      description: >-
+        Devuelve la lista completa de ubicaciones de la tienda principal y de los almacenes. Es
+        un catálogo acotado y no se pagina, por lo que la respuesta es un arreglo. Se utiliza
+        para mostrar la disponibilidad segmentada por ubicación.
+      tags:
+        - Catálogo
+      security:
+        - bearerAuth: []
+      x-roles: [Almacenero, Vendedor, Reponedor, Administrador]
+      responses:
+        '200':
+          description: Lista completa de ubicaciones.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Almacen'
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500
+
+  /almacenes/{id}/estado:
+    parameters:
+      - $ref: '#/components/parameters/almacenId'
+    put:
+      operationId: actualizarEstadoAlmacen
+      summary: Activar o desactivar almacén
+      description: >-
+        Establece la disponibilidad de la ubicación para operaciones de inventario. La
+        desactivación es lógica y conserva el registro. Responde RECURSO_NO_ENCONTRADO si el
+        identificador no existe. Solo el rol Administrador puede ejecutar esta operación.
+      tags:
+        - Catálogo
+      security:
+        - bearerAuth: []
+      # Asignación de roles pendiente de confirmación: el ADR-006 no define quién gestiona los
+      # almacenes. Se asigna Administrador por analogía con la gestión de maestros de usuarios.
+      x-roles: [Administrador]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActualizacionEstado'
+      responses:
+        '200':
+          description: Estado actualizado. Devuelve el almacén con su nuevo estado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Almacen'
+        '400':
+          $ref: ../componentes/errores.yaml#/Error400
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
+        '404':
+          $ref: ../componentes/errores.yaml#/Error404
+        '422':
+          $ref: ../componentes/errores.yaml#/Error422
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500
+
+  /categorias:
+    get:
+      operationId: listarCategorias
+      summary: Listar categorías
+      description: >-
+        Devuelve la lista completa de categorías de productos, de solo lectura en la versión 1.
+        Es un catálogo acotado y no se pagina, por lo que la respuesta es un arreglo. Cada
+        categoría indica si su viabilidad de abastecimiento es automática.
+      tags:
+        - Catálogo
+      security:
+        - bearerAuth: []
+      x-roles: [Almacenero, Administrador]
+      responses:
+        '200':
+          description: Lista completa de categorías.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Categoria'
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500

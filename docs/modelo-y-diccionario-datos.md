@@ -346,14 +346,20 @@ La desactivación de un proveedor impide utilizarlo en nuevas órdenes de compra
 | --- | --- | --- |
 | `id_documento` | Único (PK) | Identificador interno del documento cargado. |
 | `ruta_archivo` | Simple | Ruta o referencia al archivo JPG, PNG o PDF almacenado. |
+| `nombre_archivo` | Simple | Nombre original del archivo cargado, sin ruta. Obligatorio y no vacío. |
+| `tamano_bytes` | Simple | Tamaño del archivo en bytes. Obligatorio y mayor que cero. |
 | `fecha_subida` | Simple | Fecha y hora de carga del documento. |
 | `estado_procesamiento` | Simple | Estado de procesamiento: Pendiente, Procesado OCR o Validado. |
-| `tipo_documento` | Simple | Clasificación funcional del archivo, como SolicitudCliente o DocumentoRecepcion. |
+| `codigo_error` | Condicional | Código del error de procesamiento: `DOCUMENTO_ILEGIBLE` o `SERVICIO_NO_DISPONIBLE`. Solo se informa mientras el estado es pendiente. |
+| `tipo_documento` | Simple | Clasificación funcional del archivo: `solicitud_cliente` o `documento_recepcion`. |
 | `id_usuario` | Obligatorio (FK) | Referencia al usuario que cargó el documento. |
 | `id_cotizacion` | Opcional (FK) | Referencia a la cotización para la cual se utiliza el documento como fuente de información. |
 | `id_recepcion` | Opcional (FK) | Referencia a la recepción para la cual se utiliza el documento como apoyo documental. |
+| `fecha_eliminacion` | Opcional | Fecha y hora de la eliminación lógica del documento. No puede ser anterior a `fecha_subida`. |
 
 Un documento digital puede utilizarse como entrada para preparar una cotización o apoyar el registro de una recepción.
+
+La eliminación de un documento es lógica. Al eliminarlo, se registra `fecha_eliminacion`, el documento y sus elementos extraídos se excluyen de las consultas habituales y la fila se conserva. La aplicación no elimina filas de documentos ni de detalles extraídos; la eliminación física se reserva a los datos de desarrollo, conforme al [ADR-005](adr/adr-005-base-de-datos.md).
 
 La extracción de información no genera automáticamente ventas, recepciones confirmadas ni movimientos físicos de inventario.
 
@@ -364,9 +370,14 @@ La extracción de información no genera automáticamente ventas, recepciones co
 | `id_detalle_extraido` | Único (PK) | Identificador interno del elemento extraído. |
 | `id_documento` | Obligatorio (FK) | Referencia al documento del cual se obtuvo la información. |
 | `texto_crudo` | Simple | Texto original identificado mediante OCR. |
-| `cantidad_leida` | Opcional | Cantidad interpretada durante el procesamiento. |
+| `cantidad_leida` | Opcional | Cantidad interpretada durante el procesamiento. Cuando se informa, es igual o mayor que cero. |
 | `id_producto` | Opcional (FK) | Producto del catálogo maestro asociado al elemento mediante Fuzzy Matching o validación manual. |
 | `texto_corregido` | Opcional | Texto modificado o normalizado por el usuario responsable. |
+| `sku_sugerido` | Opcional | SKU propuesto por el procesamiento OCR a partir del texto identificado. Es una sugerencia que no se asocia al producto hasta su confirmación. |
+| `confianza` | Opcional | Grado de confianza del reconocimiento, expresado entre 0 y 1. |
+| `cantidad_corregida` | Opcional | Cantidad fijada por el usuario responsable durante la revisión. Cuando se informa, es igual o mayor que cero. `cantidad_leida` conserva la lectura original del OCR. |
+| `requiere_revision` | Simple | Indicador que señala que el elemento debe revisarse antes de utilizarse. Se crea en falso. |
+| `descartado` | Simple | Indicador que señala que el elemento fue descartado en la revisión. Se crea en falso. |
 
 La asociación con `Producto` puede permanecer vacía hasta que exista una coincidencia confiable y se confirme su validez.
 
@@ -389,6 +400,7 @@ Estas asociaciones se implementan mediante tablas intermedias, permitiendo repre
 | `Detalle_Compra` | Orden_Compra + Producto | `id_orden` (PK, FK)<br>`id_producto` (PK, FK)<br>`cantidad_comprada` (Simple)<br>`costo_unitario` (Simple)<br>`subtotal_detalle` (Derivado)<br>`cantidad_pendiente_recepcion` (Derivado) | Muchos a muchos. Una orden de compra contiene uno o varios productos y un producto puede ser solicitado en distintas órdenes. |
 | `Detalle_Recepcion` | Orden_Recepcion + Producto + Almacen | `id_recepcion` (PK, FK)<br>`id_producto` (PK, FK)<br>`id_almacen_destino` (PK, FK)<br>`cantidad_recibida` (Simple) | Una recepción puede incluir varios productos y distribuir sus cantidades entre diferentes ubicaciones. Un producto puede aparecer en múltiples recepciones. |
 | `Catalogo_Proveedor` | Proveedor + Producto | `id_proveedor` (PK, FK)<br>`id_producto` (PK, FK)<br>`precio_compra` (Simple)<br>`plazo_entrega_referencial_dias` (Opcional)<br>`fecha_actualizacion_precio` (Opcional) | Muchos a muchos. Un proveedor puede suministrar diferentes productos y un producto puede encontrarse asociado a varios proveedores. |
+| `Coincidencia_Detalle` | Detalle_Extraido + Producto | `id_coincidencia` (PK)<br>`id_detalle_extraido` (FK)<br>`id_producto` (FK)<br>`similitud` (Simple)<br>`posicion` (Simple) | Muchos a muchos. Un elemento extraído puede tener varios productos candidatos y un producto puede ser candidato de varios elementos. Un producto aparece una vez por elemento y cada posición es única dentro del elemento. |
 
 ### Consideraciones de las relaciones
 
@@ -403,6 +415,8 @@ Estas asociaciones se implementan mediante tablas intermedias, permitiendo repre
 **Detalle_Recepcion.** La inclusión de `id_almacen_destino` permite registrar el ingreso de productos a diferentes ubicaciones físicas sin perder la referencia a la recepción de origen.
 
 **Catalogo_Proveedor.** Conserva las asociaciones entre productos y proveedores, junto con información comercial referencial. La selección y evaluación final de condiciones de abastecimiento permanece bajo responsabilidad del personal autorizado de MIGAL.
+
+**Coincidencia_Detalle.** Registra los productos candidatos que el procesamiento OCR propone para un elemento extraído, con su similitud (un valor entre 0 y 1) y su posición en la lista de sugerencias. Las coincidencias son sugerencias: la asociación confirmada permanece en `id_producto` de `Detalle_Extraido`, que se registra únicamente tras la validación humana. Cada coincidencia pertenece a un único elemento extraído.
 
 Los atributos derivados se calculan con las siguientes fórmulas:
 
@@ -562,6 +576,9 @@ Para mantener la consistencia entre las entidades y los procesos del sistema, se
 - Las cancelaciones anteriores al despacho deben liberar las reservas y conservar el motivo y la autorización correspondiente.
 - Todo producto debe pertenecer a una única categoría, y el nombre de una categoría es único dentro de su mismo padre.
 - Los registros históricos deben conservarse cuando se desactiven clientes, proveedores, productos o usuarios.
+- Un documento digital se elimina de forma lógica: `fecha_eliminacion` no puede anteceder a `fecha_subida` (V13).
+- Un código de error de procesamiento solo se registra mientras el documento se encuentra pendiente (V13).
+- Un elemento extraído no repite un producto entre sus coincidencias ni una posición dentro de ellas (V13).
 - Los movimientos de inventario y las reservas deben ejecutarse mediante operaciones transaccionales consistentes.
 
 Para la implementación en PostgreSQL se propone utilizar tipos numéricos exactos, como `NUMERIC(14,3)` para cantidades y `NUMERIC(14,2)` para importes. Los registros temporales que requieran trazabilidad podrán utilizar `TIMESTAMPTZ`.

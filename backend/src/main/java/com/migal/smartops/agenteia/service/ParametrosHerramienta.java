@@ -4,6 +4,7 @@ import com.migal.smartops.comun.errores.CodigoError;
 import com.migal.smartops.comun.errores.ErrorDeNegocio;
 import java.time.LocalDate;
 import java.util.Map;
+import java.util.function.Function;
 
 /**
  * Lectura de los parámetros de una invocación de herramienta. Los valores llegan como texto; los vacíos se tratan como
@@ -60,6 +61,19 @@ final class ParametrosHerramienta {
 		}
 		try {
 			return LocalDate.parse(valor);
+		} catch (RuntimeException error) {
+			throw invalido(nombre);
+		}
+	}
+
+	/** Valor de un catálogo cerrado, o nulo si el parámetro falta. Un valor fuera del catálogo responde VALIDACION_FALLIDA. */
+	static <E> E enumerado(Map<String, String> parametros, String nombre, Function<String, E> de) {
+		String valor = texto(parametros, nombre);
+		if (valor == null) {
+			return null;
+		}
+		try {
+			return de.apply(valor);
 		} catch (RuntimeException error) {
 			throw invalido(nombre);
 		}

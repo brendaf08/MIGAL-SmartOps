@@ -8,12 +8,12 @@ import com.migal.smartops.comun.errores.ErrorDeNegocio;
  * ningún registro, por lo que responde {@code RECURSO_NO_ENCONTRADO}, como declara el contrato para las rutas
  * con identificador.
  */
-final class Identificadores {
+public final class Identificadores {
 
 	private Identificadores() {
 	}
 
-	static long numero(String id) {
+	public static long numero(String id) {
 		try {
 			return Long.parseLong(id);
 		} catch (NumberFormatException e) {

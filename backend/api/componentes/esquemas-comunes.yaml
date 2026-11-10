@@ -30,6 +30,7 @@ Codigo:
 
 Sku:
   type: string
+  maxLength: 50
   description: Clave natural del producto en el catálogo.
 
 Fecha:

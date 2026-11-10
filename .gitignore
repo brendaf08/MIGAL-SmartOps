@@ -40,6 +40,9 @@ __pycache__/
 # Datos y archivos operativos locales
 database/backups/
 uploads/
+# Archivos cargados en el almacenamiento local del módulo documentosocr (desarrollo)
+backend/almacen-documentos/
+
 # Herramientas de asistencia con IA (no forman parte del producto)
 .claude/
 .interface-design/

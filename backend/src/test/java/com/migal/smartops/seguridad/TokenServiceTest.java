@@ -24,7 +24,8 @@ import org.springframework.test.util.ReflectionTestUtils;
 class TokenServiceTest {
 
 	private static final String SECRETO = "secreto-ficticio-de-pruebas-0123456789-abcdef";
-	private static final Instant AHORA = Instant.parse("2026-11-10T08:00:00Z");
+	// El decodificador valida la vigencia con el reloj real, por lo que el instante de emisión es la hora actual.
+	private static final Instant AHORA = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.SECONDS);
 
 	private final PropiedadesJwt propiedades = new PropiedadesJwt(SECRETO, Duration.ofHours(8));
 	private final SeguridadConfig configuracion = new SeguridadConfig();

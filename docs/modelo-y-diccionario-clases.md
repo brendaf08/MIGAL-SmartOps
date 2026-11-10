@@ -180,7 +180,7 @@ Los atributos se expresan mediante nomenclatura camelCase. Los identificadores y
 
 **DocumentoDigital y DetalleExtraido.** La eliminación de un documento es lógica: se registra `fechaEliminacion`, el documento y sus elementos extraídos se excluyen de las consultas habituales y la fila se conserva. `codigoError` solo se informa mientras el documento se encuentra pendiente. La sugerencia de SKU y las coincidencias son propuestas que no modifican `idProducto` hasta la validación humana, y un elemento extraído no repite un producto entre sus coincidencias. Ninguno de estos registros genera ventas, recepciones confirmadas ni movimientos de inventario.
 
-**ConversacionAgente y MensajeAgente.** Una `ConversacionAgente` pertenece a un único usuario, y cada `MensajeAgente` pertenece a una única conversación. Ambas clases se describen según el contrato del módulo del agente de IA. El agente no modifica datos transaccionales, y el usuario solo accede a sus propias conversaciones. Su persistencia aún no figura en el modelo de datos vigente y deberá incorporarse antes de su implementación.
+**ConversacionAgente y MensajeAgente.** Una `ConversacionAgente` pertenece a un único usuario, y cada `MensajeAgente` pertenece a una única conversación. Ambas clases se describen según el contrato del módulo del agente de IA. El agente no modifica datos transaccionales, y el usuario solo accede a sus propias conversaciones. Se persisten en las tablas `conversacion_agente` y `mensaje_agente` del [modelo de datos](modelo-y-diccionario-datos.md); eliminar una conversación borra sus mensajes.
 
 <a id="asociativas"></a>
 

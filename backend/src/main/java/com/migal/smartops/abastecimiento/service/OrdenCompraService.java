@@ -223,7 +223,14 @@ public class OrdenCompraService {
 				.compareTo(l.getCantidadComprada()) < 0);
 	}
 
+	/**
+	 * Compone la orden con su cantidad recibida. Inicializa dentro de la transacción las asociaciones perezosas que la
+	 * capa web necesita, porque la sesión de persistencia no permanece abierta fuera de los servicios.
+	 */
 	private OrdenDetalle detalle(OrdenCompra orden) {
+		orden.getLineas().size();
+		orden.getProveedor().getRazonSocial();
+		orden.getUsuarioResponsable().getId();
 		return new OrdenDetalle(orden, recibidoPorProducto(orden.getId()));
 	}
 

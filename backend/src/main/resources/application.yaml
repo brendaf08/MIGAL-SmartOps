@@ -24,3 +24,14 @@ migal:
       # Clave de firma HS256 de al menos 32 caracteres. Se define solo mediante la variable de entorno.
       secreto: ${MIGAL_JWT_SECRETO:}
       duracion: PT8H
+  ocr:
+    # Proveedor del servicio de OCR: simulado (por defecto, para desarrollo y pruebas) o no-configurado, que responde
+    # SERVICIO_NO_DISPONIBLE. Los umbrales del Fuzzy Matching son de ejemplo y quedan pendientes de definir.
+    proveedor: ${MIGAL_OCR_PROVEEDOR:simulado}
+    umbrales:
+      alta: ${MIGAL_OCR_UMBRAL_ALTA:0.85}
+      baja: ${MIGAL_OCR_UMBRAL_BAJA:0.60}
+  documentos:
+    # Carpeta de los archivos cargados, relativa a la carpeta de ejecución. El límite de 10 MB corresponde al contrato.
+    directorio: ${MIGAL_DOCUMENTOS_DIRECTORIO:almacen-documentos}
+    tamano-maximo-bytes: 10485760

@@ -15,6 +15,7 @@ Esta carpeta contiene los registros de decisiones de arquitectura (ADR, Architec
 | [ADR-007](adr-007-hosting-base-de-datos-supabase.md) | Hosting de la base de datos en Supabase. |
 | [ADR-008](adr-008-ajustes-contrato-api.md) | Ajustes al contrato de la API REST. |
 | [ADR-009](adr-009-ajustes-seguridad-y-componentes-contrato.md) | Ajustes de seguridad, sesión y componentes del contrato. |
+| [ADR-010](adr-010-estrategia-implementacion-backend.md) | Estrategia de implementación del backend. |
 
 ## Registrar una decisión
 

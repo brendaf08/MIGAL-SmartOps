@@ -51,8 +51,9 @@ entity Usuario {
 entity Cliente {
   * id_cliente <<PK>>
   --
-  tipo_documento
-  numero_documento
+  * codigo <<UK>>
+  (C) tipo_documento
+  (C) numero_documento
   * nombre_razon_social
   telefono_contacto
   direccion_referencia
@@ -98,6 +99,7 @@ entity Producto {
 entity Cotizacion {
   * id_cotizacion <<PK>>
   --
+  * codigo <<UK>>
   * id_cliente <<FK>>
   * id_usuario_responsable <<FK>>
   * fecha_emision
@@ -113,6 +115,7 @@ entity Cotizacion {
 entity Venta {
   * id_venta <<PK>>
   --
+  * codigo <<UK>>
   * id_cotizacion <<FK>> <<UK>>
   * id_cliente <<FK>>
   * id_usuario_responsable <<FK>>
@@ -128,6 +131,7 @@ entity Venta {
 entity Guia_Despacho {
   * id_guia <<PK>>
   --
+  * codigo <<UK>>
   * id_venta <<FK>> <<UK>>
   * direccion_entrega
   fecha_despacho
@@ -151,6 +155,7 @@ entity Proveedor {
 entity Orden_Compra {
   * id_orden <<PK>>
   --
+  * codigo <<UK>>
   * id_proveedor <<FK>>
   * id_usuario_responsable <<FK>>
   * fecha_emision
@@ -163,6 +168,7 @@ entity Orden_Compra {
 entity Orden_Recepcion {
   * id_recepcion <<PK>>
   --
+  * codigo <<UK>>
   * id_orden <<FK>>
   * id_usuario_responsable <<FK>>
   * fecha_recepcion

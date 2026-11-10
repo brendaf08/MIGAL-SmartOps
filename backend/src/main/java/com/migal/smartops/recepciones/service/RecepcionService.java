@@ -10,6 +10,8 @@ import com.migal.smartops.catalogo.repository.AlmacenRepository;
 import com.migal.smartops.catalogo.service.ProductoService;
 import com.migal.smartops.comun.errores.CodigoError;
 import com.migal.smartops.comun.errores.ErrorDeNegocio;
+import com.migal.smartops.documentosocr.service.DocumentoOcrService;
+import com.migal.smartops.documentosocr.service.DocumentoOcrService.LineaPrecargada;
 import com.migal.smartops.inventario.service.ConsultaInventarioService;
 import com.migal.smartops.inventario.service.ConsultaInventarioService.ExistenciaUbicacion;
 import com.migal.smartops.inventario.service.MovimientoDetalle;
@@ -39,7 +41,6 @@ import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
@@ -92,10 +93,6 @@ public class RecepcionService {
 			List<CambioExistencia> cambios, OrdenDetalle ordenCompra) {
 	}
 
-	/** Documento OCR con el que se precarga una recepción. */
-	private record DocumentoFila(String estado, Long idCotizacion, Long idRecepcion, boolean eliminado) {
-	}
-
 	private final RecepcionRepository recepciones;
 	private final OrdenCompraService ordenes;
 	private final ProductoService productos;
@@ -103,13 +100,14 @@ public class RecepcionService {
 	private final UsuarioService usuarios;
 	private final ReservaInventarioService reservas;
 	private final ConsultaInventarioService existencias;
-	private final JdbcClient jdbc;
+	private final DocumentoOcrService documentos;
 	private final TransactionTemplate transaccion;
 	private final Clock reloj;
 
 	public RecepcionService(RecepcionRepository recepciones, OrdenCompraService ordenes, ProductoService productos,
 			AlmacenRepository almacenes, UsuarioService usuarios, ReservaInventarioService reservas,
-			ConsultaInventarioService existencias, JdbcClient jdbc, PlatformTransactionManager transacciones, Clock reloj) {
+			ConsultaInventarioService existencias, DocumentoOcrService documentos, PlatformTransactionManager transacciones,
+			Clock reloj) {
 		this.recepciones = recepciones;
 		this.ordenes = ordenes;
 		this.productos = productos;
@@ -117,7 +115,7 @@ public class RecepcionService {
 		this.usuarios = usuarios;
 		this.reservas = reservas;
 		this.existencias = existencias;
-		this.jdbc = jdbc;
+		this.documentos = documentos;
 		this.transaccion = new TransactionTemplate(transacciones);
 		this.reloj = reloj;
 	}
@@ -164,17 +162,19 @@ public class RecepcionService {
 		if (orden.getEstado() == EstadoOrdenCompra.COMPLETADA) {
 			throw new ErrorDeNegocio(CodigoError.ORDEN_COMPRA_CERRADA, "La orden de compra está completada.");
 		}
-		DocumentoFila documento = datos.documentoId() == null ? null : documentoValidado(datos.documentoId());
+		List<LineaPrecargada> precarga = datos.documentoId() == null ? null
+				: documentos.precargaRecepcion(datos.documentoId());
 		List<LineaRecepcion> solicitadas = datos.lineas() == null ? List.of() : datos.lineas();
 		List<LineaRecepcion> lineas = new ArrayList<>(solicitadas);
-		if (datos.documentoId() != null) {
+		if (precarga != null) {
 			if (datos.ubicacionPrecargaId() == null) {
 				throw validacion("La precarga desde documento exige la ubicación de destino.");
 			}
 			Set<Long> explicitas = new HashSet<>();
 			solicitadas.forEach(l -> explicitas.add(l.productoId()));
-			precarga(datos.documentoId(), datos.ubicacionPrecargaId()).stream()
-					.filter(l -> !explicitas.contains(l.productoId())).forEach(lineas::add);
+			precarga.stream().filter(l -> !explicitas.contains(l.productoId()))
+					.map(l -> new LineaRecepcion(l.productoId(), datos.ubicacionPrecargaId(), l.cantidad()))
+					.forEach(lineas::add);
 		}
 		if (lineas.isEmpty()) {
 			throw validacion("La recepción debe tener al menos una línea.");
@@ -183,9 +183,8 @@ public class RecepcionService {
 		Recepcion recepcion = new Recepcion(orden, responsable, datos.fechaRecepcion(), datos.observaciones());
 		recepcion.reemplazarLineas(nuevasLineas(lineas));
 		recepciones.saveAndFlush(recepcion);
-		if (documento != null) {
-			jdbc.sql("UPDATE documento_digital SET id_recepcion = :recepcion WHERE id_documento = :documento")
-					.param("recepcion", recepcion.getId()).param("documento", datos.documentoId()).update();
+		if (datos.documentoId() != null) {
+			documentos.vincularRecepcion(datos.documentoId(), recepcion.getId());
 		}
 		return detalle(recepcion);
 	}
@@ -321,50 +320,11 @@ public class RecepcionService {
 		return resultado;
 	}
 
-	/** Lee las líneas del documento validado: productos confirmados y cantidad corregida o leída, sin elementos descartados. */
-	private List<LineaRecepcion> precarga(long idDocumento, long ubicacion) {
-		List<Object[]> filas = jdbc.sql("""
-				SELECT id_producto, COALESCE(cantidad_corregida, cantidad_leida) AS cantidad
-				  FROM detalle_extraido
-				 WHERE id_documento = :documento AND descartado = false
-				 ORDER BY id_detalle_extraido
-				""").param("documento", idDocumento).query((rs, n) -> new Object[] {rs.getObject("id_producto"),
-				rs.getBigDecimal("cantidad")}).list();
-		List<LineaRecepcion> lineas = new ArrayList<>();
-		for (Object[] fila : filas) {
-			if (fila[0] == null || fila[1] == null) {
-				throw validacion("El documento contiene elementos sin producto confirmado o sin cantidad.");
-			}
-			lineas.add(new LineaRecepcion(((Number) fila[0]).longValue(), ubicacion, (BigDecimal) fila[1]));
-		}
-		return lineas;
-	}
-
-	private DocumentoFila documentoValidado(long idDocumento) {
-		DocumentoFila documento = jdbc.sql("""
-				SELECT estado_procesamiento, id_cotizacion, id_recepcion, fecha_eliminacion
-				  FROM documento_digital WHERE id_documento = :documento
-				""").param("documento", idDocumento)
-				.query((rs, n) -> new DocumentoFila(rs.getString("estado_procesamiento"), rs.getObject("id_cotizacion") == null
-						? null : rs.getLong("id_cotizacion"), rs.getObject("id_recepcion") == null ? null
-						: rs.getLong("id_recepcion"), rs.getObject("fecha_eliminacion") != null))
-				.optional()
-				.orElseThrow(() -> new ErrorDeNegocio(CodigoError.RECURSO_NO_ENCONTRADO, "El documento no existe."));
-		boolean utilizable = "validado".equals(documento.estado()) && documento.idCotizacion() == null
-				&& documento.idRecepcion() == null && !documento.eliminado();
-		if (!utilizable) {
-			throw new ErrorDeNegocio(CodigoError.DOCUMENTO_NO_VALIDADO,
-					"El documento no está validado o ya apoya otra operación.");
-		}
-		return documento;
-	}
-
 	/** Compone la recepción con su documento de precarga y la orden vigente. Inicializa las líneas dentro de la transacción. */
 	private RecepcionDetalle detalle(Recepcion recepcion) {
 		recepcion.getLineas().size();
 		recepcion.getOrden().getProveedor().getRazonSocial();
-		Long documento = jdbc.sql("SELECT id_documento FROM documento_digital WHERE id_recepcion = :recepcion")
-				.param("recepcion", recepcion.getId()).query(Long.class).optional().orElse(null);
+		Long documento = documentos.documentoDeRecepcion(recepcion.getId()).orElse(null);
 		return new RecepcionDetalle(recepcion, documento, ordenes.consultar(recepcion.getOrden().getId()));
 	}
 

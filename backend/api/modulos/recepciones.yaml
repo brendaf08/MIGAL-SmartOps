@@ -1,0 +1,725 @@
+# Contrato OpenAPI del módulo de recepciones (CU-13), conforme al ADR-006 y a los ajustes de los ADR-008 y ADR-009.
+# Cubre el listado y la consulta de recepciones, el registro de una recepción pendiente contra una orden de compra
+# con precarga opcional desde un documento OCR validado, la actualización mientras la recepción está pendiente y la
+# validación, que genera los movimientos de entrada del Kardex y actualiza el estado de la orden en una sola transacción.
+# Las operaciones de proveedores y de órdenes de compra se definen en abastecimiento.yaml.
+# Los esquemas de este documento se prefijan con Recepcion para evitar colisiones al unir los módulos con join.
+openapi: 3.1.0
+info:
+  title: MIGAL SmartOps - Recepciones
+  version: 1.0.0
+  description: >-
+    Contrato del módulo de recepciones (CU-13). Define el listado y la consulta de recepciones, el registro de una
+    recepción pendiente contra una orden de compra con precarga opcional desde un documento OCR validado, la
+    actualización de la recepción mientras está pendiente y su validación. La validación registra los movimientos de
+    entrada del Kardex y actualiza el estado de la orden en una sola transacción. Una orden admite varias recepciones
+    parciales. Las reglas de negocio proceden del modelo de datos y del ADR-003; el formato de las operaciones, del
+    ADR-006 con los ajustes de los ADR-008 y ADR-009.
+servers:
+  - url: /api/v1
+security:
+  - bearerAuth: []
+tags:
+  - name: Recepciones
+    description: Listado, consulta, registro pendiente, actualización, precarga desde OCR y validación de recepciones.
+components:
+  securitySchemes:
+    bearerAuth:
+      $ref: ../componentes/seguridad.yaml#/bearerAuth
+  parameters:
+    IdRecepcionRuta:
+      name: id
+      in: path
+      required: true
+      description: Identificador técnico de la recepción. El código de negocio no se usa como clave de ruta.
+      schema:
+        $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+    OrdenCompraFiltro:
+      name: ordenCompraId
+      in: query
+      description: Filtro por orden de compra de origen, identificada por su id técnico.
+      schema:
+        $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+    EstadoRecepcionFiltro:
+      name: estado
+      in: query
+      description: >-
+        Filtro por estado de la recepción. Admite varios valores separados por coma. Sin valor, se incluyen
+        todos los estados.
+      schema:
+        type: string
+        pattern: '^(pendiente|validada)(,(pendiente|validada))*$'
+  schemas:
+    RecepcionEstado:
+      type: string
+      description: >-
+        Estado de la recepción. Coincide con el valor de estado de la base de datos. El registro crea la recepción
+        en estado pendiente y la validación la pasa a validada, que es un estado final.
+      enum: [pendiente, validada]
+    RecepcionEstadoOrden:
+      type: string
+      description: >-
+        Estado de cumplimiento de la orden de compra. Coincide con el valor de estado de la base de datos. La orden
+        pasa a parcial cuando queda cantidad pendiente tras una validación y a completada cuando no queda ninguna.
+      enum: [pendiente, parcial, completada]
+    RecepcionLinea:
+      type: object
+      description: >-
+        Línea de la recepción. Cada línea identifica un producto y la ubicación que lo recibe. Un producto puede
+        aparecer en varias líneas con ubicaciones distintas, pero no dos veces en la misma ubicación.
+      required: [productoId, sku, nombre, unidad, ubicacionId, nombreUbicacion, cantidadRecibida]
+      properties:
+        productoId:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        sku:
+          $ref: ../componentes/esquemas-comunes.yaml#/Sku
+        nombre:
+          type: string
+        unidad:
+          type: string
+          description: Unidad de medida del producto, por ejemplo bolsa o m³.
+        ubicacionId:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        nombreUbicacion:
+          type: string
+          description: Nombre visible de la tienda principal o del almacén que recibe la línea.
+        cantidadRecibida:
+          description: Cantidad efectivamente recibida. Puede ser cero mientras la recepción está pendiente.
+          $ref: ../componentes/esquemas-comunes.yaml#/CantidadNoNegativa
+      example:
+        productoId: "42"
+        sku: CEM-001
+        nombre: Cemento Sol tipo I, bolsa 42.5 kg
+        unidad: bolsa
+        ubicacionId: "102"
+        nombreUbicacion: Almacén 1
+        cantidadRecibida: 150
+    RecepcionLineaSolicitud:
+      type: object
+      description: Línea enviada al registrar o actualizar una recepción pendiente.
+      required: [productoId, ubicacionId, cantidadRecibida]
+      additionalProperties: false
+      properties:
+        productoId:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        ubicacionId:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        cantidadRecibida:
+          description: Cantidad recibida en la ubicación. Puede ser cero mientras la recepción está pendiente.
+          $ref: ../componentes/esquemas-comunes.yaml#/CantidadNoNegativa
+      example:
+        productoId: "42"
+        ubicacionId: "102"
+        cantidadRecibida: 150
+    RecepcionPendienteProducto:
+      type: object
+      description: >-
+        Cantidad pendiente de recepción de un producto de la orden. Se calcula como la cantidad comprada menos la suma
+        de las cantidades recibidas en las recepciones validadas de la orden para ese producto.
+      required: [productoId, sku, nombre, unidad, cantidadComprada, cantidadPendiente]
+      properties:
+        productoId:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        sku:
+          $ref: ../componentes/esquemas-comunes.yaml#/Sku
+        nombre:
+          type: string
+        unidad:
+          type: string
+        cantidadComprada:
+          description: Cantidad solicitada en la orden de compra.
+          $ref: ../componentes/esquemas-comunes.yaml#/CantidadPositiva
+        cantidadPendiente:
+          description: Cantidad comprada menos la cantidad recibida en recepciones validadas.
+          $ref: ../componentes/esquemas-comunes.yaml#/CantidadNoNegativa
+      example:
+        productoId: "42"
+        sku: CEM-001
+        nombre: Cemento Sol tipo I, bolsa 42.5 kg
+        unidad: bolsa
+        cantidadComprada: 400
+        cantidadPendiente: 400
+    RecepcionOrdenReferencia:
+      type: object
+      description: Orden de compra de origen, con su estado vigente y la cantidad pendiente de recepción por producto.
+      required: [id, codigo, proveedor, estado, lineas]
+      properties:
+        id:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        codigo:
+          description: Código visible de la orden, por ejemplo OC-0087.
+          $ref: ../componentes/esquemas-comunes.yaml#/Codigo
+        proveedor:
+          type: string
+          description: Razón social del proveedor de la orden.
+        estado:
+          $ref: '#/components/schemas/RecepcionEstadoOrden'
+        lineas:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecepcionPendienteProducto'
+      example:
+        id: "87"
+        codigo: OC-0087
+        proveedor: Distribuidora Andina S.A.C.
+        estado: pendiente
+        lineas:
+          - productoId: "42"
+            sku: CEM-001
+            nombre: Cemento Sol tipo I, bolsa 42.5 kg
+            unidad: bolsa
+            cantidadComprada: 400
+            cantidadPendiente: 400
+    RecepcionResumen:
+      type: object
+      description: Resumen de una recepción, usado en los listados.
+      required: [id, codigo, ordenCompraId, codigoOrdenCompra, proveedor, estado, fechaRecepcion, fechaValidacion, usuarioResponsableId]
+      properties:
+        id:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        codigo:
+          description: Código visible de la recepción, por ejemplo R-0012.
+          $ref: ../componentes/esquemas-comunes.yaml#/Codigo
+        ordenCompraId:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        codigoOrdenCompra:
+          description: Código visible de la orden de compra de origen, por ejemplo OC-0087.
+          $ref: ../componentes/esquemas-comunes.yaml#/Codigo
+        proveedor:
+          type: string
+          description: Razón social del proveedor de la orden de compra.
+        estado:
+          $ref: '#/components/schemas/RecepcionEstado'
+        fechaRecepcion:
+          description: Fecha en que se recibe físicamente la mercadería.
+          $ref: ../componentes/esquemas-comunes.yaml#/Fecha
+        fechaValidacion:
+          description: Marca de la validación. Nula mientras la recepción está pendiente.
+          anyOf:
+            - $ref: ../componentes/esquemas-comunes.yaml#/FechaHora
+            - type: 'null'
+        usuarioResponsableId:
+          description: Usuario que registró la recepción y, cuando corresponde, la validó.
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+      example:
+        id: "12"
+        codigo: R-0012
+        ordenCompraId: "87"
+        codigoOrdenCompra: OC-0087
+        proveedor: Distribuidora Andina S.A.C.
+        estado: validada
+        fechaRecepcion: "2026-11-07"
+        fechaValidacion: "2026-11-07T15:40:12-05:00"
+        usuarioResponsableId: "7"
+    RecepcionDetalle:
+      description: Recepción con sus líneas, el documento de precarga y la orden de compra en su estado vigente.
+      allOf:
+        - $ref: '#/components/schemas/RecepcionResumen'
+        - type: object
+          required: [observaciones, documentoId, lineas, ordenCompra]
+          properties:
+            observaciones:
+              type: [string, 'null']
+              maxLength: 500
+              description: Diferencias o incidencias de la recepción. Explica los sobrantes.
+            documentoId:
+              description: Documento OCR validado con el que se precargó la recepción. Nulo si no se usó documento.
+              anyOf:
+                - $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+                - type: 'null'
+            lineas:
+              type: array
+              minItems: 1
+              items:
+                $ref: '#/components/schemas/RecepcionLinea'
+            ordenCompra:
+              $ref: '#/components/schemas/RecepcionOrdenReferencia'
+      example:
+        id: "12"
+        codigo: R-0012
+        ordenCompraId: "87"
+        codigoOrdenCompra: OC-0087
+        proveedor: Distribuidora Andina S.A.C.
+        estado: pendiente
+        fechaRecepcion: "2026-11-07"
+        fechaValidacion: null
+        usuarioResponsableId: "7"
+        observaciones: null
+        documentoId: "31"
+        lineas:
+          - productoId: "42"
+            sku: CEM-001
+            nombre: Cemento Sol tipo I, bolsa 42.5 kg
+            unidad: bolsa
+            ubicacionId: "102"
+            nombreUbicacion: Almacén 1
+            cantidadRecibida: 150
+        ordenCompra:
+          id: "87"
+          codigo: OC-0087
+          proveedor: Distribuidora Andina S.A.C.
+          estado: pendiente
+          lineas:
+            - productoId: "42"
+              sku: CEM-001
+              nombre: Cemento Sol tipo I, bolsa 42.5 kg
+              unidad: bolsa
+              cantidadComprada: 400
+              cantidadPendiente: 400
+    RecepcionPagina:
+      description: Página de recepciones, de la más reciente a la más antigua por fecha de recepción.
+      allOf:
+        - $ref: ../componentes/esquemas-comunes.yaml#/Pagina
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/RecepcionResumen'
+    RecepcionSolicitud:
+      type: object
+      description: >-
+        Registro de una recepción pendiente contra una orden de compra pendiente o parcial. El registro no modifica el
+        inventario ni genera movimientos de Kardex. Con documentoId, las líneas se precargan desde el documento; las
+        líneas enviadas en el mismo cuerpo prevalecen sobre la precarga.
+      required: [ordenCompraId, fechaRecepcion]
+      additionalProperties: false
+      anyOf:
+        - required: [lineas]
+        - required: [documentoId]
+      dependentRequired:
+        documentoId: [ubicacionPrecargaId]
+      properties:
+        ordenCompraId:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        fechaRecepcion:
+          description: Fecha en que se recibe físicamente la mercadería.
+          $ref: ../componentes/esquemas-comunes.yaml#/Fecha
+        observaciones:
+          type: [string, 'null']
+          maxLength: 500
+          description: Diferencias o incidencias de la recepción.
+        documentoId:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        ubicacionPrecargaId:
+          description: Ubicación de destino asignada a las líneas precargadas. Obligatoria si se informa documentoId.
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        lineas:
+          type: array
+          minItems: 1
+          description: Líneas de la recepción. Se omiten solo cuando se informa documentoId.
+          items:
+            $ref: '#/components/schemas/RecepcionLineaSolicitud'
+      example:
+        ordenCompraId: "87"
+        fechaRecepcion: "2026-11-07"
+        observaciones: null
+        lineas:
+          - productoId: "42"
+            ubicacionId: "102"
+            cantidadRecibida: 150
+    RecepcionActualizacion:
+      type: object
+      description: >-
+        Reemplaza la fecha, las observaciones y las líneas de una recepción pendiente. La orden de compra y el documento
+        de precarga no se modifican.
+      required: [fechaRecepcion, lineas]
+      additionalProperties: false
+      properties:
+        fechaRecepcion:
+          $ref: ../componentes/esquemas-comunes.yaml#/Fecha
+        observaciones:
+          type: [string, 'null']
+          maxLength: 500
+        lineas:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/RecepcionLineaSolicitud'
+      example:
+        fechaRecepcion: "2026-11-07"
+        observaciones: Llegaron 10 bolsas menos que lo facturado
+        lineas:
+          - productoId: "42"
+            ubicacionId: "102"
+            cantidadRecibida: 150
+    RecepcionValidacion:
+      type: object
+      description: >-
+        Cuerpo opcional de la validación. Si se informan observaciones, reemplazan las de la recepción antes de
+        validarla; su texto explica los sobrantes.
+      additionalProperties: false
+      properties:
+        observaciones:
+          type: [string, 'null']
+          maxLength: 500
+      example:
+        observaciones: Se recibieron 5 bolsas adicionales del mismo lote
+    RecepcionMovimientoEntrada:
+      type: object
+      description: >-
+        Movimiento de entrada del Kardex generado por la validación. Cada movimiento se vincula a la recepción y es de
+        solo lectura. Es un subconjunto del movimiento de Kardex del módulo de inventario.
+      required: [id, fechaHora, productoId, sku, tipoOperacion, cantidad, origenMovimiento, ubicacionId, usuarioId, idRecepcion]
+      properties:
+        id:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        fechaHora:
+          $ref: ../componentes/esquemas-comunes.yaml#/FechaHora
+        productoId:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        sku:
+          $ref: ../componentes/esquemas-comunes.yaml#/Sku
+        tipoOperacion:
+          type: string
+          const: entrada
+        cantidad:
+          description: Cantidad recibida en la ubicación.
+          $ref: ../componentes/esquemas-comunes.yaml#/CantidadPositiva
+        origenMovimiento:
+          type: string
+          const: recepcion
+        ubicacionId:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        usuarioId:
+          description: Usuario responsable de la validación.
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        idRecepcion:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+      example:
+        id: "1213"
+        fechaHora: "2026-11-07T15:40:12-05:00"
+        productoId: "42"
+        sku: CEM-001
+        tipoOperacion: entrada
+        cantidad: 150
+        origenMovimiento: recepcion
+        ubicacionId: "102"
+        usuarioId: "7"
+        idRecepcion: "12"
+    RecepcionCambioExistencia:
+      type: object
+      description: Existencia física de un producto en una ubicación antes y después de la validación.
+      required: [productoId, sku, ubicacionId, unidad, antes, despues]
+      properties:
+        productoId:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        sku:
+          $ref: ../componentes/esquemas-comunes.yaml#/Sku
+        ubicacionId:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        unidad:
+          type: string
+        antes:
+          description: Existencia física antes de la validación.
+          $ref: ../componentes/esquemas-comunes.yaml#/CantidadNoNegativa
+        despues:
+          description: Existencia física después de la validación.
+          $ref: ../componentes/esquemas-comunes.yaml#/CantidadNoNegativa
+      example:
+        productoId: "42"
+        sku: CEM-001
+        ubicacionId: "102"
+        unidad: bolsa
+        antes: 120
+        despues: 270
+    RecepcionResultadoValidacion:
+      type: object
+      description: >-
+        Recepción validada con sus movimientos de entrada, las existencias antes y después y la orden de compra en su
+        estado actualizado.
+      required: [recepcion, movimientos, cambios, ordenCompra]
+      properties:
+        recepcion:
+          $ref: '#/components/schemas/RecepcionDetalle'
+        movimientos:
+          type: array
+          minItems: 1
+          description: Un movimiento de entrada por cada línea con cantidad recibida mayor que cero.
+          items:
+            $ref: '#/components/schemas/RecepcionMovimientoEntrada'
+        cambios:
+          type: array
+          minItems: 1
+          description: Existencia antes y después por cada producto y ubicación con movimiento.
+          items:
+            $ref: '#/components/schemas/RecepcionCambioExistencia'
+        ordenCompra:
+          $ref: '#/components/schemas/RecepcionOrdenReferencia'
+      example:
+        recepcion:
+          id: "12"
+          codigo: R-0012
+          ordenCompraId: "87"
+          codigoOrdenCompra: OC-0087
+          proveedor: Distribuidora Andina S.A.C.
+          estado: validada
+          fechaRecepcion: "2026-11-07"
+          fechaValidacion: "2026-11-07T15:40:12-05:00"
+          usuarioResponsableId: "7"
+          observaciones: null
+          documentoId: null
+          lineas:
+            - productoId: "42"
+              sku: CEM-001
+              nombre: Cemento Sol tipo I, bolsa 42.5 kg
+              unidad: bolsa
+              ubicacionId: "102"
+              nombreUbicacion: Almacén 1
+              cantidadRecibida: 150
+          ordenCompra:
+            id: "87"
+            codigo: OC-0087
+            proveedor: Distribuidora Andina S.A.C.
+            estado: parcial
+            lineas:
+              - productoId: "42"
+                sku: CEM-001
+                nombre: Cemento Sol tipo I, bolsa 42.5 kg
+                unidad: bolsa
+                cantidadComprada: 400
+                cantidadPendiente: 250
+        movimientos:
+          - id: "1213"
+            fechaHora: "2026-11-07T15:40:12-05:00"
+            productoId: "42"
+            sku: CEM-001
+            tipoOperacion: entrada
+            cantidad: 150
+            origenMovimiento: recepcion
+            ubicacionId: "102"
+            usuarioId: "7"
+            idRecepcion: "12"
+        cambios:
+          - productoId: "42"
+            sku: CEM-001
+            ubicacionId: "102"
+            unidad: bolsa
+            antes: 120
+            despues: 270
+        ordenCompra:
+          id: "87"
+          codigo: OC-0087
+          proveedor: Distribuidora Andina S.A.C.
+          estado: parcial
+          lineas:
+            - productoId: "42"
+              sku: CEM-001
+              nombre: Cemento Sol tipo I, bolsa 42.5 kg
+              unidad: bolsa
+              cantidadComprada: 400
+              cantidadPendiente: 250
+
+paths:
+  /recepciones:
+    get:
+      operationId: listarRecepciones
+      tags: [Recepciones]
+      summary: Listar recepciones
+      description: >-
+        Lista las recepciones paginadas (CU-13). Los filtros ordenCompraId, estado, desde y hasta son opcionales y
+        combinables; el rango de fechas es inclusivo y se aplica sobre la fecha de recepción física. El orden
+        predeterminado es fechaRecepcion:desc; los campos ordenables son fechaRecepcion y codigo. Operación de solo
+        lectura que no genera movimientos de Kardex.
+      x-roles: [almacenero, administrador]
+      x-herramienta-agente: true
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/OrdenCompraFiltro'
+        - $ref: '#/components/parameters/EstadoRecepcionFiltro'
+        - $ref: ../componentes/parametros.yaml#/desde
+        - $ref: ../componentes/parametros.yaml#/hasta
+        - $ref: ../componentes/parametros.yaml#/orden
+        - $ref: ../componentes/parametros.yaml#/page
+        - $ref: ../componentes/parametros.yaml#/pageSize
+      responses:
+        '200':
+          description: Página de recepciones.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecepcionPagina'
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
+        '422':
+          $ref: ../componentes/errores.yaml#/Error422
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500
+    post:
+      operationId: registrarRecepcion
+      tags: [Recepciones]
+      summary: Registrar una recepción pendiente
+      description: >-
+        Registra una recepción en estado pendiente contra una orden de compra pendiente o parcial (CU-13, pasos 1 a 6).
+        El registro no modifica el inventario ni genera movimientos de Kardex; los movimientos se generan al validar la
+        recepción. Con documentoId, precarga las líneas desde un documento OCR en estado validado y las asigna a
+        ubicacionPrecargaId; las líneas enviadas prevalecen sobre la precarga. Las líneas pueden incluir productos fuera
+        de la orden, cuya cantidad pendiente es cero. Si la orden está completada, se rechaza con
+        ORDEN_COMPRA_CERRADA. Si el documento no está validado o ya apoya una cotización, se rechaza con
+        DOCUMENTO_NO_VALIDABLE. Si un producto o una ubicación está inactivo, se rechaza con PRODUCTO_INACTIVO o con
+        ALMACEN_INACTIVO. Si una combinación de producto y ubicación se repite en las líneas, se rechaza con
+        VALIDACION_FALLIDA. Devuelve 201 con la recepción creada. No requiere Idempotency-Key, porque el registro no
+        afecta el inventario.
+      x-roles: [almacenero]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecepcionSolicitud'
+      responses:
+        '201':
+          description: Recepción pendiente registrada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecepcionDetalle'
+        '400':
+          $ref: ../componentes/errores.yaml#/Error400
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
+        '404':
+          $ref: ../componentes/errores.yaml#/Error404
+        '409':
+          $ref: ../componentes/errores.yaml#/Error409
+        '422':
+          $ref: ../componentes/errores.yaml#/Error422
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500
+
+  /recepciones/{id}:
+    get:
+      operationId: consultarRecepcion
+      tags: [Recepciones]
+      summary: Consultar una recepción
+      description: >-
+        Devuelve una recepción con sus líneas, su documento de precarga y la orden de compra con la cantidad pendiente
+        de cada producto en su estado vigente (CU-13). Operación de solo lectura.
+      x-roles: [almacenero, administrador]
+      x-herramienta-agente: true
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdRecepcionRuta'
+      responses:
+        '200':
+          description: Recepción con sus líneas.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecepcionDetalle'
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
+        '404':
+          $ref: ../componentes/errores.yaml#/Error404
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500
+    put:
+      operationId: actualizarRecepcion
+      tags: [Recepciones]
+      summary: Actualizar una recepción pendiente
+      description: >-
+        Reemplaza la fecha, las observaciones y las líneas de una recepción en estado pendiente. Si la recepción está
+        validada, se rechaza con TRANSICION_NO_PERMITIDA. Las reglas de productos, ubicaciones y combinaciones repetidas
+        son las del registro. La orden de compra y el documento de precarga no se modifican. Devuelve 200 con la
+        recepción actualizada.
+      x-roles: [almacenero]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdRecepcionRuta'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecepcionActualizacion'
+      responses:
+        '200':
+          description: Recepción actualizada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecepcionDetalle'
+        '400':
+          $ref: ../componentes/errores.yaml#/Error400
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
+        '404':
+          $ref: ../componentes/errores.yaml#/Error404
+        '409':
+          $ref: ../componentes/errores.yaml#/Error409
+        '422':
+          $ref: ../componentes/errores.yaml#/Error422
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500
+
+  /recepciones/{id}/validacion:
+    post:
+      operationId: validarRecepcion
+      tags: [Recepciones]
+      summary: Validar una recepción
+      description: >-
+        Valida una recepción pendiente y, en una sola transacción, genera un movimiento de entrada del Kardex con origen
+        recepcion por cada línea con cantidad mayor que cero, pasa la recepción a validada, registra la fecha de
+        validación y actualiza el estado de la orden a parcial o completada según su cantidad pendiente (CU-13, pasos 7
+        a 10). La cantidad recibida de cada producto se compara con su cantidad pendiente en la orden, sumando todas sus
+        líneas. Requiere la cabecera Idempotency-Key; un reintento con la misma clave y el mismo cuerpo devuelve la
+        respuesta original con la cabecera Idempotent-Replayed. Si la recepción no está pendiente, se rechaza con
+        RECEPCION_NO_CONFIRMABLE. Si la orden está completada, se rechaza con ORDEN_COMPRA_CERRADA. Si la cantidad
+        recibida de un producto supera su cantidad pendiente y no hay observaciones, se rechaza con SOBRANTE_SIN_NOTA y
+        no se genera ningún movimiento. Si ninguna línea tiene cantidad mayor que cero, se rechaza con
+        VALIDACION_FALLIDA. Si otra operación modifica el mismo inventario, se rechaza con PETICION_CONCURRENTE. Si la
+        clave se usó con un cuerpo distinto, se rechaza con IDEMPOTENCIA_CONFLICTO. Devuelve 200 con los movimientos,
+        las existencias antes y después y la orden actualizada.
+      x-roles: [almacenero]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdRecepcionRuta'
+        - $ref: ../componentes/parametros.yaml#/IdempotencyKey
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecepcionValidacion'
+      responses:
+        '200':
+          description: Recepción validada. Un reintento con la misma clave devuelve la respuesta original con la cabecera Idempotent-Replayed.
+          headers:
+            Idempotent-Replayed:
+              description: Presente con el valor true cuando la respuesta se reproduce desde una clave ya procesada.
+              schema:
+                type: string
+                enum: ['true']
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecepcionResultadoValidacion'
+        '400':
+          $ref: ../componentes/errores.yaml#/Error400
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
+        '404':
+          $ref: ../componentes/errores.yaml#/Error404
+        '409':
+          $ref: ../componentes/errores.yaml#/Error409
+        '422':
+          $ref: ../componentes/errores.yaml#/Error422
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500

@@ -7,6 +7,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
@@ -29,8 +31,12 @@ public class ProcesadorOcrSimulado {
 		this.documentos = documentos;
 	}
 
-	/** Procesa la solicitud después de confirmar la transacción que la encoló. Un fallo se registra sin revertir la carga. */
+	/**
+	 * Procesa la solicitud después de confirmar la transacción que la encoló. Se ejecuta en una transacción nueva, porque la
+	 * original ya está confirmada. Un fallo se registra sin revertir la carga.
+	 */
 	@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+	@Transactional(propagation = Propagation.REQUIRES_NEW)
 	public void procesar(SolicitudOcr solicitud) {
 		try {
 			documentos.registrarResultados(solicitud.idDocumento(), resultadoDeterminista(solicitud));

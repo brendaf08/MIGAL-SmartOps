@@ -499,7 +499,7 @@ paths:
         Lista los productos con sus existencias físicas, reservadas y libres por ubicación (CU-04).
         La búsqueda, los filtros y la paginación se resuelven en el servidor, y el orden es fijo por
         SKU ascendente. Operación de solo lectura que no genera movimientos de Kardex.
-      x-roles: [almacenero, vendedor]
+      x-roles: [almacenero, vendedor, reponedor, administrador]
       x-herramienta-agente: true
       security:
         - bearerAuth: []
@@ -535,7 +535,7 @@ paths:
         Devuelve la existencia física, reservada y libre de un producto, consolidada y por ubicación
         (CU-04). Ruta del módulo de inventario sobre el recurso productos (ADR-008, identificación por id).
         Operación de solo lectura.
-      x-roles: [almacenero, vendedor]
+      x-roles: [almacenero, vendedor, reponedor, administrador]
       x-herramienta-agente: true
       security:
         - bearerAuth: []
@@ -566,7 +566,7 @@ paths:
         Lista los productos en nivel critico o minimo, es decir, con stock libre igual o inferior al
         stock mínimo (RF-KAR-09, P12). El orden es fijo: nivel critico antes que minimo, después faltante
         descendente y SKU ascendente. Operación de solo lectura.
-      x-roles: [almacenero, reponedor]
+      x-roles: [almacenero, reponedor, administrador]
       x-herramienta-agente: true
       security:
         - bearerAuth: []

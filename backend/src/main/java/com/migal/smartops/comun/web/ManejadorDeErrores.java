@@ -29,7 +29,7 @@ public class ManejadorDeErrores {
 
 	@ExceptionHandler(ErrorDeNegocio.class)
 	ResponseEntity<ProblemDetail> negocio(ErrorDeNegocio e, HttpServletRequest solicitud) {
-		return RespuestaProblema.respuesta(e.codigo(), e.getMessage(), solicitud.getRequestURI(), null);
+		return RespuestaProblema.respuesta(e.codigo(), e.getMessage(), solicitud.getRequestURI(), null, e.propiedades());
 	}
 
 	@ExceptionHandler(MethodArgumentNotValidException.class)

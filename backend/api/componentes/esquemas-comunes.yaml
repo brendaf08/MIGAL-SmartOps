@@ -13,7 +13,7 @@ Pagina:
 Importe:
   type: number
   multipleOf: 0.01
-  description: Importe monetario con dos decimales. El servidor lo redondea a céntimos.
+  description: Importe monetario con hasta dos decimales. El servidor rechaza valores con más de dos decimales.
 
 Cantidad:
   type: number

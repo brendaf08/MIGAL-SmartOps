@@ -1,17 +1,804 @@
+# Contrato OpenAPI del módulo de documentos OCR (CU-08), conforme al ADR-006 con los ajustes de
+# los ADR-008 y ADR-009. Cubre la carga asíncrona de documentos, la recepción de resultados del
+# servicio de OCR y la revisión, validación, asociación y descarte de las líneas extraídas.
+# La información extraída es una precarga sujeta a validación humana. Ninguna operación de este
+# módulo crea ventas, reservas ni movimientos de Kardex (arquitectura tecnológica, sección 3).
+# Los esquemas propios usan el prefijo Documento para evitar colisiones al unir los módulos.
 openapi: 3.1.0
 info:
   title: MIGAL SmartOps - Documentos OCR
   version: 1.0.0
-  description: Documento base del módulo de documentos OCR (CU-08). Sus operaciones se definen en el pull request del módulo.
+  description: >-
+    Contrato del módulo de documentos OCR (CU-08). Define la carga de documentos JPG, PNG y PDF,
+    el procesamiento asíncrono por el servicio de OCR, la revisión de las líneas extraídas con sus
+    coincidencias con el catálogo, y la validación, asociación o descarte del documento. Los
+    usuarios se autentican con JWT y la autorización por rol se declara en x-roles. La recepción de
+    resultados se autentica con un token de servicio y se declara en x-servicio.
 servers:
   - url: /api/v1
 security:
   - bearerAuth: []
 tags:
   - name: Documentos OCR
-    description: Carga, consulta, validación y descarte de documentos, y resultados del OCR.
+    description: Carga, consulta, revisión, validación, asociación y descarte de documentos, y recepción de resultados del OCR.
 components:
   securitySchemes:
     bearerAuth:
       $ref: ../componentes/seguridad.yaml#/bearerAuth
-paths: {}
+    serviceAuth:
+      $ref: ../componentes/seguridad.yaml#/serviceAuth
+
+  parameters:
+    DocumentoIdRuta:
+      name: id
+      in: path
+      required: true
+      description: Identificador técnico del documento.
+      schema:
+        $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+    DocumentoDetalleIdRuta:
+      name: idDetalle
+      in: path
+      required: true
+      description: Identificador técnico de la línea extraída.
+      schema:
+        $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+    DocumentoEstadoFiltro:
+      name: estadoProcesamiento
+      in: query
+      description: Filtro por estado de procesamiento. Sin valor, se incluyen todos los estados.
+      schema:
+        $ref: '#/components/schemas/DocumentoEstadoProcesamiento'
+    DocumentoTipoFiltro:
+      name: tipoDocumento
+      in: query
+      description: Filtro por tipo de documento. Sin valor, se incluyen todos los tipos permitidos al rol.
+      schema:
+        $ref: '#/components/schemas/DocumentoTipo'
+
+  schemas:
+    DocumentoTipo:
+      type: string
+      description: >-
+        Clasificación funcional del documento. El tipo solicitud_cliente corresponde a cotizaciones,
+        pedidos o capturas enviados por el cliente, y lo opera el rol Vendedor. El tipo
+        documento_recepcion corresponde a guías del proveedor y órdenes de recepción, y lo opera el
+        rol Almacenero. El rol Administrador opera ambos tipos.
+      enum: [solicitud_cliente, documento_recepcion]
+
+    DocumentoEstadoProcesamiento:
+      type: string
+      description: >-
+        Estado de procesamiento del documento. Pendiente indica que el archivo aguarda el resultado
+        del OCR o que el último procesamiento falló (ver codigoError). Procesado_ocr indica que las
+        líneas extraídas están disponibles para revisión. Validado indica que el usuario confirmó
+        las líneas.
+      enum: [pendiente, procesado_ocr, validado]
+
+    DocumentoConfianza:
+      type: number
+      minimum: 0
+      maximum: 1
+      description: Nivel de confianza de una coincidencia con el catálogo maestro, de 0 a 1 (RF-FUZ-05).
+
+    DocumentoUmbrales:
+      type: object
+      description: >-
+        Umbrales del Fuzzy Matching, de 0 a 1, con alta mayor que baja. Una coincidencia con
+        confianza igual o superior a alta se propone sin advertencia. Una coincidencia con confianza
+        entre baja y alta se propone con requiereRevision verdadero. Una coincidencia con confianza
+        inferior a baja no se propone. Los valores son de ejemplo y quedan pendientes de definir en
+        el servicio de OCR.
+      required: [alta, baja]
+      additionalProperties: false
+      properties:
+        alta:
+          $ref: '#/components/schemas/DocumentoConfianza'
+        baja:
+          $ref: '#/components/schemas/DocumentoConfianza'
+      example:
+        alta: 0.85
+        baja: 0.6
+
+    DocumentoCoincidencia:
+      type: object
+      description: >-
+        Producto del catálogo propuesto para una línea extraída, con su nivel de confianza. Las
+        coincidencias se ordenan de mayor a menor confianza.
+      required: [idProducto, sku, nombreOficial, confianza]
+      properties:
+        idProducto:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        sku:
+          $ref: ../componentes/esquemas-comunes.yaml#/Sku
+        nombreOficial:
+          type: string
+          minLength: 1
+          maxLength: 200
+        confianza:
+          $ref: '#/components/schemas/DocumentoConfianza'
+
+    DocumentoDetalle:
+      type: object
+      description: >-
+        Línea extraída por el OCR. El texto crudo es la lectura original. El texto corregido, la
+        cantidad y el producto los define el usuario. El producto asociado es nulo mientras no se
+        confirme. Una línea descartada se conserva con descartado verdadero y no se utiliza en la
+        validación.
+      required:
+        - id
+        - textoCrudo
+        - textoCorregido
+        - cantidadLeida
+        - idProducto
+        - sku
+        - coincidencias
+        - requiereRevision
+        - descartado
+      properties:
+        id:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        textoCrudo:
+          type: string
+          minLength: 1
+          maxLength: 500
+          description: Texto tal como lo leyó el OCR.
+        textoCorregido:
+          type: [string, 'null']
+          maxLength: 500
+          description: Texto corregido por el usuario. Nulo cuando no se corrige.
+        cantidadLeida:
+          description: Cantidad identificada en la línea. Nula cuando el OCR no la identifica.
+          anyOf:
+            - $ref: ../componentes/esquemas-comunes.yaml#/CantidadNoNegativa
+            - type: 'null'
+        idProducto:
+          description: Producto del catálogo confirmado para la línea. Nulo mientras no se confirme.
+          anyOf:
+            - $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+            - type: 'null'
+        sku:
+          description: SKU del producto confirmado. Nulo cuando no hay producto asociado.
+          anyOf:
+            - $ref: ../componentes/esquemas-comunes.yaml#/Sku
+            - type: 'null'
+        coincidencias:
+          type: array
+          description: Productos propuestos por el Fuzzy Matching para la línea.
+          items:
+            $ref: '#/components/schemas/DocumentoCoincidencia'
+        requiereRevision:
+          type: boolean
+          description: >-
+            Verdadero cuando no hay producto confirmado o cuando la mejor coincidencia tiene una
+            confianza inferior a umbrales.alta. Una línea con este valor requiere confirmación manual.
+        descartado:
+          type: boolean
+          description: Verdadero cuando el usuario descartó la línea.
+
+    DocumentoResumen:
+      type: object
+      description: Documento cargado, sin sus líneas extraídas.
+      required:
+        - id
+        - nombreArchivo
+        - tipoDocumento
+        - estadoProcesamiento
+        - idUsuario
+        - idCotizacion
+        - idRecepcion
+        - codigoError
+        - fechaSubida
+      properties:
+        id:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        nombreArchivo:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: Nombre original del archivo cargado.
+        tipoDocumento:
+          $ref: '#/components/schemas/DocumentoTipo'
+        estadoProcesamiento:
+          $ref: '#/components/schemas/DocumentoEstadoProcesamiento'
+        idUsuario:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+          description: Usuario que cargó el documento.
+        idCotizacion:
+          description: Cotización para la que se usa el documento como fuente. Nulo cuando no hay asociación.
+          anyOf:
+            - $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+            - type: 'null'
+        idRecepcion:
+          description: Recepción para la que se usa el documento como apoyo. Nulo cuando no hay asociación.
+          anyOf:
+            - $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+            - type: 'null'
+        codigoError:
+          description: >-
+            Código del último error de procesamiento. DOCUMENTO_ILEGIBLE indica que el OCR no pudo
+            leer el archivo. Nulo cuando no hay error.
+          anyOf:
+            - $ref: ../componentes/errores.yaml#/CodigoError
+            - type: 'null'
+        fechaSubida:
+          $ref: ../componentes/esquemas-comunes.yaml#/FechaHora
+      example:
+        id: '12'
+        nombreArchivo: guia-proveedor-0812.jpg
+        tipoDocumento: documento_recepcion
+        estadoProcesamiento: pendiente
+        idUsuario: '7'
+        idCotizacion: null
+        idRecepcion: null
+        codigoError: null
+        fechaSubida: '2026-11-08T10:15:00-05:00'
+
+    Documento:
+      description: Documento con sus líneas extraídas y los umbrales vigentes del Fuzzy Matching.
+      allOf:
+        - $ref: '#/components/schemas/DocumentoResumen'
+        - type: object
+          required: [detalles, umbrales]
+          properties:
+            detalles:
+              type: array
+              items:
+                $ref: '#/components/schemas/DocumentoDetalle'
+            umbrales:
+              $ref: '#/components/schemas/DocumentoUmbrales'
+      example:
+        id: '12'
+        nombreArchivo: guia-proveedor-0812.jpg
+        tipoDocumento: documento_recepcion
+        estadoProcesamiento: procesado_ocr
+        idUsuario: '7'
+        idCotizacion: null
+        idRecepcion: null
+        codigoError: null
+        fechaSubida: '2026-11-08T10:15:00-05:00'
+        detalles:
+          - id: '48'
+            textoCrudo: CEMENTO SOL TIPO 1 42.5KG
+            textoCorregido: null
+            cantidadLeida: 100
+            idProducto: null
+            sku: null
+            coincidencias:
+              - idProducto: '101'
+                sku: CEM-049
+                nombreOficial: Cemento Sol tipo I 42.5 kg
+                confianza: 0.94
+            requiereRevision: true
+            descartado: false
+        umbrales:
+          alta: 0.85
+          baja: 0.6
+
+    DocumentoPagina:
+      description: Página de documentos con el sobre de paginación común.
+      allOf:
+        - $ref: ../componentes/esquemas-comunes.yaml#/Pagina
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/DocumentoResumen'
+
+    DocumentoCargaSolicitud:
+      type: object
+      description: >-
+        Datos de la carga en multipart/form-data. El archivo se valida por formato y tamaño antes de
+        registrar el documento.
+      required: [archivo, tipoDocumento]
+      properties:
+        archivo:
+          type: string
+          format: binary
+          description: Archivo JPG, PNG o PDF de hasta 10 MB.
+        tipoDocumento:
+          $ref: '#/components/schemas/DocumentoTipo'
+
+    DocumentoCorreccion:
+      type: object
+      description: >-
+        Corrección de una línea extraída. Los campos omitidos conservan su valor actual. El cuerpo
+        requiere al menos un campo.
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        textoCorregido:
+          type: [string, 'null']
+          maxLength: 500
+          description: Texto corregido de la línea. Nulo elimina la corrección previa.
+        idProducto:
+          description: Producto del catálogo activo para la línea. Nulo desasocia el producto.
+          anyOf:
+            - $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+            - type: 'null'
+        cantidad:
+          description: Cantidad corregida de la línea. Nula elimina la cantidad informada.
+          anyOf:
+            - $ref: ../componentes/esquemas-comunes.yaml#/CantidadPositiva
+            - type: 'null'
+
+    DocumentoAsociacion:
+      type: object
+      description: >-
+        Asociación de un documento validado con una cotización o con una recepción. Ambos campos son
+        obligatorios: uno contiene el identificador de la operación y el otro es nulo. Informar ambos
+        con identificador, o ambos nulos, genera VALIDACION_FALLIDA. El tipo del documento debe
+        corresponder a la operación: solicitud_cliente se asocia a una cotización y
+        documento_recepcion a una recepción.
+      additionalProperties: false
+      properties:
+        idCotizacion:
+          description: Cotización de origen. Nula cuando la asociación es a una recepción.
+          anyOf:
+            - $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+            - type: 'null'
+        idRecepcion:
+          description: Recepción de apoyo. Nula cuando la asociación es a una cotización.
+          anyOf:
+            - $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+            - type: 'null'
+      oneOf:
+        - required: [idCotizacion, idRecepcion]
+          properties:
+            idCotizacion:
+              type: string
+            idRecepcion:
+              type: 'null'
+        - required: [idCotizacion, idRecepcion]
+          properties:
+            idCotizacion:
+              type: 'null'
+            idRecepcion:
+              type: string
+      example:
+        idCotizacion: '812'
+        idRecepcion: null
+
+    DocumentoResultadoCoincidencia:
+      type: object
+      description: Coincidencia sugerida por el servicio de OCR para una línea, identificada por su SKU.
+      required: [sku, confianza]
+      additionalProperties: false
+      properties:
+        sku:
+          $ref: ../componentes/esquemas-comunes.yaml#/Sku
+        confianza:
+          $ref: '#/components/schemas/DocumentoConfianza'
+
+    DocumentoResultadoLinea:
+      type: object
+      description: Línea extraída por el servicio de OCR.
+      required: [textoCrudo, cantidadLeida, coincidencias]
+      additionalProperties: false
+      properties:
+        textoCrudo:
+          type: string
+          minLength: 1
+          maxLength: 500
+        cantidadLeida:
+          anyOf:
+            - $ref: ../componentes/esquemas-comunes.yaml#/CantidadNoNegativa
+            - type: 'null'
+        coincidencias:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentoResultadoCoincidencia'
+
+    DocumentoResultados:
+      type: object
+      description: >-
+        Resultado del OCR para un documento pendiente. Con resultado procesado, registra las líneas
+        extraídas y cambia el estado a procesado_ocr. Con resultado ilegible, no registra líneas,
+        conserva el estado pendiente y registra DOCUMENTO_ILEGIBLE en codigoError. La operación no
+        crea ventas, reservas ni movimientos de Kardex.
+      required: [resultado, detalles]
+      additionalProperties: false
+      properties:
+        resultado:
+          type: string
+          enum: [procesado, ilegible]
+        detalles:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentoResultadoLinea'
+      if:
+        required: [resultado]
+        properties:
+          resultado:
+            const: ilegible
+      then:
+        properties:
+          detalles:
+            maxItems: 0
+
+paths:
+  /documentos:
+    post:
+      operationId: cargarDocumento
+      summary: Cargar documento
+      description: >-
+        Registra un documento digital (JPG, PNG o PDF de hasta 10 MB) y lo encola para el
+        procesamiento OCR (CU-08). Un archivo con formato no admitido o con tamaño excedido genera
+        VALIDACION_FALLIDA con el campo archivo en errores. Un Vendedor solo carga documentos de tipo
+        solicitud_cliente y un Almacenero solo de tipo documento_recepcion. Cualquier otra combinación
+        genera PERMISO_INSUFICIENTE. La respuesta es 202 Accepted con el documento en estado
+        pendiente. El resultado llega mediante PUT /documentos/{id}/resultados. Responde
+        SERVICIO_NO_DISPONIBLE si el procesamiento no puede encolarse.
+      tags:
+        - Documentos OCR
+      security:
+        - bearerAuth: []
+      x-roles: [vendedor, almacenero, administrador]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/DocumentoCargaSolicitud'
+            encoding:
+              archivo:
+                contentType: image/jpeg, image/png, application/pdf
+      responses:
+        '202':
+          description: Documento registrado y encolado para el procesamiento OCR.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentoResumen'
+        '400':
+          $ref: ../componentes/errores.yaml#/Error400
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
+        '422':
+          $ref: ../componentes/errores.yaml#/Error422
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500
+        '503':
+          $ref: ../componentes/errores.yaml#/Error503
+    get:
+      operationId: listarDocumentos
+      summary: Listar documentos
+      description: >-
+        Devuelve la página de documentos cargados (CU-08). Admite los filtros estadoProcesamiento y
+        tipoDocumento, y el rango de fechas desde y hasta sobre fechaSubida. Campos ordenables:
+        fechaSubida. El orden predeterminado es fechaSubida:desc. Un campo fuera de la lista genera
+        VALIDACION_FALLIDA. Cada usuario recibe solo los documentos de los tipos que su rol puede operar.
+      tags:
+        - Documentos OCR
+      security:
+        - bearerAuth: []
+      x-roles: [vendedor, almacenero, administrador]
+      parameters:
+        - $ref: ../componentes/parametros.yaml#/page
+        - $ref: ../componentes/parametros.yaml#/pageSize
+        - $ref: ../componentes/parametros.yaml#/orden
+        - $ref: '#/components/parameters/DocumentoEstadoFiltro'
+        - $ref: '#/components/parameters/DocumentoTipoFiltro'
+        - $ref: ../componentes/parametros.yaml#/desde
+        - $ref: ../componentes/parametros.yaml#/hasta
+      responses:
+        '200':
+          description: Página de documentos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentoPagina'
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
+        '422':
+          $ref: ../componentes/errores.yaml#/Error422
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500
+
+  /documentos/{id}:
+    parameters:
+      - $ref: '#/components/parameters/DocumentoIdRuta'
+    get:
+      operationId: consultarDocumento
+      summary: Consultar documento
+      description: >-
+        Devuelve el documento con sus líneas extraídas, las coincidencias propuestas con su nivel de
+        confianza y los umbrales vigentes. Responde RECURSO_NO_ENCONTRADO si el identificador no
+        existe. Un Vendedor consulta solo los documentos de tipo solicitud_cliente y un Almacenero
+        solo los de tipo documento_recepcion.
+      tags:
+        - Documentos OCR
+      security:
+        - bearerAuth: []
+      x-roles: [vendedor, almacenero, administrador]
+      responses:
+        '200':
+          description: Documento con sus líneas extraídas.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Documento'
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
+        '404':
+          $ref: ../componentes/errores.yaml#/Error404
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500
+    delete:
+      operationId: descartarDocumento
+      summary: Descartar documento
+      description: >-
+        Descarta el documento mediante eliminación lógica. El registro se conserva y deja de aparecer
+        en los listados. Responde RECURSO_NO_ENCONTRADO si el identificador no existe.
+      tags:
+        - Documentos OCR
+      security:
+        - bearerAuth: []
+      x-roles: [vendedor, almacenero, administrador]
+      responses:
+        '204':
+          description: Documento descartado.
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
+        '404':
+          $ref: ../componentes/errores.yaml#/Error404
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500
+
+  /documentos/{id}/resultados:
+    parameters:
+      - $ref: '#/components/parameters/DocumentoIdRuta'
+    put:
+      operationId: registrarResultadosOcr
+      summary: Registrar resultados del OCR
+      description: >-
+        Recibe el resultado del servicio de OCR para un documento pendiente (CU-08). Con resultado
+        procesado, registra las líneas extraídas y cambia el estado a procesado_ocr. Con resultado
+        ilegible, conserva el estado pendiente y registra DOCUMENTO_ILEGIBLE en codigoError. La
+        operación no crea ventas, reservas ni movimientos de Kardex. Responde TRANSICION_NO_PERMITIDA
+        si el documento no está pendiente. Operación exclusiva del servicio de OCR: no se expone al
+        frontend.
+      tags:
+        - Documentos OCR
+      security:
+        - serviceAuth: []
+      x-servicio: ocr:resultados:escribir
+      x-audiencia: servicio
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DocumentoResultados'
+      responses:
+        '200':
+          description: Resultados registrados. Devuelve el documento con su nuevo estado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Documento'
+        '400':
+          $ref: ../componentes/errores.yaml#/Error400
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
+        '404':
+          $ref: ../componentes/errores.yaml#/Error404
+        '409':
+          $ref: ../componentes/errores.yaml#/Error409
+        '422':
+          $ref: ../componentes/errores.yaml#/Error422
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500
+
+  /documentos/{id}/detalles/{idDetalle}:
+    parameters:
+      - $ref: '#/components/parameters/DocumentoIdRuta'
+      - $ref: '#/components/parameters/DocumentoDetalleIdRuta'
+    put:
+      operationId: corregirDetalleDocumento
+      summary: Corregir línea extraída
+      description: >-
+        Registra la corrección del texto, del producto o de la cantidad de una línea extraída
+        (CU-08, flujo alternativo 1). Solo se corrigen líneas de documentos en estado procesado_ocr;
+        otro estado genera TRANSICION_NO_PERMITIDA. Un producto inactivo genera PRODUCTO_INACTIVO y un
+        producto inexistente genera VALIDACION_FALLIDA. La corrección no crea movimientos de Kardex.
+      tags:
+        - Documentos OCR
+      security:
+        - bearerAuth: []
+      x-roles: [vendedor, almacenero, administrador]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DocumentoCorreccion'
+      responses:
+        '200':
+          description: Línea corregida.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentoDetalle'
+        '400':
+          $ref: ../componentes/errores.yaml#/Error400
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
+        '404':
+          $ref: ../componentes/errores.yaml#/Error404
+        '409':
+          $ref: ../componentes/errores.yaml#/Error409
+        '422':
+          $ref: ../componentes/errores.yaml#/Error422
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500
+
+  /documentos/{id}/detalles/{idDetalle}/descarte:
+    parameters:
+      - $ref: '#/components/parameters/DocumentoIdRuta'
+      - $ref: '#/components/parameters/DocumentoDetalleIdRuta'
+    post:
+      operationId: descartarDetalleDocumento
+      summary: Descartar línea extraída
+      description: >-
+        Descarta una línea extraída que no corresponde al documento o que no puede identificarse. La
+        línea se conserva con descartado verdadero y se excluye de la validación. Solo se descartan
+        líneas de documentos en estado procesado_ocr; otro estado genera TRANSICION_NO_PERMITIDA.
+      tags:
+        - Documentos OCR
+      security:
+        - bearerAuth: []
+      x-roles: [vendedor, almacenero, administrador]
+      responses:
+        '200':
+          description: Línea descartada. Devuelve el documento actualizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Documento'
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
+        '404':
+          $ref: ../componentes/errores.yaml#/Error404
+        '409':
+          $ref: ../componentes/errores.yaml#/Error409
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500
+
+  /documentos/{id}/validacion:
+    parameters:
+      - $ref: '#/components/parameters/DocumentoIdRuta'
+    post:
+      operationId: validarDocumento
+      summary: Validar documento
+      description: >-
+        Confirma las líneas extraídas del documento y cambia su estado a validado (CU-08). Las
+        correcciones se registran antes mediante PUT /documentos/{id}/detalles/{idDetalle}. La
+        validación exige que cada línea no descartada tenga producto confirmado; si alguna no lo
+        tiene, responde VALIDACION_FALLIDA con la lista errores. Un documento que no está en estado
+        procesado_ocr responde DOCUMENTO_NO_VALIDABLE. La validación no crea ventas, reservas ni
+        movimientos de Kardex.
+      tags:
+        - Documentos OCR
+      security:
+        - bearerAuth: []
+      x-roles: [vendedor, almacenero, administrador]
+      responses:
+        '200':
+          description: Documento validado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Documento'
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
+        '404':
+          $ref: ../componentes/errores.yaml#/Error404
+        '409':
+          $ref: ../componentes/errores.yaml#/Error409
+        '422':
+          $ref: ../componentes/errores.yaml#/Error422
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500
+
+  /documentos/{id}/asociacion:
+    parameters:
+      - $ref: '#/components/parameters/DocumentoIdRuta'
+    post:
+      operationId: asociarDocumento
+      summary: Asociar documento a cotización o recepción
+      description: >-
+        Asocia un documento validado con una cotización (solicitud_cliente) o con una recepción
+        (documento_recepcion). Un documento se asocia a una sola operación, por lo que la relación
+        es exclusiva: informar ambas o ninguna genera VALIDACION_FALLIDA. Si el documento ya está
+        asociado a otra operación, responde TRANSICION_NO_PERMITIDA. Si el documento no está en estado
+        validado, responde TRANSICION_NO_PERMITIDA. Si la operación indicada no existe, o no
+        corresponde al tipo del documento, responde VALIDACION_FALLIDA. La asociación no crea ventas,
+        reservas ni movimientos de Kardex.
+      tags:
+        - Documentos OCR
+      security:
+        - bearerAuth: []
+      x-roles: [vendedor, almacenero, administrador]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DocumentoAsociacion'
+      responses:
+        '200':
+          description: Documento asociado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Documento'
+        '400':
+          $ref: ../componentes/errores.yaml#/Error400
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
+        '404':
+          $ref: ../componentes/errores.yaml#/Error404
+        '409':
+          $ref: ../componentes/errores.yaml#/Error409
+        '422':
+          $ref: ../componentes/errores.yaml#/Error422
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500
+
+  /documentos/{id}/procesamiento:
+    parameters:
+      - $ref: '#/components/parameters/DocumentoIdRuta'
+    post:
+      operationId: reprocesarDocumento
+      summary: Reintentar procesamiento OCR
+      description: >-
+        Vuelve a encolar el procesamiento de un documento cuyo último intento falló por ilegibilidad
+        (CU-08, flujo alternativo 2). Limpia codigoError y devuelve el documento en estado pendiente.
+        Si el documento no está pendiente o no tiene un error registrado, responde
+        TRANSICION_NO_PERMITIDA. Para un archivo distinto, el usuario carga un nuevo documento. Responde
+        SERVICIO_NO_DISPONIBLE si el procesamiento no puede encolarse.
+      tags:
+        - Documentos OCR
+      security:
+        - bearerAuth: []
+      x-roles: [vendedor, almacenero, administrador]
+      responses:
+        '202':
+          description: Procesamiento reencolado. Devuelve el documento en estado pendiente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Documento'
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
+        '404':
+          $ref: ../componentes/errores.yaml#/Error404
+        '409':
+          $ref: ../componentes/errores.yaml#/Error409
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500
+        '503':
+          $ref: ../componentes/errores.yaml#/Error503

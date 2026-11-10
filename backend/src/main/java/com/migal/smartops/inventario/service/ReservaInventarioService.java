@@ -164,6 +164,12 @@ public class ReservaInventarioService {
 		return movimientos;
 	}
 
+	/** Reservas de las líneas indicadas, activas o cerradas, para consultar la cobertura de una venta. */
+	@Transactional(readOnly = true)
+	public List<ReservaStock> reservasDe(Collection<Long> idsDetalleVenta) {
+		return idsDetalleVenta.isEmpty() ? List.of() : reservas.findByIdDetalleVentaInOrderByIdAsc(idsDetalleVenta);
+	}
+
 	private List<ReservaStock> activas(Collection<Long> idsDetalleVenta) {
 		return idsDetalleVenta.isEmpty() ? List.of() : reservas.findActivasPorDetallesVenta(idsDetalleVenta);
 	}

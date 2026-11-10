@@ -11,18 +11,18 @@ import org.springframework.jdbc.core.JdbcTemplate;
  * anexión, la limpieza desactiva momentáneamente su disparador de protección; solo se usa en pruebas con una base
  * de datos desechable.
  */
-final class EscenarioInventario {
+public final class EscenarioInventario {
 
 	private final JdbcTemplate jdbc;
 	private final List<Long> productos = new ArrayList<>();
 	private final List<Long> almacenes = new ArrayList<>();
 	private final List<Long> usuarios = new ArrayList<>();
 
-	EscenarioInventario(JdbcTemplate jdbc) {
+	public EscenarioInventario(JdbcTemplate jdbc) {
 		this.jdbc = jdbc;
 	}
 
-	long usuario() {
+	public long usuario() {
 		long id = jdbc.queryForObject("""
 				INSERT INTO usuario (nombres, apellidos, username, password_hash, rol)
 				VALUES ('Prueba', 'Inventario', ?, '{hash}', 'almacenero') RETURNING id_usuario
@@ -31,7 +31,7 @@ final class EscenarioInventario {
 		return id;
 	}
 
-	long producto(String stockMinimo) {
+	public long producto(String stockMinimo) {
 		long categoria = jdbc.queryForObject("SELECT min(id_categoria) FROM categoria", Long.class);
 		long id = jdbc.queryForObject("""
 				INSERT INTO producto (sku, nombre_oficial, unidad_medida, precio_referencial, stock_minimo, id_categoria)
@@ -41,7 +41,7 @@ final class EscenarioInventario {
 		return id;
 	}
 
-	long almacen(String tipo) {
+	public long almacen(String tipo) {
 		long id = jdbc.queryForObject("""
 				INSERT INTO almacen (nombre, tipo_ubicacion) VALUES (?, ?) RETURNING id_almacen
 				""", Long.class, "Ubicacion " + UUID.randomUUID(), tipo);
@@ -49,25 +49,25 @@ final class EscenarioInventario {
 		return id;
 	}
 
-	long inventario(long producto, long almacen, String cantidad) {
+	public long inventario(long producto, long almacen, String cantidad) {
 		return jdbc.queryForObject("""
 				INSERT INTO inventario (id_producto, id_almacen, cantidad_fisica) VALUES (?, ?, ?) RETURNING id_inventario
 				""", Long.class, producto, almacen, new BigDecimal(cantidad));
 	}
 
-	BigDecimal fisica(long producto, long almacen) {
+	public BigDecimal fisica(long producto, long almacen) {
 		return jdbc.queryForObject("SELECT cantidad_fisica FROM inventario WHERE id_producto = ? AND id_almacen = ?",
 				BigDecimal.class, producto, almacen);
 	}
 
-	int movimientos(long producto) {
+	public int movimientos(long producto) {
 		return jdbc.queryForObject("""
 				SELECT count(*) FROM movimiento_kardex m JOIN inventario i ON i.id_inventario = m.id_inventario
 				 WHERE i.id_producto = ?
 				""", Integer.class, producto);
 	}
 
-	void limpiar() {
+	public void limpiar() {
 		if (productos.isEmpty() && almacenes.isEmpty() && usuarios.isEmpty()) {
 			return;
 		}

@@ -18,6 +18,9 @@ public interface ReservaStockRepository extends JpaRepository<ReservaStock, Long
 	@Query("select r from ReservaStock r where r.idDetalleVenta in :ids and r.estado = 'activa' order by r.id")
 	List<ReservaStock> findActivasPorDetallesVenta(@Param("ids") java.util.Collection<Long> idsDetalleVenta);
 
+	/** Todas las reservas de las líneas indicadas, activas o cerradas, en orden de creación. */
+	List<ReservaStock> findByIdDetalleVentaInOrderByIdAsc(java.util.Collection<Long> idsDetalleVenta);
+
 	/** Reservas activas de una línea de venta. */
 	@Query("select r from ReservaStock r where r.idDetalleVenta = :idDetalle and r.estado = 'activa' order by r.id")
 	List<ReservaStock> findActivasPorDetalleVenta(@Param("idDetalle") Long idDetalleVenta);

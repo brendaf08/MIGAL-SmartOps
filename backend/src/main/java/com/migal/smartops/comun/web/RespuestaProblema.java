@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
@@ -25,6 +26,12 @@ public final class RespuestaProblema {
 	}
 
 	public static ProblemDetail problema(CodigoError codigo, String detalle, String instancia, List<ErrorCampo> errores) {
+		return problema(codigo, detalle, instancia, errores, Map.of());
+	}
+
+	/** Construye el problema y añade las extensiones opcionales indicadas, como {@code clienteId}. */
+	public static ProblemDetail problema(CodigoError codigo, String detalle, String instancia, List<ErrorCampo> errores,
+			Map<String, Object> propiedades) {
 		HttpStatus estado = codigo.estado();
 		ProblemDetail problema = ProblemDetail.forStatusAndDetail(estado, detalle);
 		problema.setType(URI.create("urn:migal:problema:" + codigo.name().toLowerCase().replace('_', '-')));
@@ -34,14 +41,20 @@ public final class RespuestaProblema {
 		if (errores != null && !errores.isEmpty()) {
 			problema.setProperty("errores", errores);
 		}
+		propiedades.forEach(problema::setProperty);
 		return problema;
 	}
 
 	public static ResponseEntity<ProblemDetail> respuesta(CodigoError codigo, String detalle, String instancia,
 			List<ErrorCampo> errores) {
+		return respuesta(codigo, detalle, instancia, errores, Map.of());
+	}
+
+	public static ResponseEntity<ProblemDetail> respuesta(CodigoError codigo, String detalle, String instancia,
+			List<ErrorCampo> errores, Map<String, Object> propiedades) {
 		return ResponseEntity.status(codigo.estado())
 				.contentType(MediaType.APPLICATION_PROBLEM_JSON)
-				.body(problema(codigo, detalle, instancia, errores));
+				.body(problema(codigo, detalle, instancia, errores, propiedades));
 	}
 
 	/** Escribe el problema directamente en la respuesta, para los filtros de seguridad que no pasan por un controlador. */

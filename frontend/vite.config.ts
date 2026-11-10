@@ -11,6 +11,11 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    // La API se sirve en el mismo origen durante el desarrollo, por lo que no requiere CORS. El destino se
+    // sobrescribe con VITE_API_DESTINO.
+    proxy: {
+      '/api': { target: process.env.VITE_API_DESTINO ?? 'http://localhost:8080', changeOrigin: true },
+    },
   },
   test: {
     environment: 'jsdom',

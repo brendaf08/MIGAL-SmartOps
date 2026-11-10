@@ -137,7 +137,7 @@ public class VentaService {
 	@Transactional
 	public VentaDetalle registrarDesdeCotizacion(long idUsuario, long idCotizacion) {
 		Cotizacion cotizacion = cotizaciones.bloquearPorId(idCotizacion)
-				.orElseThrow(() -> new ErrorDeNegocio(CodigoError.VALIDACION_FALLIDA, "La cotización indicada no existe."));
+				.orElseThrow(() -> ErrorDeNegocio.validacionDeCampo("idCotizacion", "La cotización indicada no existe."));
 		validarConvertible(cotizacion);
 		return materializar(idUsuario, cotizacion);
 	}

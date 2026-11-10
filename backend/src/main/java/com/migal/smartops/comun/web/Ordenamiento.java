@@ -31,7 +31,7 @@ public final class Ordenamiento {
 
 	private static Sort interpretar(String orden, Map<String, String> permitidos) {
 		List<Sort.Order> ordenes = new ArrayList<>();
-		for (String parte : orden.split(",")) {
+		for (String parte : orden.split(",", -1)) {
 			String[] campoYDireccion = parte.split(":");
 			String atributo = campoYDireccion.length == 2 ? permitidos.get(campoYDireccion[0]) : null;
 			boolean direccionValida = campoYDireccion.length == 2

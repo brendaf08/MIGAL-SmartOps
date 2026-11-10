@@ -305,4 +305,13 @@ class VentasApiTest {
 				.andExpect(jsonPath("$.code", is("CLIENTE_REQUERIDO")))
 				.andExpect(cumple(contratoSoloRespuesta));
 	}
+
+	@Test
+	void unaCotizacionInexistenteResponde422ConElCampoIdCotizacion() throws Exception {
+		alta("/api/v1/ventas", bearer("apc-vendedor"), clave(), desdeCotizacion("999999999"))
+				.andExpect(status().isUnprocessableEntity())
+				.andExpect(cumple(contrato))
+				.andExpect(jsonPath("$.code", is("VALIDACION_FALLIDA")))
+				.andExpect(jsonPath("$.errores[0].campo", is("idCotizacion")));
+	}
 }

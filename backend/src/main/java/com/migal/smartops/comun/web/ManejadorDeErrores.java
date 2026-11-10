@@ -32,7 +32,9 @@ public class ManejadorDeErrores {
 
 	@ExceptionHandler(ErrorDeNegocio.class)
 	ResponseEntity<ProblemDetail> negocio(ErrorDeNegocio e, HttpServletRequest solicitud) {
-		return RespuestaProblema.respuesta(e.codigo(), e.getMessage(), solicitud.getRequestURI(), null, e.propiedades());
+		List<ErrorCampo> errores = e.campo() == null ? null
+				: List.of(new ErrorCampo(e.campo(), "invalido", e.getMessage()));
+		return RespuestaProblema.respuesta(e.codigo(), e.getMessage(), solicitud.getRequestURI(), errores, e.propiedades());
 	}
 
 	@ExceptionHandler(MethodArgumentNotValidException.class)

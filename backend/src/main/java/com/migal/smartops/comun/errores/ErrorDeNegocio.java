@@ -13,15 +13,31 @@ public class ErrorDeNegocio extends RuntimeException {
 
 	private final CodigoError codigo;
 	private final Map<String, Object> propiedades;
+	private final String campo;
 
 	public ErrorDeNegocio(CodigoError codigo, String detalle) {
 		this(codigo, detalle, Map.of());
 	}
 
 	public ErrorDeNegocio(CodigoError codigo, String detalle, Map<String, Object> propiedades) {
+		this(codigo, detalle, propiedades, null);
+	}
+
+	private ErrorDeNegocio(CodigoError codigo, String detalle, Map<String, Object> propiedades, String campo) {
 		super(detalle);
 		this.codigo = codigo;
 		this.propiedades = Map.copyOf(propiedades);
+		this.campo = campo;
+	}
+
+	/** Error de validación atribuido a un campo de la solicitud, que se informa en la lista {@code errores}. */
+	public static ErrorDeNegocio validacionDeCampo(String campo, String detalle) {
+		return new ErrorDeNegocio(CodigoError.VALIDACION_FALLIDA, detalle, Map.of(), campo);
+	}
+
+	/** Campo de la solicitud al que se atribuye el error, o {@code null} si no corresponde a uno. */
+	public String campo() {
+		return campo;
 	}
 
 	public CodigoError codigo() {

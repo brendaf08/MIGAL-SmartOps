@@ -305,6 +305,11 @@ class CatalogoApiTest {
 				.andExpect(ValidadorContrato.cumple(contrato))
 				.andExpect(jsonPath("$.items[0].sku", is("APT-021")));
 
+		mvc.perform(get("/api/v1/productos").header("Authorization", bearer).param("orden", "sku:asc,"))
+				.andExpect(status().isUnprocessableEntity())
+				.andExpect(ValidadorContrato.cumple(contratoSoloRespuesta))
+				.andExpect(jsonPath("$.code", is("VALIDACION_FALLIDA")));
+
 		mvc.perform(get("/api/v1/productos").header("Authorization", bearer).param("orden", "precioReferencial:asc"))
 				.andExpect(status().isUnprocessableEntity())
 				.andExpect(ValidadorContrato.cumple(contrato))

@@ -80,7 +80,7 @@ public class OrdenCompraService {
 	 * de cumplimiento; y {@code desde} y {@code hasta} delimitan la fecha de emisión de forma inclusiva.
 	 */
 	@Transactional(readOnly = true)
-	public Page<OrdenCompra> listar(String texto, Long proveedorId, Collection<EstadoOrdenCompra> estados, LocalDate desde,
+	public Page<OrdenDetalle> listar(String texto, Long proveedorId, Collection<EstadoOrdenCompra> estados, LocalDate desde,
 			LocalDate hasta, Pageable paginacion) {
 		String patron = texto == null || texto.isBlank() ? null : "%" + texto.trim().toLowerCase() + "%";
 		Instant inicio = desde == null ? null : desde.atStartOfDay(ZONA).toInstant();
@@ -105,7 +105,7 @@ public class OrdenCompraService {
 			}
 			return cb.and(condiciones.toArray(Predicate[]::new));
 		};
-		return ordenes.findAll(filtros, paginacion);
+		return ordenes.findAll(filtros, paginacion).map(this::detalle);
 	}
 
 	/** Consulta una orden con sus líneas y la cantidad recibida de cada producto. Operación de solo lectura. */
@@ -223,7 +223,14 @@ public class OrdenCompraService {
 				.compareTo(l.getCantidadComprada()) < 0);
 	}
 
+	/**
+	 * Compone la orden con su cantidad recibida. Inicializa dentro de la transacción las asociaciones perezosas que la
+	 * capa web necesita, porque la sesión de persistencia no permanece abierta fuera de los servicios.
+	 */
 	private OrdenDetalle detalle(OrdenCompra orden) {
+		orden.getLineas().size();
+		orden.getProveedor().getRazonSocial();
+		orden.getUsuarioResponsable().getId();
 		return new OrdenDetalle(orden, recibidoPorProducto(orden.getId()));
 	}
 

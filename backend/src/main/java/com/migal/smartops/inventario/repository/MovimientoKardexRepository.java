@@ -10,6 +10,9 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 public interface MovimientoKardexRepository
 		extends JpaRepository<MovimientoKardex, Long>, JpaSpecificationExecutor<MovimientoKardex> {
 
+	/** Indica si un movimiento ya fue compensado por otro. */
+	boolean existsByIdMovimientoCorregido(Long idMovimiento);
+
 	/** Movimientos de un traslado, en orden de registro (salida y entrada). */
 	List<MovimientoKardex> findByReferenciaTrasladoOrderByIdAsc(UUID referencia);
 }

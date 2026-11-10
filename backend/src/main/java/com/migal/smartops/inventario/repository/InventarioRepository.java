@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -19,6 +20,15 @@ public interface InventarioRepository extends JpaRepository<Inventario, Long> {
 	Optional<Inventario> findByProductoIdAndAlmacenId(Long idProducto, Long idAlmacen);
 
 	List<Inventario> findByProductoId(Long idProducto);
+
+	/**
+	 * Crea la existencia en cero si aún no existe. Es seguro ante solicitudes concurrentes: si otra transacción
+	 * ya la creó, no hace nada.
+	 */
+	@Modifying
+	@Query(value = "INSERT INTO inventario (id_producto, id_almacen, cantidad_fisica) VALUES (:idProducto, :idAlmacen, 0) "
+			+ "ON CONFLICT (id_producto, id_almacen) DO NOTHING", nativeQuery = true)
+	int crearSiNoExiste(@Param("idProducto") Long idProducto, @Param("idAlmacen") Long idAlmacen);
 
 	/** Bloquea las filas indicadas, en orden ascendente de identificador, hasta el fin de la transacción. */
 	@Lock(LockModeType.PESSIMISTIC_WRITE)

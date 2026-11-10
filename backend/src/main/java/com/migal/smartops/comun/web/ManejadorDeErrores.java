@@ -12,10 +12,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 /**
@@ -53,6 +56,20 @@ public class ManejadorDeErrores {
 	@ExceptionHandler(MethodArgumentTypeMismatchException.class)
 	ResponseEntity<ProblemDetail> tipoIncorrecto(MethodArgumentTypeMismatchException e, HttpServletRequest solicitud) {
 		return validacion(List.of(new ErrorCampo(e.getName(), "tipo", "El valor no tiene el formato esperado.")), solicitud);
+	}
+
+	/** Falta un parámetro o una parte obligatoria de la solicitud, por ejemplo el archivo de una carga multipart. */
+	@ExceptionHandler({MissingServletRequestParameterException.class, MissingServletRequestPartException.class})
+	ResponseEntity<ProblemDetail> campoAusente(HttpServletRequest solicitud) {
+		return RespuestaProblema.respuesta(CodigoError.SOLICITUD_MAL_FORMADA,
+				"Falta un campo obligatorio de la solicitud.", solicitud.getRequestURI(), null);
+	}
+
+	/** El archivo de una carga multipart supera el tamaño máximo configurado en el servidor. */
+	@ExceptionHandler(MaxUploadSizeExceededException.class)
+	ResponseEntity<ProblemDetail> archivoExcesivo(HttpServletRequest solicitud) {
+		return validacion(List.of(new ErrorCampo("archivo", "tamano_excedido",
+				"El archivo supera el tamaño máximo permitido.")), solicitud);
 	}
 
 	@ExceptionHandler(HttpMessageNotReadableException.class)

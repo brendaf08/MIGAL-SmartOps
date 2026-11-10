@@ -9,6 +9,11 @@ spring:
     open-in-view: false
     hibernate:
       ddl-auto: validate
+  servlet:
+    multipart:
+      # Límite de 10 MB por archivo del contrato; la solicitud admite además el resto del cuerpo multipart.
+      max-file-size: 10MB
+      max-request-size: 11MB
   flyway:
     locations: ${FLYWAY_LOCATIONS:filesystem:../database/migraciones}
 

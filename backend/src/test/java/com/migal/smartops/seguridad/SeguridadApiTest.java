@@ -250,4 +250,12 @@ class SeguridadApiTest {
 				.andExpect(ValidadorContrato.cumple(contratoSoloRespuesta))
 				.andExpect(jsonPath("$.code", is("SOLICITUD_MAL_FORMADA")));
 	}
+
+	@Test
+	void unIdentificadorNoNumericoResponde404() throws Exception {
+		mvc.perform(get("/api/v1/usuarios/abc").header("Authorization", bearer("admin01")))
+				.andExpect(status().isNotFound())
+				.andExpect(ValidadorContrato.cumple(contrato))
+				.andExpect(jsonPath("$.code", is("RECURSO_NO_ENCONTRADO")));
+	}
 }

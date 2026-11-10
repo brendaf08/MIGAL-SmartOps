@@ -12,6 +12,7 @@ import com.migal.smartops.comercial.repository.CotizacionRepository;
 import com.migal.smartops.comercial.repository.VentaRepository;
 import com.migal.smartops.comun.errores.CodigoError;
 import com.migal.smartops.comun.errores.ErrorDeNegocio;
+import com.migal.smartops.despacho.service.DespachoService;
 import com.migal.smartops.inventario.model.ReservaStock;
 import com.migal.smartops.inventario.service.ReservaInventarioService;
 import com.migal.smartops.seguridad.model.RolUsuario;
@@ -79,17 +80,19 @@ public class VentaService {
 	private final ProductoService productos;
 	private final UsuarioService usuarios;
 	private final ReservaInventarioService reservasInventario;
+	private final DespachoService despacho;
 	private final Clock reloj;
 
 	public VentaService(VentaRepository ventas, CotizacionRepository cotizaciones, ClienteService clientes,
 			ProductoService productos, UsuarioService usuarios, ReservaInventarioService reservasInventario,
-			Clock reloj) {
+			DespachoService despacho, Clock reloj) {
 		this.ventas = ventas;
 		this.cotizaciones = cotizaciones;
 		this.clientes = clientes;
 		this.productos = productos;
 		this.usuarios = usuarios;
 		this.reservasInventario = reservasInventario;
+		this.despacho = despacho;
 		this.reloj = reloj;
 	}
 
@@ -206,8 +209,9 @@ public class VentaService {
 	}
 
 	/**
-	 * Cancela la venta antes del despacho. Libera sus reservas activas, registra el motivo y el usuario autorizante, y no
-	 * genera movimientos de Kardex. Las ventas despachadas o canceladas no admiten cancelación.
+	 * Cancela la venta antes del despacho. Anula su guía de despacho si la tiene, libera sus reservas activas, registra el
+	 * motivo y el usuario autorizante, y no genera movimientos de Kardex. Las ventas despachadas o canceladas no admiten
+	 * cancelación.
 	 */
 	@Transactional
 	public VentaDetalle cancelar(long idUsuario, long idVenta, String motivo) {
@@ -222,6 +226,7 @@ public class VentaService {
 		if (venta.getEstado() == EstadoVenta.DESPACHADA || venta.getEstado() == EstadoVenta.CANCELADA) {
 			throw new ErrorDeNegocio(CodigoError.VENTA_NO_CANCELABLE, "La venta no admite cancelación en su estado actual.");
 		}
+		despacho.anularGuiaDeVenta(idVenta);
 		reservasInventario.liberar(venta.getLineas().stream().map(DetalleVenta::getId).toList());
 		venta.cancelar(usuarios.consultar(idUsuario), reloj.instant(), texto);
 		return detalle(venta);

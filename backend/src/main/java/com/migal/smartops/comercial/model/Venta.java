@@ -20,6 +20,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import org.hibernate.annotations.Generated;
 
 /**
  * Venta aprobada, originada en una cotización aceptada y validada (tabla {@code venta}, ADR-003). La venta solo
@@ -35,6 +36,11 @@ public class Venta {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	@Column(name = "id_venta")
 	private Long id;
+
+	/** Código visible generado por la base de datos a partir del identificador, por ejemplo V-0038. */
+	@Generated
+	@Column(name = "codigo", insertable = false, updatable = false)
+	private String codigo;
 
 	/** Cotización de origen. Única por venta, lo que garantiza una sola venta por cotización. */
 	@OneToOne(fetch = FetchType.EAGER, optional = false)
@@ -124,6 +130,10 @@ public class Venta {
 
 	public Long getId() {
 		return id;
+	}
+
+	public String getCodigo() {
+		return codigo;
 	}
 
 	public Cotizacion getCotizacion() {

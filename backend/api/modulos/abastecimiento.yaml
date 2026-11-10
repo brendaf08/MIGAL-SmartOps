@@ -1,14 +1,16 @@
 # Contrato OpenAPI del módulo de abastecimiento, conforme al ADR-006, ADR-008 y ADR-009.
-# Cubre el directorio de proveedores con su catálogo de productos suministrados (CU-11).
-# Los esquemas llevan el prefijo Proveedor para evitar colisiones al unirse con join.
+# Cubre el directorio de proveedores con su catálogo de productos (CU-11) y las órdenes de compra (CU-12).
+# Las recepciones se describen en recepciones.yaml. El registro de una orden no modifica el inventario.
+# Los esquemas llevan el prefijo Proveedor u OrdenCompra para evitar colisiones al unirse con join.
 openapi: 3.1.0
 info:
   title: MIGAL SmartOps - Abastecimiento
   version: 1.0.0
   description: >-
     Contrato del módulo de abastecimiento de la API REST de MIGAL SmartOps. Define la gestión
-    del directorio de proveedores y de su catálogo de productos (CU-11). La autorización por
-    rol se declara en la extensión x-roles de cada operación.
+    del directorio de proveedores y de su catálogo de productos (CU-11), y el registro, consulta,
+    actualización y cierre de las órdenes de compra (CU-12). La autorización por rol se declara
+    en la extensión x-roles de cada operación.
 servers:
   - url: /api/v1
 security:
@@ -16,6 +18,8 @@ security:
 tags:
   - name: Proveedores
     description: Registro, consulta, vigencia y catálogo de productos de los proveedores (CU-11).
+  - name: Órdenes de compra
+    description: Registro, consulta, actualización y cierre de las órdenes de compra (CU-12).
 components:
   securitySchemes:
     bearerAuth:
@@ -28,6 +32,24 @@ components:
       required: true
       description: Identificador técnico del proveedor.
       schema: {$ref: ../componentes/esquemas-comunes.yaml#/Identificador}
+    OrdenCompraId:
+      name: id
+      in: path
+      required: true
+      description: Identificador técnico de la orden de compra. El código de negocio se expone en el campo codigo.
+      schema: {$ref: ../componentes/esquemas-comunes.yaml#/Identificador}
+    FiltroProveedorOrdenCompra:
+      name: proveedorId
+      in: query
+      required: false
+      description: Filtra las órdenes de un proveedor.
+      schema: {$ref: ../componentes/esquemas-comunes.yaml#/Identificador}
+    FiltroEstadoOrdenCompra:
+      name: estado
+      in: query
+      required: false
+      description: Filtra por uno o varios estados separados por coma, por ejemplo pendiente,parcial.
+      schema: {type: string, pattern: '^(pendiente|parcial|completada)(,(pendiente|parcial|completada))*$'}
 
   schemas:
     ProveedorRuc:
@@ -128,6 +150,112 @@ components:
         productos:
           type: array
           items: {$ref: '#/components/schemas/ProveedorCatalogoEntrada'}
+
+    OrdenCompraEstado:
+      type: string
+      description: >-
+        Estado de cumplimiento. Pendiente: sin recepciones validadas. Parcial: recepciones validadas
+        incompletas. Completada: orden cerrada o recibida en su totalidad.
+      enum: [pendiente, parcial, completada]
+
+    OrdenCompraLinea:
+      type: object
+      description: >-
+        Línea de la orden. La cantidad recibida y la pendiente de recepción se calculan a partir de
+        las recepciones validadas del mismo producto; no se almacenan.
+      required: [sku, nombre, cantidadComprada, costoUnitario, subtotal, cantidadRecibida, cantidadPendienteRecepcion]
+      properties:
+        sku: {$ref: ../componentes/esquemas-comunes.yaml#/Sku}
+        nombre: {type: string, readOnly: true, description: Denominación del producto en el catálogo maestro.}
+        cantidadComprada: {$ref: ../componentes/esquemas-comunes.yaml#/CantidadPositiva}
+        costoUnitario: {$ref: ../componentes/esquemas-comunes.yaml#/Importe, minimum: 0, description: Costo unitario pactado con el proveedor.}
+        subtotal: {$ref: ../componentes/esquemas-comunes.yaml#/Importe, readOnly: true, description: Cantidad comprada por costo unitario, redondeado a céntimos.}
+        cantidadRecibida: {$ref: ../componentes/esquemas-comunes.yaml#/CantidadNoNegativa, readOnly: true, description: Suma de las cantidades recibidas en recepciones validadas para el producto.}
+        cantidadPendienteRecepcion: {$ref: ../componentes/esquemas-comunes.yaml#/CantidadNoNegativa, readOnly: true, description: Cantidad comprada menos cantidad recibida.}
+
+    OrdenCompraLineaRegistro:
+      type: object
+      description: Línea de una orden nueva o modificada. Un SKU no puede repetirse en la misma orden.
+      additionalProperties: false
+      required: [sku, cantidadComprada, costoUnitario]
+      properties:
+        sku: {$ref: ../componentes/esquemas-comunes.yaml#/Sku}
+        cantidadComprada: {$ref: ../componentes/esquemas-comunes.yaml#/CantidadPositiva}
+        costoUnitario: {$ref: ../componentes/esquemas-comunes.yaml#/Importe, minimum: 0}
+
+    OrdenCompra:
+      type: object
+      description: >-
+        Orden de compra registrada con un proveedor (CU-12). El código de negocio se expone en codigo
+        y se muestra al usuario; id es la clave de ruta.
+      required: [id, codigo, proveedorId, usuarioResponsableId, fechaEmision, estado, fechaEntregaEstimada, observaciones, modalidadPago, lineas]
+      properties:
+        id: {$ref: ../componentes/esquemas-comunes.yaml#/Identificador}
+        codigo: {$ref: ../componentes/esquemas-comunes.yaml#/Codigo, pattern: '^OC-[0-9]{4,}$', readOnly: true, description: Código de negocio generado a partir del identificador.}
+        proveedorId: {$ref: ../componentes/esquemas-comunes.yaml#/Identificador}
+        usuarioResponsableId: {$ref: ../componentes/esquemas-comunes.yaml#/Identificador, readOnly: true, description: Usuario que registró la orden.}
+        fechaEmision: {$ref: ../componentes/esquemas-comunes.yaml#/FechaHora, readOnly: true, description: Momento de emisión asignado por el servidor.}
+        estado: {$ref: '#/components/schemas/OrdenCompraEstado'}
+        fechaEntregaEstimada: {type: [string, 'null'], format: date, description: Fecha referencial de entrega acordada con el proveedor. Nula cuando no se registra.}
+        observaciones: {type: [string, 'null'], description: Información adicional de la orden. Nula cuando no se registra.}
+        modalidadPago: {type: [string, 'null'], maxLength: 100, description: Condición de pago con fines informativos. Nula cuando no se registra.}
+        lineas: {type: array, items: {$ref: '#/components/schemas/OrdenCompraLinea'}}
+      example:
+        id: '87'
+        codigo: OC-0087
+        proveedorId: '12'
+        usuarioResponsableId: '4'
+        fechaEmision: '2026-11-03T10:15:00-05:00'
+        estado: parcial
+        fechaEntregaEstimada: '2026-11-06'
+        observaciones: null
+        modalidadPago: Crédito de 30 días
+        lineas:
+          - {sku: CEM-049, nombre: Cemento Sol tipo I 42.5 kg, cantidadComprada: 100, costoUnitario: 26.5, subtotal: 2650, cantidadRecibida: 40, cantidadPendienteRecepcion: 60}
+
+    OrdenCompraRegistro:
+      type: object
+      description: >-
+        Datos para registrar una orden en estado pendiente (CU-12). El proveedor debe estar activo.
+        La fecha de emisión la asigna el servidor. Las líneas no pueden estar vacías.
+      additionalProperties: false
+      required: [proveedorId, lineas]
+      properties:
+        proveedorId: {$ref: ../componentes/esquemas-comunes.yaml#/Identificador}
+        fechaEntregaEstimada: {type: [string, 'null'], format: date}
+        observaciones: {type: [string, 'null']}
+        modalidadPago: {type: [string, 'null'], maxLength: 100}
+        lineas: {type: array, minItems: 1, items: {$ref: '#/components/schemas/OrdenCompraLineaRegistro'}}
+      example:
+        proveedorId: '12'
+        fechaEntregaEstimada: '2026-11-06'
+        modalidadPago: Crédito de 30 días
+        lineas:
+          - {sku: CEM-049, cantidadComprada: 100, costoUnitario: 26.5}
+
+    OrdenCompraActualizacion:
+      type: object
+      description: >-
+        Datos para modificar una orden en estado pendiente. Las líneas se reemplazan por completo; el
+        proveedor no se modifica.
+      additionalProperties: false
+      required: [lineas]
+      properties:
+        fechaEntregaEstimada: {type: [string, 'null'], format: date}
+        observaciones: {type: [string, 'null']}
+        modalidadPago: {type: [string, 'null'], maxLength: 100}
+        lineas: {type: array, minItems: 1, items: {$ref: '#/components/schemas/OrdenCompraLineaRegistro'}}
+
+    OrdenCompraPagina:
+      description: Página de órdenes de compra con el sobre de paginación común.
+      allOf:
+        - $ref: ../componentes/esquemas-comunes.yaml#/Pagina
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: {$ref: '#/components/schemas/OrdenCompra'}
 
 paths:
   /proveedores:
@@ -278,4 +406,124 @@ paths:
         '403': {$ref: ../componentes/errores.yaml#/Error403}
         '404': {$ref: ../componentes/errores.yaml#/Error404}
         '422': {$ref: ../componentes/errores.yaml#/Error422}
+        '500': {$ref: ../componentes/errores.yaml#/Error500}
+
+  /ordenes-compra:
+    get:
+      operationId: listarOrdenesCompra
+      summary: Listar órdenes de compra
+      description: >-
+        Devuelve la página de órdenes de compra. El parámetro q busca por código de la orden o razón
+        social del proveedor; proveedorId y estado filtran por proveedor y estado de cumplimiento;
+        desde y hasta filtran por fecha de emisión, de forma inclusiva. Campos ordenables: fechaEmision
+        y codigo. El orden predeterminado es fechaEmision:desc.
+      tags: [Órdenes de compra]
+      security: [{bearerAuth: []}]
+      x-roles: [reponedor]
+      parameters:
+        - {$ref: ../componentes/parametros.yaml#/page}
+        - {$ref: ../componentes/parametros.yaml#/pageSize}
+        - {$ref: ../componentes/parametros.yaml#/orden}
+        - {$ref: ../componentes/parametros.yaml#/q}
+        - {$ref: '#/components/parameters/FiltroProveedorOrdenCompra'}
+        - {$ref: '#/components/parameters/FiltroEstadoOrdenCompra'}
+        - {$ref: ../componentes/parametros.yaml#/desde}
+        - {$ref: ../componentes/parametros.yaml#/hasta}
+      responses:
+        '200': {description: Página de órdenes de compra., content: {application/json: {schema: {$ref: '#/components/schemas/OrdenCompraPagina'}}}}
+        '401': {$ref: ../componentes/errores.yaml#/Error401}
+        '403': {$ref: ../componentes/errores.yaml#/Error403}
+        '422': {$ref: ../componentes/errores.yaml#/Error422}
+        '500': {$ref: ../componentes/errores.yaml#/Error500}
+    post:
+      operationId: registrarOrdenCompra
+      summary: Registrar orden de compra
+      description: >-
+        Registra una orden en estado pendiente (CU-12). El proveedor debe existir y estar activo; si
+        está inactivo, responde PROVEEDOR_INACTIVO y no crea la orden. Cada SKU debe existir en el
+        catálogo maestro y no puede repetirse; las reglas de los campos generan VALIDACION_FALLIDA. El
+        registro no modifica el inventario ni genera movimientos de Kardex.
+      tags: [Órdenes de compra]
+      security: [{bearerAuth: []}]
+      x-roles: [reponedor]
+      requestBody:
+        required: true
+        content: {application/json: {schema: {$ref: '#/components/schemas/OrdenCompraRegistro'}}}
+      responses:
+        '201': {description: Orden de compra registrada en estado pendiente., content: {application/json: {schema: {$ref: '#/components/schemas/OrdenCompra'}}}}
+        '400': {$ref: ../componentes/errores.yaml#/Error400}
+        '401': {$ref: ../componentes/errores.yaml#/Error401}
+        '403': {$ref: ../componentes/errores.yaml#/Error403}
+        '422': {$ref: ../componentes/errores.yaml#/Error422}
+        '500': {$ref: ../componentes/errores.yaml#/Error500}
+
+  /ordenes-compra/{id}:
+    parameters:
+      - {$ref: '#/components/parameters/OrdenCompraId'}
+    get:
+      operationId: consultarOrdenCompra
+      summary: Consultar orden de compra
+      description: >-
+        Devuelve la orden con sus líneas, su estado de cumplimiento y, por línea, la cantidad recibida
+        y la pendiente de recepción. El almacenero la consulta para registrar una recepción (CU-13).
+        Responde RECURSO_NO_ENCONTRADO si el identificador no existe.
+      tags: [Órdenes de compra]
+      security: [{bearerAuth: []}]
+      x-roles: [reponedor, almacenero]
+      responses:
+        '200': {description: Orden de compra encontrada., content: {application/json: {schema: {$ref: '#/components/schemas/OrdenCompra'}}}}
+        '401': {$ref: ../componentes/errores.yaml#/Error401}
+        '403': {$ref: ../componentes/errores.yaml#/Error403}
+        '404': {$ref: ../componentes/errores.yaml#/Error404}
+        '500': {$ref: ../componentes/errores.yaml#/Error500}
+    put:
+      operationId: actualizarOrdenCompra
+      summary: Actualizar orden de compra
+      description: >-
+        Modifica una orden en estado pendiente y reemplaza sus líneas completas; el proveedor no se
+        modifica. Si la orden está en estado parcial, responde TRANSICION_NO_PERMITIDA; si está
+        completada, responde ORDEN_COMPRA_CERRADA. Las reglas de los campos y de los SKU generan
+        VALIDACION_FALLIDA.
+      tags: [Órdenes de compra]
+      security: [{bearerAuth: []}]
+      x-roles: [reponedor]
+      requestBody:
+        required: true
+        content: {application/json: {schema: {$ref: '#/components/schemas/OrdenCompraActualizacion'}}}
+      responses:
+        '200': {description: Orden de compra actualizada., content: {application/json: {schema: {$ref: '#/components/schemas/OrdenCompra'}}}}
+        '400': {$ref: ../componentes/errores.yaml#/Error400}
+        '401': {$ref: ../componentes/errores.yaml#/Error401}
+        '403': {$ref: ../componentes/errores.yaml#/Error403}
+        '404': {$ref: ../componentes/errores.yaml#/Error404}
+        '409': {$ref: ../componentes/errores.yaml#/Error409}
+        '422': {$ref: ../componentes/errores.yaml#/Error422}
+        '500': {$ref: ../componentes/errores.yaml#/Error500}
+
+  /ordenes-compra/{id}/cierre:
+    parameters:
+      - {$ref: '#/components/parameters/OrdenCompraId'}
+    post:
+      operationId: cerrarOrdenCompra
+      summary: Cerrar orden de compra
+      description: >-
+        Cierra la orden y la registra en estado completada. La operación no genera movimientos de
+        Kardex ni modifica el inventario. Una orden ya completada responde ORDEN_COMPRA_CERRADA y no
+        se modifica. Un reintento con la misma Idempotency-Key devuelve la respuesta original.
+      tags: [Órdenes de compra]
+      security: [{bearerAuth: []}]
+      x-roles: [reponedor]
+      parameters:
+        - {$ref: ../componentes/parametros.yaml#/IdempotencyKey}
+      responses:
+        '200':
+          description: Orden de compra cerrada. Un reintento con la misma clave devuelve la respuesta original.
+          headers:
+            Idempotent-Replayed: {$ref: ../componentes/parametros.yaml#/IdempotentReplayed}
+          content: {application/json: {schema: {$ref: '#/components/schemas/OrdenCompra'}}}
+        '400': {$ref: ../componentes/errores.yaml#/Error400}
+        '401': {$ref: ../componentes/errores.yaml#/Error401}
+        '403': {$ref: ../componentes/errores.yaml#/Error403}
+        '404': {$ref: ../componentes/errores.yaml#/Error404}
+        '409': {$ref: ../componentes/errores.yaml#/Error409}
         '500': {$ref: ../componentes/errores.yaml#/Error500}

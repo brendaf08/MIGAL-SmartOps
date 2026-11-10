@@ -15,6 +15,10 @@ import org.springframework.data.repository.query.Param;
  */
 public interface RecepcionRepository extends JpaRepository<Recepcion, Long>, JpaSpecificationExecutor<Recepcion> {
 
+	/** Identificador de la orden de una recepción, sin cargar la recepción en el contexto de persistencia. */
+	@Query("select r.orden.id from Recepcion r where r.id = :id")
+	Optional<Long> idOrdenDeRecepcion(@Param("id") Long id);
+
 	/** Bloquea la recepción hasta el fin de la transacción. */
 	@Lock(LockModeType.PESSIMISTIC_WRITE)
 	@Query("select r from Recepcion r where r.id = :id")

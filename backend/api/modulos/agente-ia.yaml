@@ -1,17 +1,479 @@
+# Contrato OpenAPI del módulo del agente de IA (CU-14), conforme al ADR-006, al ADR-008 y al ADR-009.
+# El agente es un servicio de solo lectura: interpreta consultas en lenguaje natural mediante
+# herramientas (tool calling) que corresponden a operaciones de otros módulos marcadas con
+# x-herramienta-agente: true. Cada herramienta se ejecuta con los permisos del usuario autenticado.
+# Este documento no declara operaciones de escritura ni esquemas de otros módulos.
 openapi: 3.1.0
 info:
   title: MIGAL SmartOps - Agente IA
   version: 1.0.0
-  description: Documento base del módulo del agente de IA (CU-14). Sus operaciones se definen en el pull request del módulo.
+  description: >-
+    Contrato del módulo del agente de IA de la API REST de MIGAL SmartOps (CU-14). Define el envío
+    de mensajes en lenguaje natural, la consulta y eliminación de conversaciones propias, y el
+    catálogo de herramientas disponibles para el rol del usuario autenticado. El agente es de
+    solo lectura: no ejecuta operaciones de escritura, no accede a la base de datos y no modifica
+    inventario (RF-IA-04, ADR-004 y ADR-006). Cada herramienta se ejecuta con los permisos del
+    usuario autenticado y no devuelve datos que el rol no puede consultar (RF-IA-09). La
+    autenticación se realiza mediante JWT de usuario y la autorización por rol se declara en la
+    extensión x-roles de cada operación.
 servers:
   - url: /api/v1
 security:
   - bearerAuth: []
 tags:
   - name: Agente IA
-    description: Consultas en lenguaje natural al agente.
+    description: Consultas en lenguaje natural, conversaciones del usuario y catálogo de herramientas.
 components:
   securitySchemes:
     bearerAuth:
       $ref: ../componentes/seguridad.yaml#/bearerAuth
-paths: {}
+
+  parameters:
+    agenteConversacionId:
+      name: id
+      in: path
+      required: true
+      description: Identificador técnico de la conversación. Solo se admiten conversaciones del usuario autenticado.
+      schema:
+        $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+
+  schemas:
+    AgenteMensajeEntrada:
+      type: object
+      description: Consulta del usuario dirigida al agente.
+      additionalProperties: false
+      required:
+        - mensaje
+      properties:
+        mensaje:
+          type: string
+          minLength: 1
+          maxLength: 2000
+          description: Texto de la consulta en lenguaje natural. No puede estar vacío.
+        conversacionId:
+          type: [string, 'null']
+          description: >-
+            Identificador de la conversación existente. Si se omite o es nulo, se crea una
+            conversación nueva.
+      example:
+        mensaje: Disponibilidad de cemento Sol 42.5 kg
+        conversacionId: null
+
+    AgenteReferencia:
+      type: object
+      description: Registro de negocio consultado para responder. Permite al frontend enlazar la respuesta con su detalle.
+      required:
+        - tipo
+        - id
+        - codigo
+      properties:
+        tipo:
+          type: string
+          enum: [producto, almacen, venta, guia_despacho, movimiento]
+          description: Tipo del registro consultado.
+        id:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        codigo:
+          type: [string, 'null']
+          description: Código de negocio visible para el usuario, por ejemplo V-0038 o CEM-001. Nulo cuando no existe.
+      example:
+        tipo: producto
+        id: '42'
+        codigo: CEM-001
+
+    AgenteHerramientaInvocada:
+      type: object
+      description: >-
+        Llamada a una herramienta del agente durante la respuesta. Si la herramienta no está
+        permitida al rol o no pudo ejecutarse, codigo indica el motivo y resumen lo declara.
+      required:
+        - nombre
+        - parametros
+        - resumen
+        - codigo
+      properties:
+        nombre:
+          type: string
+          description: Nombre de la herramienta, igual al operationId de la operación del contrato.
+        parametros:
+          type: object
+          additionalProperties: true
+          description: Parámetros con los que se invocó la operación.
+        resumen:
+          type: string
+          description: Resumen breve del resultado, en español, que el agente usa para redactar la respuesta.
+        codigo:
+          description: Código de error de la herramienta. Nulo cuando la herramienta se ejecutó correctamente.
+          anyOf:
+            - $ref: ../componentes/errores.yaml#/CodigoError
+            - type: 'null'
+      example:
+        nombre: consultarDisponibilidad
+        parametros:
+          q: cemento sol
+        resumen: Cemento Sol tipo I, bolsa 42.5 kg, con 80 bolsas libres.
+        codigo: null
+
+    AgenteRespuesta:
+      type: object
+      description: Respuesta del agente a una consulta del usuario.
+      required:
+        - conversacionId
+        - mensajeId
+        - texto
+        - incierta
+        - herramientas
+        - referencias
+      properties:
+        conversacionId:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        mensajeId:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        texto:
+          type: string
+          minLength: 1
+          description: Respuesta en lenguaje natural, en español.
+        incierta:
+          type: boolean
+          description: >-
+            Verdadero cuando la información disponible no basta para responder. En ese caso el texto
+            no incluye cantidades ni ubicaciones inventadas (RF-IA-08).
+        herramientas:
+          type: array
+          description: Herramientas invocadas para responder, en el orden de ejecución. Vacío si no se invocó ninguna.
+          items:
+            $ref: '#/components/schemas/AgenteHerramientaInvocada'
+        referencias:
+          type: array
+          description: Registros de negocio consultados. Vacío si no se consultó ninguno.
+          items:
+            $ref: '#/components/schemas/AgenteReferencia'
+      example:
+        conversacionId: '7'
+        mensajeId: '31'
+        texto: Hay 80 bolsas libres de Cemento Sol tipo I, bolsa 42.5 kg.
+        incierta: false
+        herramientas:
+          - nombre: consultarDisponibilidad
+            parametros:
+              q: cemento sol
+            resumen: Cemento Sol tipo I, bolsa 42.5 kg, con 80 bolsas libres.
+            codigo: null
+        referencias:
+          - tipo: producto
+            id: '42'
+            codigo: CEM-001
+
+    AgenteMensaje:
+      type: object
+      description: Mensaje de una conversación, del usuario o del agente.
+      required:
+        - id
+        - autor
+        - texto
+        - fechaHora
+        - incierta
+        - herramientas
+        - referencias
+      properties:
+        id:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        autor:
+          type: string
+          enum: [usuario, agente]
+          description: Autor del mensaje.
+        texto:
+          type: string
+          description: Texto del mensaje.
+        fechaHora:
+          $ref: ../componentes/esquemas-comunes.yaml#/FechaHora
+        incierta:
+          type: boolean
+          description: Solo aplica a mensajes del agente. En los mensajes del usuario es falso.
+        herramientas:
+          type: array
+          description: Herramientas invocadas. Vacío en los mensajes del usuario.
+          items:
+            $ref: '#/components/schemas/AgenteHerramientaInvocada'
+        referencias:
+          type: array
+          description: Registros consultados. Vacío en los mensajes del usuario.
+          items:
+            $ref: '#/components/schemas/AgenteReferencia'
+      example:
+        id: '30'
+        autor: usuario
+        texto: Disponibilidad de cemento Sol 42.5 kg
+        fechaHora: '2026-11-08T10:15:00-05:00'
+        incierta: false
+        herramientas: []
+        referencias: []
+
+    AgenteConversacion:
+      type: object
+      description: Conversación del usuario con sus mensajes ordenados de forma cronológica ascendente.
+      required:
+        - id
+        - titulo
+        - fechaCreacion
+        - fechaUltimoMensaje
+        - mensajes
+      properties:
+        id:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        titulo:
+          type: string
+          maxLength: 120
+          description: Título generado a partir del primer mensaje de la conversación.
+        fechaCreacion:
+          $ref: ../componentes/esquemas-comunes.yaml#/FechaHora
+        fechaUltimoMensaje:
+          $ref: ../componentes/esquemas-comunes.yaml#/FechaHora
+        mensajes:
+          type: array
+          items:
+            $ref: '#/components/schemas/AgenteMensaje'
+
+    AgenteConversacionResumen:
+      type: object
+      description: Datos de una conversación en el listado, sin sus mensajes.
+      required:
+        - id
+        - titulo
+        - fechaCreacion
+        - fechaUltimoMensaje
+        - cantidadMensajes
+      properties:
+        id:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        titulo:
+          type: string
+          maxLength: 120
+          description: Título de la conversación.
+        fechaCreacion:
+          $ref: ../componentes/esquemas-comunes.yaml#/FechaHora
+        fechaUltimoMensaje:
+          $ref: ../componentes/esquemas-comunes.yaml#/FechaHora
+        cantidadMensajes:
+          type: integer
+          minimum: 0
+          description: Número de mensajes del usuario y del agente.
+
+    AgenteConversacionPagina:
+      description: Página de conversaciones del usuario con el sobre de paginación común.
+      allOf:
+        - $ref: ../componentes/esquemas-comunes.yaml#/Pagina
+        - type: object
+          required:
+            - items
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/AgenteConversacionResumen'
+
+    AgenteHerramienta:
+      type: object
+      description: Herramienta disponible para el rol del usuario autenticado.
+      required:
+        - nombre
+        - descripcion
+        - operacion
+      properties:
+        nombre:
+          type: string
+          description: Nombre de la herramienta, igual al operationId de la operación del contrato.
+        descripcion:
+          type: string
+          description: Descripción breve de la consulta que realiza la herramienta.
+        operacion:
+          type: string
+          description: Método y ruta de la operación del contrato, relativos a /api/v1.
+      example:
+        nombre: consultarDisponibilidad
+        descripcion: Consultar disponibilidad de productos
+        operacion: GET /inventario/disponibilidad
+
+paths:
+  /agente/mensajes:
+    post:
+      operationId: enviarMensajeAgente
+      summary: Enviar un mensaje al agente
+      description: >-
+        Envía una consulta en lenguaje natural al agente de IA (CU-14) y devuelve su respuesta. Si
+        se omite conversacionId, se crea una conversación nueva; si se indica, el mensaje se agrega
+        a esa conversación, que debe pertenecer al usuario autenticado. En caso contrario responde
+        RECURSO_NO_ENCONTRADO. El agente interpreta la consulta mediante las herramientas de solo
+        lectura listadas en GET /agente/herramientas. Cada herramienta se ejecuta con los permisos
+        del usuario autenticado. Si una herramienta no está permitida al rol o no puede ejecutarse,
+        la solicitud no se interrumpe: la herramienta se informa en herramientas con su codigo, por
+        ejemplo PERMISO_INSUFICIENTE, y el texto lo declara. PERMISO_INSUFICIENTE (403) corresponde
+        únicamente al caso en que el rol no puede usar el agente. Si la información disponible no
+        basta para responder, incierta es verdadero y el texto no incluye cantidades ni ubicaciones
+        inventadas (RF-IA-08). El agente nunca ejecuta operaciones de escritura. Si el proveedor del
+        modelo de lenguaje no responde, devuelve SERVICIO_NO_DISPONIBLE (503). La operación no
+        declara Idempotency-Key, porque no afecta inventario ni reservas.
+      tags:
+        - Agente IA
+      security:
+        - bearerAuth: []
+      x-roles: [administrador, vendedor, almacenero, reponedor]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgenteMensajeEntrada'
+      responses:
+        '201':
+          description: Mensaje procesado. Devuelve la respuesta del agente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgenteRespuesta'
+        '400':
+          $ref: ../componentes/errores.yaml#/Error400
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
+        '404':
+          $ref: ../componentes/errores.yaml#/Error404
+        '422':
+          $ref: ../componentes/errores.yaml#/Error422
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500
+        '503':
+          $ref: ../componentes/errores.yaml#/Error503
+
+  /agente/conversaciones:
+    get:
+      operationId: listarConversacionesAgente
+      summary: Listar las conversaciones del usuario
+      description: >-
+        Lista las conversaciones del usuario autenticado, paginadas. No incluye conversaciones de
+        otros usuarios. Campos ordenables: fechaUltimoMensaje y fechaCreacion. El orden
+        predeterminado es fechaUltimoMensaje:desc. Un campo fuera de la lista genera
+        VALIDACION_FALLIDA. Operación de solo lectura que no genera movimientos de Kardex.
+      tags:
+        - Agente IA
+      security:
+        - bearerAuth: []
+      x-roles: [administrador, vendedor, almacenero, reponedor]
+      parameters:
+        - $ref: ../componentes/parametros.yaml#/page
+        - $ref: ../componentes/parametros.yaml#/pageSize
+        - $ref: ../componentes/parametros.yaml#/orden
+      responses:
+        '200':
+          description: Página de conversaciones del usuario.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgenteConversacionPagina'
+        '400':
+          $ref: ../componentes/errores.yaml#/Error400
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
+        '422':
+          $ref: ../componentes/errores.yaml#/Error422
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500
+
+  /agente/conversaciones/{id}:
+    parameters:
+      - $ref: '#/components/parameters/agenteConversacionId'
+    get:
+      operationId: consultarConversacionAgente
+      summary: Consultar una conversación
+      description: >-
+        Devuelve una conversación del usuario autenticado con todos sus mensajes, en orden
+        cronológico ascendente. Si la conversación no existe o pertenece a otro usuario, responde
+        RECURSO_NO_ENCONTRADO sin distinguir ambos casos. Operación de solo lectura que no genera
+        movimientos de Kardex.
+      tags:
+        - Agente IA
+      security:
+        - bearerAuth: []
+      x-roles: [administrador, vendedor, almacenero, reponedor]
+      responses:
+        '200':
+          description: Conversación con sus mensajes.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgenteConversacion'
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
+        '404':
+          $ref: ../componentes/errores.yaml#/Error404
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500
+    delete:
+      operationId: eliminarConversacionAgente
+      summary: Eliminar una conversación propia
+      description: >-
+        Elimina una conversación del usuario autenticado y sus mensajes. La operación no afecta
+        datos transaccionales, como ventas, Kardex o guías de despacho. Si la conversación no existe
+        o pertenece a otro usuario, responde RECURSO_NO_ENCONTRADO sin distinguir ambos casos.
+      tags:
+        - Agente IA
+      security:
+        - bearerAuth: []
+      x-roles: [administrador, vendedor, almacenero, reponedor]
+      responses:
+        '204':
+          description: Conversación eliminada. La respuesta no tiene contenido.
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
+        '404':
+          $ref: ../componentes/errores.yaml#/Error404
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500
+
+  /agente/herramientas:
+    get:
+      operationId: listarHerramientasAgente
+      summary: Listar las herramientas disponibles para el rol
+      description: >-
+        Devuelve las herramientas del agente que el rol del usuario autenticado puede ejecutar. Cada
+        herramienta corresponde a una operación del contrato marcada con x-herramienta-agente: true
+        y se ejecuta con los permisos del usuario. Las operaciones marcadas son todas de solo lectura
+        (GET). Es un catálogo acotado y no se pagina, por lo que la respuesta es un arreglo. Las
+        herramientas disponibles en la versión 1 son las siguientes, con los roles que las pueden
+        ejecutar entre paréntesis: consultarDisponibilidad, GET /inventario/disponibilidad
+        (almacenero, vendedor); consultarExistenciasProducto, GET /productos/{id}/existencias
+        (almacenero, vendedor); listarAlertasStock, GET /inventario/alertas (almacenero, reponedor);
+        consultarKardex, GET /inventario/movimientos (almacenero, administrador); listarVentas,
+        GET /ventas (almacenero, vendedor); consultarVenta, GET /ventas/{id} (almacenero, vendedor);
+        listarVentasPendientesDespacho, GET /ventas-pendientes-despacho (almacenero);
+        listarGuiasDespacho, GET /guias-despacho (almacenero); consultarGuiaDespacho,
+        GET /guias-despacho/{id} (almacenero); obtenerDocumentoGuia,
+        GET /guias-despacho/{id}/documento (almacenero). La lista se actualiza cuando otro módulo
+        marca una nueva operación con x-herramienta-agente.
+      tags:
+        - Agente IA
+      security:
+        - bearerAuth: []
+      x-roles: [administrador, vendedor, almacenero, reponedor]
+      responses:
+        '200':
+          description: Herramientas permitidas al rol del usuario autenticado.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AgenteHerramienta'
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500

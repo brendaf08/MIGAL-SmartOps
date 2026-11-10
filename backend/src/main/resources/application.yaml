@@ -29,6 +29,11 @@ migal:
       # Clave de firma HS256 de al menos 32 caracteres. Se define solo mediante la variable de entorno.
       secreto: ${MIGAL_JWT_SECRETO:}
       duracion: PT8H
+    # Administrador inicial. Se crea al arrancar solo si no existe ningún Administrador activo y ambas variables
+    # están definidas. Se definen únicamente mediante variables de entorno; no se almacenan valores en el repositorio.
+    administrador-inicial:
+      username: ${MIGAL_ADMIN_USERNAME:}
+      clave: ${MIGAL_ADMIN_CLAVE:}
   ocr:
     # Proveedor del servicio de OCR: simulado (por defecto, para desarrollo y pruebas) o no-configurado, que responde
     # SERVICIO_NO_DISPONIBLE. Los umbrales del Fuzzy Matching son de ejemplo y quedan pendientes de definir.

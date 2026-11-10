@@ -89,7 +89,7 @@ Para garantizar la coherencia entre ambos niveles y los demás modelos de MIGAL 
 
 **1. Cotización y registro comercial.** La cotización registra los productos, cantidades, precios y condiciones ofrecidas. Su emisión y aceptación no generan movimientos de inventario. Una vez aceptada por el cliente y validada su viabilidad por MIGAL, podrá originar una única venta.
 
-**2. Validación de abastecimiento.** Cuando existan faltantes, se aplicarán las reglas comerciales acordadas para las categorías de cemento, ladrillos, fierros y agregados. En otras categorías, la viabilidad será evaluada por la responsable de abastecimiento antes de aprobar la venta.
+**2. Validación de abastecimiento.** Cuando existan faltantes, la viabilidad se determinará según el indicador `aprobacion_automatica` de la categoría efectiva del producto. Para las categorías con dicho indicador, que corresponden a cemento, ladrillos, fierros y agregados, la viabilidad se aprueba automáticamente. En las demás categorías, será evaluada por la responsable de abastecimiento antes de aprobar la venta.
 
 **3. Reservas de existencias.** Una venta aprobada podrá reservar unidades disponibles desde varios almacenes. Las reservas se vincularán a los detalles de venta y a las ubicaciones correspondientes. Las cantidades reservadas no constituyen salidas físicas de Kardex.
 

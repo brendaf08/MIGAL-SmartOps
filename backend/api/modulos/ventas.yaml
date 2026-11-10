@@ -446,7 +446,7 @@ paths:
       tags: [Ventas]
       security:
         - bearerAuth: []
-      x-roles: [almacenero, vendedor]
+      x-roles: [almacenero, vendedor, administrador]
       x-herramienta-agente: true
       parameters:
         - $ref: ../componentes/parametros.yaml#/page
@@ -590,7 +590,7 @@ paths:
       tags: [Ventas]
       security:
         - bearerAuth: []
-      x-roles: [almacenero, vendedor]
+      x-roles: [almacenero, vendedor, administrador]
       x-herramienta-agente: true
       responses:
         '200':
@@ -663,8 +663,8 @@ paths:
         pendiente_abastecimiento, pendiente_despacho o lista_para_despacho; una venta despachada o cancelada responde
         VENTA_NO_CANCELABLE. El motivo es obligatorio; un motivo vacío o formado solo por espacios responde
         MOTIVO_REQUERIDO. El usuario autorizante es el usuario autenticado. La operación libera las reservas activas,
-        que pasan a liberada, registra la fecha de cancelación y cambia el estado a cancelada. No genera movimientos de
-        Kardex. Un conflicto de idempotencia responde IDEMPOTENCIA_CONFLICTO y una operación concurrente sobre el mismo
+        que pasan a liberada, registra la fecha de cancelación y cambia el estado a cancelada. Si la venta tiene una guía
+        de despacho emitida, la guía pasa a anulada. No genera movimientos de Kardex. Un conflicto de idempotencia responde IDEMPOTENCIA_CONFLICTO y una operación concurrente sobre el mismo
         inventario, PETICION_CONCURRENTE. Requiere la cabecera Idempotency-Key.
       tags: [Ventas]
       security:

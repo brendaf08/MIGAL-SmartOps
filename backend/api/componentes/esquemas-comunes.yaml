@@ -26,7 +26,7 @@ Identificador:
 
 Codigo:
   type: string
-  description: Código de negocio visible para el usuario, por ejemplo OC-0087, R-0012 o CLI-001.
+  description: Código de negocio visible para el usuario, por ejemplo OC-0087, R-0012 o CLI-0001.
 
 Sku:
   type: string

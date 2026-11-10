@@ -560,7 +560,7 @@ paths:
         ubicacionPrecargaId; las líneas enviadas prevalecen sobre la precarga. Las líneas pueden incluir productos fuera
         de la orden, cuya cantidad pendiente es cero. Si la orden está completada, se rechaza con
         ORDEN_COMPRA_CERRADA. Si el documento no está validado o ya apoya una cotización, se rechaza con
-        DOCUMENTO_NO_VALIDABLE. Si un producto o una ubicación está inactivo, se rechaza con PRODUCTO_INACTIVO o con
+        DOCUMENTO_NO_VALIDADO. Si un producto o una ubicación está inactivo, se rechaza con PRODUCTO_INACTIVO o con
         ALMACEN_INACTIVO. Si una combinación de producto y ubicación se repite en las líneas, se rechaza con
         VALIDACION_FALLIDA. Devuelve 201 con la recepción creada. No requiere Idempotency-Key, porque el registro no
         afecta el inventario.

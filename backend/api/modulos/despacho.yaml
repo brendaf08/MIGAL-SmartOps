@@ -47,8 +47,8 @@ components:
       type: string
       description: >-
         Situación de la guía. Coincide con el valor de estado de la base de datos. La emisión crea la guía en
-        estado emitida. La versión 1 no define una operación que asigne el estado preparacion.
-      enum: [preparacion, emitida, salida_confirmada, entregada]
+        estado emitida. La versión 1 no define una operación que asigne el estado preparacion. La guía pasa a anulada cuando se cancela la venta que la originó (ADR-009).
+      enum: [preparacion, emitida, salida_confirmada, entregada, anulada]
     GuiaUbicacionSalida:
       type: object
       description: Ubicación de la que sale una parte de la línea, con la cantidad reservada desde esa ubicación.
@@ -118,6 +118,11 @@ components:
           $ref: ../componentes/esquemas-comunes.yaml#/FechaHora
         fechaSalidaReal:
           description: Marca de la confirmación de la salida física. Nula mientras la salida no se confirma.
+          anyOf:
+            - $ref: ../componentes/esquemas-comunes.yaml#/FechaHora
+            - type: 'null'
+        fechaEntrega:
+          description: Marca de la entrega al cliente. Nula mientras la guía no esté entregada.
           anyOf:
             - $ref: ../componentes/esquemas-comunes.yaml#/FechaHora
             - type: 'null'
@@ -387,7 +392,7 @@ paths:
         y combinables; q busca por código de la guía o por cliente, y el rango de fechas es inclusivo y se aplica
         sobre la fecha de emisión. El orden predeterminado es fechaEmision:desc; los campos ordenables son
         fechaEmision y codigo. Operación de solo lectura que no genera movimientos de Kardex.
-      x-roles: [almacenero]
+      x-roles: [almacenero, administrador]
       x-herramienta-agente: true
       security:
         - bearerAuth: []
@@ -466,7 +471,7 @@ paths:
       description: >-
         Devuelve una guía con sus líneas y, por cada línea, sus ubicaciones de salida tomadas de las reservas de la
         venta (CU-06). Operación de solo lectura.
-      x-roles: [almacenero]
+      x-roles: [almacenero, administrador]
       x-herramienta-agente: true
       security:
         - bearerAuth: []
@@ -496,7 +501,7 @@ paths:
       description: >-
         Devuelve los datos del documento de la guía para su impresión (CU-06, paso 7). La consulta no registra
         ninguna impresión ni reimpresión, y no modifica el inventario. Operación de solo lectura.
-      x-roles: [almacenero]
+      x-roles: [almacenero, administrador]
       x-herramienta-agente: true
       security:
         - bearerAuth: []
@@ -612,8 +617,8 @@ paths:
       description: >-
         Registra la entrega de la mercadería al cliente y cambia la guía de salida_confirmada a entregada. La
         operación no admite cuerpo, no modifica el inventario y no genera movimientos de Kardex. Si la guía no está
-        en salida_confirmada, se rechaza con 409; el código de negocio de ese caso no figura en el catálogo
-        CodigoError y queda pendiente. Devuelve 200 con la guía actualizada.
+        en salida_confirmada, se rechaza con 409 TRANSICION_NO_PERMITIDA. El servidor registra la fecha de entrega.
+        Devuelve 200 con la guía actualizada.
       x-roles: [almacenero]
       security:
         - bearerAuth: []
@@ -648,7 +653,7 @@ paths:
         módulo comercial (CU-10). Las ventas con cantidades pendientes de abastecimiento no aparecen en el listado.
         El filtro q busca por código de venta o por cliente, y el rango desde y hasta se aplica sobre la fecha de la
         venta, de modo inclusivo. El orden es fijo por fecha ascendente y código ascendente. Operación de solo lectura.
-      x-roles: [almacenero]
+      x-roles: [almacenero, administrador]
       x-herramienta-agente: true
       security:
         - bearerAuth: []

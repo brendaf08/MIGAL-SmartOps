@@ -445,18 +445,10 @@ paths:
         Devuelve las herramientas del agente que el rol del usuario autenticado puede ejecutar. Cada
         herramienta corresponde a una operación del contrato marcada con x-herramienta-agente: true
         y se ejecuta con los permisos del usuario. Las operaciones marcadas son todas de solo lectura
-        (GET). Es un catálogo acotado y no se pagina, por lo que la respuesta es un arreglo. Las
-        herramientas disponibles en la versión 1 son las siguientes, con los roles que las pueden
-        ejecutar entre paréntesis: consultarDisponibilidad, GET /inventario/disponibilidad
-        (almacenero, vendedor); consultarExistenciasProducto, GET /productos/{id}/existencias
-        (almacenero, vendedor); listarAlertasStock, GET /inventario/alertas (almacenero, reponedor);
-        consultarKardex, GET /inventario/movimientos (almacenero, administrador); listarVentas,
-        GET /ventas (almacenero, vendedor); consultarVenta, GET /ventas/{id} (almacenero, vendedor);
-        listarVentasPendientesDespacho, GET /ventas-pendientes-despacho (almacenero);
-        listarGuiasDespacho, GET /guias-despacho (almacenero); consultarGuiaDespacho,
-        GET /guias-despacho/{id} (almacenero); obtenerDocumentoGuia,
-        GET /guias-despacho/{id}/documento (almacenero). La lista se actualiza cuando otro módulo
-        marca una nueva operación con x-herramienta-agente.
+        (GET). Es un catálogo acotado y no se pagina, por lo que la respuesta es un arreglo. El
+        catálogo vigente es el conjunto de operaciones de lectura marcadas con x-herramienta-agente en los demás
+        módulos (inventario, ventas, despacho, recepciones y catálogo), filtrado por los roles declarados en cada una.
+        Esta operación es la fuente actualizada: no se mantiene una lista fija en el contrato.
       tags:
         - Agente IA
       security:

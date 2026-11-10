@@ -350,6 +350,7 @@ paths:
       security:
         - bearerAuth: []
       x-roles: [almacenero, administrador]
+      x-herramienta-agente: true
       parameters:
         - $ref: ../componentes/parametros.yaml#/page
         - $ref: ../componentes/parametros.yaml#/pageSize
@@ -424,6 +425,7 @@ paths:
       security:
         - bearerAuth: []
       x-roles: [almacenero, administrador]
+      x-herramienta-agente: true
       responses:
         '200':
           description: Producto encontrado.

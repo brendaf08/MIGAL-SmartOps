@@ -218,10 +218,10 @@ components:
       type: object
       description: Registro del rechazo de una cotización. El origen determina el estado de partida permitido y el rol requerido.
       additionalProperties: false
-      required: [origen]
+      required: [origen, motivo]
       properties:
         origen: {$ref: '#/components/schemas/OrigenRechazoCotizacion'}
-        motivo: {type: [string, 'null'], maxLength: 500, description: Motivo del rechazo. Opcional.}
+        motivo: {type: string, minLength: 1, maxLength: 500, description: Motivo del rechazo. Es obligatorio y no puede ser vacío (V12).}
       example: {origen: cliente, motivo: 'El cliente solicita un plazo de entrega distinto.'}
     CotizacionDivisionLinea:
       type: object

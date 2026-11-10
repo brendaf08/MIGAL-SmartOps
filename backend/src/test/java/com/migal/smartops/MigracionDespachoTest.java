@@ -60,8 +60,8 @@ class MigracionDespachoTest {
 		Long idVenta = crearVenta("despacho2");
 
 		jdbc.update("""
-				INSERT INTO guia_despacho (id_venta, direccion_entrega, estado, fecha_salida_real, id_usuario_responsable)
-				VALUES (?, 'Av. Ficticia 100', 'entregada', now(), ?)
+				INSERT INTO guia_despacho (id_venta, direccion_entrega, estado, fecha_salida_real, id_usuario_responsable, fecha_entrega)
+				VALUES (?, 'Av. Ficticia 100', 'entregada', now(), ?, now())
 				""", idVenta, idUsuario);
 
 		Integer cantidad = jdbc.queryForObject(

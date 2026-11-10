@@ -110,6 +110,10 @@ entity Cotizacion {
   / total_cotizacion
   fecha_aceptacion_cliente
   fecha_validacion_migal
+  (C) origen_rechazo
+  (C) id_usuario_rechazo <<FK>>
+  (C) fecha_rechazo
+  (C) motivo_rechazo
 }
 
 entity Venta {
@@ -137,8 +141,18 @@ entity Guia_Despacho {
   fecha_despacho
   * estado
   * fecha_emision
-  fecha_salida_real
+  (C) fecha_salida_real
   (C) id_usuario_responsable <<FK>>
+  (C) fecha_entrega
+}
+
+entity Reimpresion_Guia {
+  * id_reimpresion <<PK>>
+  --
+  * id_guia <<FK>>
+  * id_usuario <<FK>>
+  * fecha_reimpresion
+  * motivo
 }
 
 entity Proveedor {
@@ -306,6 +320,9 @@ Usuario ||--o{ Reserva_Stock : Registra_Reserva
 Usuario ||--o{ Documento_Digital : Sube
 Usuario |o--o{ Venta : id_usuario_autorizante
 Usuario |o--o{ Guia_Despacho : id_usuario_responsable
+Usuario |o--o{ Cotizacion : Registra_Rechazo
+Usuario ||--o{ Reimpresion_Guia : Registra_Reimpresion
+Guia_Despacho ||--o{ Reimpresion_Guia : Tiene_Reimpresiones
 
 Cliente ||--o{ Cotizacion : Solicita_Cotizacion
 Cliente ||--o{ Venta : Realiza_Venta

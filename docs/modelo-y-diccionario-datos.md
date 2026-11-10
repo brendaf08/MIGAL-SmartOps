@@ -190,6 +190,8 @@ El registro comercial no genera movimientos físicos de salida de Kardex.
 
 La cancelación antes del despacho exige `motivo_cancelacion`, `fecha_cancelacion` e `id_usuario_autorizante`, libera las reservas activas y no genera movimientos de Kardex.
 
+Cuando la cancelación se produce con la venta en estado lista para despacho, la guía de despacho emitida pasa a estado anulada. La anulación no genera movimientos de Kardex, pues la salida física no se había confirmado.
+
 ### Cotizacion
 
 | Atributo | Tipo de atributo | Descripción |
@@ -206,8 +208,14 @@ La cancelación antes del despacho exige `motivo_cancelacion`, `fecha_cancelacio
 | `total_cotizacion` | Derivado | Importe calculado a partir de los productos, cantidades, precios y descuentos. |
 | `fecha_aceptacion_cliente` | Opcional | Fecha y hora en que se registra la aceptación del cliente. |
 | `fecha_validacion_migal` | Opcional | Fecha y hora de validación de viabilidad por MIGAL. |
+| `origen_rechazo` | Condicional | Parte que rechaza la cotización: `cliente` o `migal`. Obligatorio cuando el estado es rechazada. |
+| `id_usuario_rechazo` | Condicional (FK) | Usuario que registra el rechazo. Obligatorio cuando el estado es rechazada. |
+| `fecha_rechazo` | Condicional | Fecha y hora del rechazo. Obligatoria cuando el estado es rechazada. |
+| `motivo_rechazo` | Condicional | Motivo del rechazo, no vacío. Obligatorio cuando el estado es rechazada. |
 
 La conversión de una cotización a venta requiere la aceptación del cliente y la validación de viabilidad comercial.
+
+El rechazo por el cliente procede desde el estado emitida y puede registrarlo el personal de ventas o el Administrador. El rechazo por MIGAL procede desde el estado aceptada y solo puede registrarlo el Administrador. Ambos son estados finales; el registro del rechazo no reserva ni libera existencias.
 
 Cuando exista stock insuficiente, la evaluación de abastecimiento considera la categoría efectiva del producto, según lo descrito en la entidad `Categoria`. Si el indicador `aprobacion_automatica` de esa categoría es verdadero, la viabilidad de abastecimiento se aprueba automáticamente. Esta regla se aplica a las categorías Cemento y aglomerantes, Agregados, Ladrillos y bloques y Fierro y acero de construcción; las demás categorías requieren evaluación de la propietaria responsable.
 
@@ -232,16 +240,35 @@ La conversión de una cotización validada en venta no cambia su estado; la exis
 | `id_venta` | Obligatorio (FK, único) | Referencia a la venta que origina el despacho. |
 | `direccion_entrega` | Simple | Dirección o ubicación de destino de la mercadería. |
 | `fecha_despacho` | Opcional | Fecha programada para la salida o entrega. |
-| `estado` | Simple | Situación del documento: preparación, emitida, salida confirmada o entregada. |
+| `estado` | Simple | Situación del documento: preparación, emitida, salida confirmada, entregada o anulada. |
 | `fecha_emision` | Simple | Fecha y hora de generación de la guía. |
-| `fecha_salida_real` | Opcional | Fecha y hora en que se confirma la salida física de la mercadería. |
+| `fecha_salida_real` | Condicional | Fecha y hora en que se confirma la salida física de la mercadería. Obligatoria cuando el estado es salida confirmada o entregada. En anulada puede omitirse, pero se informa junto con `id_usuario_responsable` o se omite junto con él. |
 | `id_usuario_responsable` | Condicional (FK) | Usuario que confirma la salida física. Obligatorio cuando el estado es salida confirmada o entregada. |
+| `fecha_entrega` | Condicional | Fecha y hora en que se registra la entrega al cliente. Obligatoria cuando el estado es entregada y nula en los demás estados. |
 
 Una venta puede generar como máximo una guía de despacho.
 
+La guía anulada conserva su registro y no puede reactivarse. Sus transiciones son: emitida a anulada, cuando la venta se cancela en lista para despacho. La salida confirmada y la entrega no admiten anulación.
+
 La confirmación de la salida física exige identificar al usuario responsable (RNF-10, RF-USR-04).
 
+La entrega al cliente registra `fecha_entrega` y cambia el estado de salida confirmada a entregada.
+
 La emisión o impresión de la guía no modifica el inventario. La salida de Kardex se registra cuando se confirma físicamente el despacho completo de la mercadería.
+
+### Reimpresion_Guia
+
+| Atributo | Tipo de atributo | Descripción |
+| --- | --- | --- |
+| `id_reimpresion` | Único (PK) | Identificador interno de la reimpresión. |
+| `id_guia` | Obligatorio (FK) | Referencia a la guía reimpresa. |
+| `id_usuario` | Obligatorio (FK) | Usuario que registra la reimpresión. |
+| `fecha_reimpresion` | Simple | Fecha y hora de la reimpresión. |
+| `motivo` | Simple | Justificación de la reimpresión, no vacía. |
+
+La reimpresión registra cada impresión adicional de la guía con su motivo obligatorio. No modifica el estado de la guía ni el inventario, y no genera movimientos de Kardex.
+
+El registro es de solo anexión: no se modifican ni se eliminan reimpresiones, de acuerdo con el mismo criterio aplicado a `Movimiento_Kardex`.
 
 ### Orden_Compra
 
@@ -480,6 +507,9 @@ Las relaciones sin atributos representan asociaciones directas entre entidades q
 | Apoya_Recepcion | Documento_Digital + Orden_Recepcion | Un documento puede utilizarse para precargar una recepción; la asociación es opcional en ambos extremos. |
 | Clasifica | Categoria + Producto | Una categoría puede clasificar cero o múltiples productos; cada producto pertenece a una única categoría. |
 | Contiene_Subcategoria | Categoria + Categoria | Una categoría puede contener cero o múltiples subcategorías; cada subcategoría tiene como máximo una categoría padre. |
+| Registra_Rechazo | Usuario + Cotizacion | Un usuario puede registrar el rechazo de múltiples cotizaciones; cada cotización rechazada identifica un único usuario que lo registra. |
+| Tiene_Reimpresiones | Guia_Despacho + Reimpresion_Guia | Una guía puede reimprimirse cero o múltiples veces; cada reimpresión corresponde a una única guía. |
+| Registra_Reimpresion | Usuario + Reimpresion_Guia | Un usuario puede registrar múltiples reimpresiones; cada reimpresión identifica un único usuario. |
 
 ### Consideraciones de cardinalidad
 
@@ -520,6 +550,7 @@ Para mantener la consistencia entre las entidades y los procesos del sistema, se
 
 - Los identificadores principales de las entidades deben ser únicos.
 - Los códigos de negocio se generan a partir de la clave primaria y son únicos en su tabla (V11).
+- Un rechazo de cotización registra su origen, el usuario, la fecha y un motivo no vacío. Las reimpresiones de guía son de solo anexión (V12).
 - El documento de identificación de un cliente se informa completo o se omite. El DNI tiene ocho dígitos y el RUC, once, y un mismo tipo y número no pertenece a dos clientes (V11).
 - El SKU de Producto, el username de Usuario y el RUC de Proveedor deben mantener restricciones de unicidad.
 - La combinación de producto y almacén en Inventario debe ser única.

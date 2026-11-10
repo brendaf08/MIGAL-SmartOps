@@ -621,3 +621,25 @@ Las reglas de unicidad, claves foráneas, restricciones de cantidad y validacion
 La autorización de cancelaciones requiere conservar evidencia del usuario autorizante, la fecha, la operación y el motivo. El esquema de auditoría persistente correspondiente deberá precisarse antes de considerar completamente implementada esta responsabilidad.
 
 Las reglas de reserva parcial, despacho único y completo, obligatoriedad del cliente, origen de la venta y salida de Kardex se establecen en el [ADR-003](adr/adr-003-reglas-ventas-reservas-despacho.md). Los requerimientos, los casos de uso y la matriz de trazabilidad se alinean con dicho ADR. Permanece pendiente únicamente la confirmación de la reserva parcial con el docente.
+
+## Tablas técnicas
+
+Las tablas técnicas sostienen mecanismos del sistema y no representan entidades de negocio. No forman parte del diagrama entidad-relación.
+
+### Idempotencia
+
+Guarda el resultado de las operaciones que exigen la cabecera `Idempotency-Key` ([ADR-009](adr/adr-009-ajustes-seguridad-y-componentes-contrato.md) y [ADR-010](adr/adr-010-estrategia-implementacion-backend.md)).
+
+| Atributo | Tipo de atributo | Descripción |
+| --- | --- | --- |
+| `id_idempotencia` | Único (PK) | Identificador interno del registro. |
+| `clave` | Simple | Valor de la cabecera `Idempotency-Key`, no vacío, de hasta 100 caracteres. |
+| `id_usuario` | Obligatorio (FK) | Usuario que realizó la solicitud. |
+| `operacion` | Simple | Operación invocada, por ejemplo `POST /inventario/traslados`. |
+| `huella` | Simple | Resumen SHA-256 de la solicitud, en hexadecimal minúsculas. |
+| `estado_http` | Condicional | Estado HTTP de la respuesta guardada. Nulo mientras la operación está en curso. |
+| `respuesta` | Condicional | Cuerpo de la respuesta guardada, en JSON. Presente junto con `estado_http`. |
+| `fecha_creacion` | Simple | Momento del registro. |
+| `fecha_expiracion` | Simple | Momento a partir del cual el registro puede eliminarse. Es 24 horas posterior a la creación. |
+
+La combinación de usuario, operación y clave es única. Una solicitud repetida con la misma huella devuelve la respuesta guardada; con otra huella responde `IDEMPOTENCIA_CONFLICTO`. Los registros vencidos se eliminan de forma periódica.

@@ -139,11 +139,12 @@ class MigracionDocumentosOcrTest {
 
 	private Long insertarDocumento(Long idUsuario, String estado, Long idCotizacion, Long idRecepcion) {
 		return jdbc.queryForObject("""
-				INSERT INTO documento_digital (ruta_archivo, estado_procesamiento, tipo_documento, id_usuario,
-				                               id_cotizacion, id_recepcion)
-				VALUES (?, ?, 'SolicitudCliente', ?, ?, ?)
+				INSERT INTO documento_digital (ruta_archivo, nombre_archivo, tamano_bytes, estado_procesamiento,
+				                               tipo_documento, id_usuario, id_cotizacion, id_recepcion)
+				VALUES (?, ?, 2048, ?, 'solicitud_cliente', ?, ?, ?)
 				RETURNING id_documento
-				""", Long.class, "documentos/" + sufijo() + ".pdf", estado, idUsuario, idCotizacion, idRecepcion);
+				""", Long.class, "documentos/" + sufijo() + ".pdf", "archivo-" + sufijo() + ".pdf", estado, idUsuario,
+				idCotizacion, idRecepcion);
 	}
 
 	private int contarDocumentos(Long idUsuario) {

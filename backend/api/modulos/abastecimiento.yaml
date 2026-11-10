@@ -542,4 +542,5 @@ paths:
         '403': {$ref: ../componentes/errores.yaml#/Error403}
         '404': {$ref: ../componentes/errores.yaml#/Error404}
         '409': {$ref: ../componentes/errores.yaml#/Error409}
+        '422': {$ref: ../componentes/errores.yaml#/Error422}
         '500': {$ref: ../componentes/errores.yaml#/Error500}

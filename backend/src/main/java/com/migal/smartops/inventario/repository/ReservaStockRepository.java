@@ -14,6 +14,10 @@ public interface ReservaStockRepository extends JpaRepository<ReservaStock, Long
 	@Query("select coalesce(sum(r.cantidadReservada), 0) from ReservaStock r where r.inventario.id = :idInventario and r.estado = 'activa'")
 	BigDecimal sumaActivas(@Param("idInventario") Long idInventario);
 
+	/** Reservas activas de varias líneas de venta. */
+	@Query("select r from ReservaStock r where r.idDetalleVenta in :ids and r.estado = 'activa' order by r.id")
+	List<ReservaStock> findActivasPorDetallesVenta(@Param("ids") java.util.Collection<Long> idsDetalleVenta);
+
 	/** Reservas activas de una línea de venta. */
 	@Query("select r from ReservaStock r where r.idDetalleVenta = :idDetalle and r.estado = 'activa' order by r.id")
 	List<ReservaStock> findActivasPorDetalleVenta(@Param("idDetalle") Long idDetalleVenta);

@@ -383,6 +383,35 @@ La asociación con `Producto` puede permanecer vacía hasta que exista una coinc
 
 El resultado del procesamiento OCR constituye información preliminar que requiere revisión antes de utilizarse en una operación definitiva.
 
+### Conversacion_Agente
+
+| Atributo | Tipo de atributo | Descripción |
+| --- | --- | --- |
+| `id_conversacion` | Único (PK) | Identificador interno de la conversación. |
+| `id_usuario` | Obligatorio (FK) | Usuario propietario de la conversación. |
+| `titulo` | Simple | Título generado a partir del primer mensaje. No puede estar vacío y admite hasta 200 caracteres. |
+| `fecha_creacion` | Simple | Fecha y hora de creación de la conversación. |
+| `fecha_ultimo_mensaje` | Simple | Fecha y hora del último mensaje agregado. Ordena el listado de conversaciones. |
+
+Cada conversación pertenece a un único usuario. Solo el propietario puede consultarla o eliminarla. Las conversaciones no son entidades de negocio: no referencian inventario, ventas ni movimientos de Kardex, y su eliminación es física, como se describe en la sección de consideraciones de integridad.
+
+### Mensaje_Agente
+
+| Atributo | Tipo de atributo | Descripción |
+| --- | --- | --- |
+| `id_mensaje` | Único (PK) | Identificador interno del mensaje. |
+| `id_conversacion` | Obligatorio (FK) | Conversación a la que pertenece el mensaje. |
+| `rol` | Simple | Autor del mensaje: `usuario` o `agente`. |
+| `texto` | Simple | Contenido del mensaje. No puede estar vacío. |
+| `incierta` | Simple | Indicador que señala que la información disponible no basta para responder. Solo aplica a mensajes del agente; en los mensajes del usuario es falso. |
+| `herramientas` | Simple | Arreglo JSON de las herramientas invocadas para responder, en orden de ejecución. Cada elemento contiene el nombre, los parámetros, el resumen y el código de error, que es nulo cuando la herramienta se ejecutó correctamente. Vacío en los mensajes del usuario. |
+| `referencias` | Simple | Arreglo JSON de los registros de negocio consultados, con su tipo, identificador y código. Vacío en los mensajes del usuario. |
+| `fecha` | Simple | Fecha y hora del mensaje. |
+
+Los mensajes se ordenan por `fecha` dentro de su conversación. El agente no modifica mensajes existentes: un mensaje se elimina únicamente junto con su conversación.
+
+**Excepción a la eliminación restringida.** El [ADR-005](adr/adr-005-base-de-datos.md) exige la acción `RESTRICT` en las claves foráneas. La relación entre `Conversacion_Agente` y `Mensaje_Agente` utiliza `ON DELETE CASCADE`, porque la eliminación de una conversación por el usuario borra sus mensajes de forma física. Los mensajes no son entidades de negocio y su conservación no aporta trazabilidad operativa. La relación con `Usuario` conserva `RESTRICT`.
+
 <a id="relaciones-con-atributos"></a>
 
 ## Relaciones con atributos
@@ -524,6 +553,8 @@ Las relaciones sin atributos representan asociaciones directas entre entidades q
 | Registra_Rechazo | Usuario + Cotizacion | Un usuario puede registrar el rechazo de múltiples cotizaciones; cada cotización rechazada identifica un único usuario que lo registra. |
 | Tiene_Reimpresiones | Guia_Despacho + Reimpresion_Guia | Una guía puede reimprimirse cero o múltiples veces; cada reimpresión corresponde a una única guía. |
 | Registra_Reimpresion | Usuario + Reimpresion_Guia | Un usuario puede registrar múltiples reimpresiones; cada reimpresión identifica un único usuario. |
+| Tiene_Conversaciones | Usuario + Conversacion_Agente | Un usuario puede tener cero o múltiples conversaciones con el agente; cada conversación pertenece a un único usuario. |
+| Contiene_Mensajes | Conversacion_Agente + Mensaje_Agente | Una conversación puede contener cero o múltiples mensajes; cada mensaje pertenece a una única conversación. Su eliminación es en cascada (excepción descrita en Mensaje_Agente). |
 
 ### Consideraciones de cardinalidad
 
@@ -579,6 +610,8 @@ Para mantener la consistencia entre las entidades y los procesos del sistema, se
 - Un documento digital se elimina de forma lógica: `fecha_eliminacion` no puede anteceder a `fecha_subida` (V13).
 - Un código de error de procesamiento solo se registra mientras el documento se encuentra pendiente (V13).
 - Un elemento extraído no repite un producto entre sus coincidencias ni una posición dentro de ellas (V13).
+- Las conversaciones y los mensajes del agente de IA son de solo lectura sobre el negocio: no referencian inventario, ventas ni movimientos de Kardex, y el agente no genera operaciones de escritura (V14).
+- La eliminación de una conversación por su propietario es física y borra sus mensajes en cascada. La de un usuario queda restringida mientras conserve conversaciones (V14).
 - Los movimientos de inventario y las reservas deben ejecutarse mediante operaciones transaccionales consistentes.
 
 Para la implementación en PostgreSQL se propone utilizar tipos numéricos exactos, como `NUMERIC(14,3)` para cantidades y `NUMERIC(14,2)` para importes. Los registros temporales que requieran trazabilidad podrán utilizar `TIMESTAMPTZ`.

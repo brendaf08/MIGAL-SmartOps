@@ -7,6 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Catálogo de herramientas del agente (RF-IA-09). Solo ofrece y ejecuta las herramientas autorizadas para el rol del
@@ -39,6 +40,7 @@ public class CatalogoHerramientas {
 	 * rol no puede usar responde PERMISO_INSUFICIENTE sin ejecutarse. Un error de negocio del servicio se informa con su
 	 * código y no interrumpe la respuesta del agente.
 	 */
+	@Transactional(readOnly = true)
 	public InvocacionHerramienta ejecutar(RolUsuario rol, String nombre, Map<String, String> parametros) {
 		DefinicionHerramienta definicion = porNombre.get(nombre);
 		if (definicion == null) {

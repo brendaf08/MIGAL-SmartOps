@@ -211,12 +211,16 @@ entity Documento_Digital {
   * id_documento <<PK>>
   --
   * ruta_archivo
+  * nombre_archivo
+  * tamano_bytes
   * fecha_subida
   * estado_procesamiento
+  (C) codigo_error
   * tipo_documento
   * id_usuario <<FK>>
   id_cotizacion <<FK>>
   id_recepcion <<FK>>
+  fecha_eliminacion
 }
 
 entity Detalle_Extraido {
@@ -227,6 +231,11 @@ entity Detalle_Extraido {
   cantidad_leida
   id_producto <<FK>>
   texto_corregido
+  sku_sugerido
+  confianza
+  cantidad_corregida
+  * requiere_revision
+  * descartado
 }
 
 ' ---------------------------------------------------------------
@@ -304,6 +313,15 @@ entity Catalogo_Proveedor {
   fecha_actualizacion_precio
 }
 
+entity Coincidencia_Detalle {
+  * id_coincidencia <<PK>>
+  --
+  * id_detalle_extraido <<FK>>
+  * id_producto <<FK>>
+  * similitud
+  * posicion
+}
+
 ' ---------------------------------------------------------------
 ' Relaciones sin atributos (nombre según el diccionario)
 ' ---------------------------------------------------------------
@@ -368,6 +386,9 @@ Almacen ||--o{ Detalle_Recepcion
 
 Proveedor ||--o{ Catalogo_Proveedor
 Producto ||--o{ Catalogo_Proveedor
+
+Detalle_Extraido ||--o{ Coincidencia_Detalle
+Producto ||--o{ Coincidencia_Detalle
 
 ' ---------------------------------------------------------------
 ' Restricción de exclusividad de Documento_Digital

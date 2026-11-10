@@ -1,17 +1,281 @@
+# Contrato OpenAPI del módulo de abastecimiento, conforme al ADR-006, ADR-008 y ADR-009.
+# Cubre el directorio de proveedores con su catálogo de productos suministrados (CU-11).
+# Los esquemas llevan el prefijo Proveedor para evitar colisiones al unirse con join.
 openapi: 3.1.0
 info:
   title: MIGAL SmartOps - Abastecimiento
   version: 1.0.0
-  description: Documento base del módulo de abastecimiento (CU-11, CU-12, CU-13). Sus operaciones se definen en el pull request del módulo.
+  description: >-
+    Contrato del módulo de abastecimiento de la API REST de MIGAL SmartOps. Define la gestión
+    del directorio de proveedores y de su catálogo de productos (CU-11). La autorización por
+    rol se declara en la extensión x-roles de cada operación.
 servers:
   - url: /api/v1
 security:
   - bearerAuth: []
 tags:
-  - name: Abastecimiento
-    description: Proveedores, catálogo de proveedor, órdenes de compra y recepciones.
+  - name: Proveedores
+    description: Registro, consulta, vigencia y catálogo de productos de los proveedores (CU-11).
 components:
   securitySchemes:
     bearerAuth:
       $ref: ../componentes/seguridad.yaml#/bearerAuth
-paths: {}
+
+  parameters:
+    ProveedorId:
+      name: id
+      in: path
+      required: true
+      description: Identificador técnico del proveedor.
+      schema: {$ref: ../componentes/esquemas-comunes.yaml#/Identificador}
+
+  schemas:
+    ProveedorRuc:
+      type: string
+      pattern: '^(10|20)[0-9]{9}$'
+      description: RUC de 11 dígitos que empieza en 10 o 20, conforme a comercial.yaml. Es único entre los proveedores.
+      example: '20123456789'
+
+    Proveedor:
+      type: object
+      description: >-
+        Proveedor del directorio de MIGAL. Un proveedor inactivo conserva su historial y no puede
+        utilizarse en nuevas órdenes de compra. Su catálogo de productos se consulta en el
+        sub-recurso catalogo.
+      required: [id, ruc, razonSocial, contacto, condiciones, estadoActivo, fechaRegistro]
+      properties:
+        id: {$ref: ../componentes/esquemas-comunes.yaml#/Identificador}
+        ruc: {$ref: '#/components/schemas/ProveedorRuc'}
+        razonSocial: {type: string, minLength: 1, maxLength: 200, description: Razón social del proveedor.}
+        contacto: {type: string, minLength: 1, maxLength: 200, description: Teléfono o correo electrónico de contacto.}
+        condiciones: {type: [string, 'null'], description: Condiciones comerciales generales. Nulas cuando no se registran.}
+        estadoActivo: {type: boolean, description: Indica si el proveedor puede utilizarse en nuevas órdenes de compra.}
+        fechaRegistro: {$ref: ../componentes/esquemas-comunes.yaml#/FechaHora}
+      example:
+        id: '12'
+        ruc: '20123456789'
+        razonSocial: Distribuidora Andina S.A.C.
+        contacto: ventas@andina.example
+        condiciones: Pago al contado.
+        estadoActivo: true
+        fechaRegistro: '2026-02-10T10:20:00-05:00'
+
+    ProveedorRegistro:
+      type: object
+      description: >-
+        Datos para registrar un proveedor (CU-11). Si se omite estadoActivo, el proveedor se
+        registra como activo. El catálogo de productos se mantiene mediante PUT /proveedores/{id}/catalogo.
+      additionalProperties: false
+      required: [ruc, razonSocial, contacto]
+      properties:
+        ruc: {$ref: '#/components/schemas/ProveedorRuc'}
+        razonSocial: {type: string, minLength: 1, maxLength: 200}
+        contacto: {type: string, minLength: 1, maxLength: 200}
+        condiciones: {type: [string, 'null']}
+        estadoActivo: {type: boolean, default: true, description: Indicador de vigencia inicial del proveedor.}
+
+    ProveedorActualizacion:
+      type: object
+      description: Datos para modificar un proveedor. El estado de vigencia se cambia mediante PUT /proveedores/{id}/estado.
+      additionalProperties: false
+      required: [ruc, razonSocial, contacto]
+      properties:
+        ruc: {$ref: '#/components/schemas/ProveedorRuc'}
+        razonSocial: {type: string, minLength: 1, maxLength: 200}
+        contacto: {type: string, minLength: 1, maxLength: 200}
+        condiciones: {type: [string, 'null']}
+
+    ProveedorPagina:
+      description: Página de proveedores con el sobre de paginación común.
+      allOf:
+        - $ref: ../componentes/esquemas-comunes.yaml#/Pagina
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: {$ref: '#/components/schemas/Proveedor'}
+
+    ProveedorCatalogoItem:
+      type: object
+      description: Producto que suministra el proveedor, con su precio de compra y su plazo de entrega referencial.
+      required: [sku, nombre, precioCompra, plazoEntregaReferencialDias, fechaActualizacionPrecio]
+      properties:
+        sku: {$ref: ../componentes/esquemas-comunes.yaml#/Sku}
+        nombre: {type: string, readOnly: true, description: Denominación del producto en el catálogo maestro.}
+        precioCompra: {$ref: ../componentes/esquemas-comunes.yaml#/Importe, minimum: 0, description: Precio de compra acordado con el proveedor.}
+        plazoEntregaReferencialDias: {type: [integer, 'null'], minimum: 0, description: Plazo de entrega referencial en días. Nulo cuando no se registra.}
+        fechaActualizacionPrecio: {type: [string, 'null'], format: date-time, readOnly: true, description: Marca de la última modificación del precio. Nula cuando no se registra.}
+
+    ProveedorCatalogoEntrada:
+      type: object
+      description: Producto del catálogo del proveedor en una actualización.
+      additionalProperties: false
+      required: [sku, precioCompra]
+      properties:
+        sku: {$ref: ../componentes/esquemas-comunes.yaml#/Sku}
+        precioCompra: {$ref: ../componentes/esquemas-comunes.yaml#/Importe, minimum: 0}
+        plazoEntregaReferencialDias: {type: [integer, 'null'], minimum: 0}
+
+    ProveedorCatalogoActualizacion:
+      type: object
+      description: >-
+        Conjunto completo de productos del proveedor. Reemplaza el catálogo vigente: los productos
+        omitidos dejan de asociarse al proveedor. Un conjunto vacío elimina todas las asociaciones.
+      additionalProperties: false
+      required: [productos]
+      properties:
+        productos:
+          type: array
+          items: {$ref: '#/components/schemas/ProveedorCatalogoEntrada'}
+
+paths:
+  /proveedores:
+    get:
+      operationId: listarProveedores
+      summary: Listar proveedores
+      description: >-
+        Devuelve la página de proveedores. El parámetro q busca por razón social o RUC; estadoActivo
+        filtra por vigencia y sku devuelve los proveedores que suministran el producto indicado.
+        Campos ordenables: razonSocial, ruc y fechaRegistro. El orden predeterminado es
+        razonSocial:asc. Los proveedores inactivos se incluyen salvo que se filtre por estadoActivo=true.
+      tags: [Proveedores]
+      security: [{bearerAuth: []}]
+      x-roles: [reponedor, administrador]
+      parameters:
+        - {$ref: ../componentes/parametros.yaml#/page}
+        - {$ref: ../componentes/parametros.yaml#/pageSize}
+        - {$ref: ../componentes/parametros.yaml#/orden}
+        - {$ref: ../componentes/parametros.yaml#/q}
+        - {$ref: ../componentes/parametros.yaml#/estadoActivo}
+        - {$ref: ../componentes/parametros.yaml#/sku}
+      responses:
+        '200': {description: Página de proveedores., content: {application/json: {schema: {$ref: '#/components/schemas/ProveedorPagina'}}}}
+        '401': {$ref: ../componentes/errores.yaml#/Error401}
+        '403': {$ref: ../componentes/errores.yaml#/Error403}
+        '422': {$ref: ../componentes/errores.yaml#/Error422}
+        '500': {$ref: ../componentes/errores.yaml#/Error500}
+    post:
+      operationId: registrarProveedor
+      summary: Registrar proveedor
+      description: >-
+        Registra un proveedor en el directorio (CU-11). El RUC debe ser único; si ya pertenece a otro
+        proveedor, responde RUC_DUPLICADO con su identificador en proveedorId y no crea el registro.
+        Las reglas de los campos generan VALIDACION_FALLIDA.
+      tags: [Proveedores]
+      security: [{bearerAuth: []}]
+      x-roles: [reponedor, administrador]
+      requestBody:
+        required: true
+        content: {application/json: {schema: {$ref: '#/components/schemas/ProveedorRegistro'}}}
+      responses:
+        '201': {description: Proveedor registrado., content: {application/json: {schema: {$ref: '#/components/schemas/Proveedor'}}}}
+        '400': {$ref: ../componentes/errores.yaml#/Error400}
+        '401': {$ref: ../componentes/errores.yaml#/Error401}
+        '403': {$ref: ../componentes/errores.yaml#/Error403}
+        '409': {$ref: ../componentes/errores.yaml#/Error409}
+        '422': {$ref: ../componentes/errores.yaml#/Error422}
+        '500': {$ref: ../componentes/errores.yaml#/Error500}
+
+  /proveedores/{id}:
+    parameters:
+      - {$ref: '#/components/parameters/ProveedorId'}
+    get:
+      operationId: consultarProveedor
+      summary: Consultar proveedor
+      description: Devuelve un proveedor, activo o inactivo, con su información histórica. Responde RECURSO_NO_ENCONTRADO si el identificador no existe.
+      tags: [Proveedores]
+      security: [{bearerAuth: []}]
+      x-roles: [reponedor, administrador]
+      responses:
+        '200': {description: Proveedor encontrado., content: {application/json: {schema: {$ref: '#/components/schemas/Proveedor'}}}}
+        '401': {$ref: ../componentes/errores.yaml#/Error401}
+        '403': {$ref: ../componentes/errores.yaml#/Error403}
+        '404': {$ref: ../componentes/errores.yaml#/Error404}
+        '500': {$ref: ../componentes/errores.yaml#/Error500}
+    put:
+      operationId: actualizarProveedor
+      summary: Actualizar proveedor
+      description: >-
+        Modifica los datos de un proveedor (CU-11, flujo alternativo 1). Si el RUC pertenece a otro
+        proveedor, responde RUC_DUPLICADO y no modifica el registro. El estado de vigencia se cambia
+        mediante PUT /proveedores/{id}/estado.
+      tags: [Proveedores]
+      security: [{bearerAuth: []}]
+      x-roles: [reponedor, administrador]
+      requestBody:
+        required: true
+        content: {application/json: {schema: {$ref: '#/components/schemas/ProveedorActualizacion'}}}
+      responses:
+        '200': {description: Proveedor actualizado., content: {application/json: {schema: {$ref: '#/components/schemas/Proveedor'}}}}
+        '400': {$ref: ../componentes/errores.yaml#/Error400}
+        '401': {$ref: ../componentes/errores.yaml#/Error401}
+        '403': {$ref: ../componentes/errores.yaml#/Error403}
+        '404': {$ref: ../componentes/errores.yaml#/Error404}
+        '409': {$ref: ../componentes/errores.yaml#/Error409}
+        '422': {$ref: ../componentes/errores.yaml#/Error422}
+        '500': {$ref: ../componentes/errores.yaml#/Error500}
+
+  /proveedores/{id}/estado:
+    parameters:
+      - {$ref: '#/components/parameters/ProveedorId'}
+    put:
+      operationId: actualizarEstadoProveedor
+      summary: Activar o desactivar proveedor
+      description: >-
+        Establece la vigencia del proveedor. La desactivación es lógica: el proveedor se conserva con
+        su historial y no puede utilizarse en nuevas órdenes de compra. Responde RECURSO_NO_ENCONTRADO
+        si el identificador no existe.
+      tags: [Proveedores]
+      security: [{bearerAuth: []}]
+      x-roles: [reponedor, administrador]
+      requestBody:
+        required: true
+        content: {application/json: {schema: {$ref: ../componentes/esquemas-comunes.yaml#/ActualizacionEstado}}}
+      responses:
+        '200': {description: Estado actualizado. Devuelve el proveedor con su nuevo estado., content: {application/json: {schema: {$ref: '#/components/schemas/Proveedor'}}}}
+        '400': {$ref: ../componentes/errores.yaml#/Error400}
+        '401': {$ref: ../componentes/errores.yaml#/Error401}
+        '403': {$ref: ../componentes/errores.yaml#/Error403}
+        '404': {$ref: ../componentes/errores.yaml#/Error404}
+        '500': {$ref: ../componentes/errores.yaml#/Error500}
+
+  /proveedores/{id}/catalogo:
+    parameters:
+      - {$ref: '#/components/parameters/ProveedorId'}
+    get:
+      operationId: consultarCatalogoProveedor
+      summary: Consultar catálogo del proveedor
+      description: >-
+        Devuelve la lista completa de productos que suministra el proveedor. No se pagina en la
+        versión 1 y se devuelve como arreglo. Responde RECURSO_NO_ENCONTRADO si el proveedor no existe.
+      tags: [Proveedores]
+      security: [{bearerAuth: []}]
+      x-roles: [reponedor, administrador]
+      responses:
+        '200': {description: Productos suministrados por el proveedor., content: {application/json: {schema: {type: array, items: {$ref: '#/components/schemas/ProveedorCatalogoItem'}}}}}
+        '401': {$ref: ../componentes/errores.yaml#/Error401}
+        '403': {$ref: ../componentes/errores.yaml#/Error403}
+        '404': {$ref: ../componentes/errores.yaml#/Error404}
+        '500': {$ref: ../componentes/errores.yaml#/Error500}
+    put:
+      operationId: actualizarCatalogoProveedor
+      summary: Actualizar catálogo del proveedor
+      description: >-
+        Reemplaza el catálogo completo del proveedor (CU-11, paso 4). Cada SKU debe existir en el
+        catálogo maestro y no puede repetirse; de lo contrario, responde VALIDACION_FALLIDA con la
+        lista errores y no modifica el catálogo. Devuelve el catálogo resultante.
+      tags: [Proveedores]
+      security: [{bearerAuth: []}]
+      x-roles: [reponedor, administrador]
+      requestBody:
+        required: true
+        content: {application/json: {schema: {$ref: '#/components/schemas/ProveedorCatalogoActualizacion'}}}
+      responses:
+        '200': {description: Catálogo actualizado., content: {application/json: {schema: {type: array, items: {$ref: '#/components/schemas/ProveedorCatalogoItem'}}}}}
+        '400': {$ref: ../componentes/errores.yaml#/Error400}
+        '401': {$ref: ../componentes/errores.yaml#/Error401}
+        '403': {$ref: ../componentes/errores.yaml#/Error403}
+        '404': {$ref: ../componentes/errores.yaml#/Error404}
+        '422': {$ref: ../componentes/errores.yaml#/Error422}
+        '500': {$ref: ../componentes/errores.yaml#/Error500}

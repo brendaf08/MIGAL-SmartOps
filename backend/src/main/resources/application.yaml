@@ -45,3 +45,7 @@ migal:
     # Carpeta de los archivos cargados, relativa a la carpeta de ejecución. El límite de 10 MB corresponde al contrato.
     directorio: ${MIGAL_DOCUMENTOS_DIRECTORIO:almacen-documentos}
     tamano-maximo-bytes: 10485760
+  agente:
+    # Proveedor del modelo de lenguaje del agente: simulado (por defecto, para desarrollo y pruebas) o no-configurado,
+    # que responde SERVICIO_NO_DISPONIBLE. No hay proveedor real definido ni credenciales en el repositorio.
+    proveedor: ${MIGAL_AGENTE_PROVEEDOR:simulado}

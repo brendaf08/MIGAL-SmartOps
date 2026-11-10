@@ -41,6 +41,7 @@ La configuración se lee desde variables de entorno, con los valores predetermin
 | `SPRING_DATASOURCE_USERNAME` | Usuario de la aplicación. | `migal_app` |
 | `SPRING_DATASOURCE_PASSWORD` | Contraseña del usuario. | Sin valor |
 | `FLYWAY_LOCATIONS` | Ubicación de las migraciones. | `filesystem:../database/migraciones` |
+| `MIGAL_JWT_SECRETO` | Clave de firma HS256 del JWT de acceso, de al menos 32 caracteres. Obligatoria: la aplicación no inicia sin ella. | Sin valor |
 
 Hibernate opera en modo `validate`: el esquema se gobierna únicamente mediante las migraciones de `database/migraciones/`.
 

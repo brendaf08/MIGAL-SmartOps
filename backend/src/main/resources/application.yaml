@@ -17,3 +17,10 @@ management:
     web:
       exposure:
         include: health,info
+
+migal:
+  seguridad:
+    jwt:
+      # Clave de firma HS256 de al menos 32 caracteres. Se define solo mediante la variable de entorno.
+      secreto: ${MIGAL_JWT_SECRETO:}
+      duracion: PT8H

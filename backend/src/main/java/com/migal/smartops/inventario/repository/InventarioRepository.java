@@ -35,6 +35,11 @@ public interface InventarioRepository extends JpaRepository<Inventario, Long> {
 	@Query("select i from Inventario i where i.id in :ids order by i.id")
 	List<Inventario> bloquearPorIds(@Param("ids") Collection<Long> ids);
 
+	/** Bloquea todas las existencias de un producto, en orden ascendente de identificador. */
+	@Lock(LockModeType.PESSIMISTIC_WRITE)
+	@Query("select i from Inventario i where i.producto.id = :idProducto order by i.id")
+	List<Inventario> bloquearPorProducto(@Param("idProducto") Long idProducto);
+
 	/** Bloquea las filas de un producto en las ubicaciones indicadas, en orden ascendente de identificador. */
 	@Lock(LockModeType.PESSIMISTIC_WRITE)
 	@Query("select i from Inventario i where i.producto.id = :idProducto and i.almacen.id in :idsAlmacen order by i.id")

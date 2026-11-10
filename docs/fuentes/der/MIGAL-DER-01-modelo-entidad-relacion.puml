@@ -223,6 +223,27 @@ entity Documento_Digital {
   fecha_eliminacion
 }
 
+entity Conversacion_Agente {
+  * id_conversacion <<PK>>
+  --
+  * id_usuario <<FK>>
+  * titulo
+  * fecha_creacion
+  * fecha_ultimo_mensaje
+}
+
+entity Mensaje_Agente {
+  * id_mensaje <<PK>>
+  --
+  * id_conversacion <<FK>>
+  * rol
+  * texto
+  * incierta
+  * herramientas
+  * referencias
+  * fecha
+}
+
 entity Detalle_Extraido {
   * id_detalle_extraido <<PK>>
   --
@@ -340,6 +361,8 @@ Usuario |o--o{ Venta : id_usuario_autorizante
 Usuario |o--o{ Guia_Despacho : id_usuario_responsable
 Usuario |o--o{ Cotizacion : Registra_Rechazo
 Usuario ||--o{ Reimpresion_Guia : Registra_Reimpresion
+Usuario ||--o{ Conversacion_Agente : Tiene_Conversaciones
+Conversacion_Agente ||--o{ Mensaje_Agente : Contiene_Mensajes
 Guia_Despacho ||--o{ Reimpresion_Guia : Tiene_Reimpresiones
 
 Cliente ||--o{ Cotizacion : Solicita_Cotizacion
@@ -400,6 +423,12 @@ note right of Documento_Digital
   simultáneamente referencias válidas en un mismo registro.
   Ambos pueden permanecer vacíos mientras el archivo
   se encuentra pendiente de asociación.
+end note
+
+note right of Mensaje_Agente
+  Eliminacion en cascada desde Conversacion_Agente:
+  excepcion al RESTRICT del ADR-005. Los mensajes
+  no son entidades de negocio.
 end note
 
 legend bottom

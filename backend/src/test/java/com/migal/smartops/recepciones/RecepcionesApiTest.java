@@ -260,8 +260,10 @@ class RecepcionesApiTest {
 
 	private ResultActions alta(String ruta, String token, String clave, String cuerpo) throws Exception {
 		var peticion = post(ruta).header("Authorization", token);
-		if (cuerpo != null) {
-			peticion.contentType(JSON).content(cuerpo);
+		// El validador de OpenAPI exige un Content-Type cuando la operación declara cuerpo, aunque sea opcional.
+		String contenido = cuerpo == null && ruta.endsWith("/validacion") ? "{}" : cuerpo;
+		if (contenido != null) {
+			peticion.contentType(JSON).content(contenido);
 		}
 		if (clave != null) {
 			peticion.header("Idempotency-Key", clave);

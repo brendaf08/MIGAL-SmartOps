@@ -200,6 +200,7 @@ components:
         observaciones: {type: [string, 'null'], description: Información adicional de la orden. Nula cuando no se registra.}
         modalidadPago: {type: [string, 'null'], maxLength: 100, description: Condición de pago con fines informativos. Nula cuando no se registra.}
         lineas: {type: array, items: {$ref: '#/components/schemas/OrdenCompraLinea'}}
+        total: {$ref: ../componentes/esquemas-comunes.yaml#/Importe, readOnly: true, description: Suma de los subtotales de las líneas. Es un valor derivado que no se almacena.}
       example:
         id: '87'
         codigo: OC-0087
@@ -210,6 +211,7 @@ components:
         fechaEntregaEstimada: '2026-11-06'
         observaciones: null
         modalidadPago: Crédito de 30 días
+        total: 2650
         lineas:
           - {sku: CEM-049, nombre: Cemento Sol tipo I 42.5 kg, cantidadComprada: 100, costoUnitario: 26.5, subtotal: 2650, cantidadRecibida: 40, cantidadPendienteRecepcion: 60}
 
@@ -481,7 +483,8 @@ paths:
       summary: Actualizar orden de compra
       description: >-
         Modifica una orden en estado pendiente y reemplaza sus líneas completas; el proveedor no se
-        modifica. Si la orden está en estado parcial, responde TRANSICION_NO_PERMITIDA; si está
+        modifica. Solo se puede modificar mientras la orden no tenga recepciones, pendientes o
+        validadas. Si la orden tiene recepciones o está en estado parcial, responde TRANSICION_NO_PERMITIDA; si está
         completada, responde ORDEN_COMPRA_CERRADA. Las reglas de los campos y de los SKU generan
         VALIDACION_FALLIDA.
       tags: [Órdenes de compra]
@@ -507,14 +510,27 @@ paths:
       operationId: cerrarOrdenCompra
       summary: Cerrar orden de compra
       description: >-
-        Cierra la orden y la registra en estado completada. La operación no genera movimientos de
-        Kardex ni modifica el inventario. Una orden ya completada responde ORDEN_COMPRA_CERRADA y no
-        se modifica. Un reintento con la misma Idempotency-Key devuelve la respuesta original.
+        Cierra la orden y la registra en estado completada, aun cuando queden cantidades por recibir
+        (el modelo no define un estado cerrada aparte). Solo admite órdenes en estado parcial: una
+        orden pendiente, sin recepciones, responde TRANSICION_NO_PERMITIDA. El motivo es obligatorio
+        cuando quedan cantidades pendientes de recepción y se registra en las observaciones de la
+        orden; sin motivo responde MOTIVO_REQUERIDO. La operación no genera movimientos de Kardex ni
+        modifica el inventario. Una orden ya completada responde ORDEN_COMPRA_CERRADA y no se
+        modifica. Un reintento con la misma Idempotency-Key devuelve la respuesta original.
       tags: [Órdenes de compra]
       security: [{bearerAuth: []}]
       x-roles: [reponedor]
       parameters:
         - {$ref: ../componentes/parametros.yaml#/IdempotencyKey}
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                motivo: {type: string, minLength: 1, maxLength: 500, description: Motivo del cierre. Obligatorio cuando quedan cantidades pendientes de recepción.}
       responses:
         '200':
           description: Orden de compra cerrada. Un reintento con la misma clave devuelve la respuesta original.

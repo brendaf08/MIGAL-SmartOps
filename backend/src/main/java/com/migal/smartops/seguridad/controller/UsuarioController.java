@@ -4,6 +4,7 @@ import com.migal.smartops.comun.errores.CodigoError;
 import com.migal.smartops.comun.errores.ErrorDeNegocio;
 import com.migal.smartops.comun.web.Ordenamiento;
 import com.migal.smartops.comun.web.PaginaDto;
+import com.migal.smartops.catalogo.controller.Identificadores;
 import com.migal.smartops.seguridad.config.UsuarioAutenticado;
 import com.migal.smartops.seguridad.controller.SolicitudesUsuario.Actualizacion;
 import com.migal.smartops.seguridad.controller.SolicitudesUsuario.EstadoAcceso;
@@ -69,20 +70,20 @@ public class UsuarioController {
 	}
 
 	@GetMapping("/{id}")
-	public UsuarioDto consultar(@PathVariable long id) {
-		return UsuarioDto.de(usuarios.consultar(id));
+	public UsuarioDto consultar(@PathVariable String id) {
+		return UsuarioDto.de(usuarios.consultar(Identificadores.numero(id)));
 	}
 
 	@PutMapping("/{id}")
-	public UsuarioDto actualizar(@PathVariable long id, @Valid @RequestBody Actualizacion solicitud) {
-		return UsuarioDto.de(usuarios.actualizar(id, solicitud.nombres(), solicitud.apellidos(),
+	public UsuarioDto actualizar(@PathVariable String id, @Valid @RequestBody Actualizacion solicitud) {
+		return UsuarioDto.de(usuarios.actualizar(Identificadores.numero(id), solicitud.nombres(), solicitud.apellidos(),
 				RolUsuario.desdeValor(solicitud.rol())));
 	}
 
 	@PutMapping("/{id}/estado")
-	public UsuarioDto cambiarEstado(@PathVariable long id, @Valid @RequestBody EstadoAcceso solicitud,
+	public UsuarioDto cambiarEstado(@PathVariable String id, @Valid @RequestBody EstadoAcceso solicitud,
 			@AuthenticationPrincipal UsuarioAutenticado actor) {
-		return UsuarioDto.de(usuarios.cambiarEstado(id, solicitud.estadoActivo(), actor.id()));
+		return UsuarioDto.de(usuarios.cambiarEstado(Identificadores.numero(id), solicitud.estadoActivo(), actor.id()));
 	}
 
 	private static RolUsuario rolOpcional(String rol) {

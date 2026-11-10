@@ -247,12 +247,10 @@ class VentasApiTest {
 		registrarVentaDesdeCotizacion(token, cotizacion("validada"));
 		registrarVentaDesdeCotizacion(token, cotizacion("validada"));
 
-		// El validador de OpenAPI interpreta el parámetro estado (array con style form, explode false) como JSON y
-		// rechaza valores simples; por eso la validación de la solicitud se omite en esta llamada.
 		mvc.perform(get("/api/v1/ventas").header("Authorization", token)
 						.param("estado", "pendiente_despacho").param("page", "1").param("pageSize", "1"))
 				.andExpect(status().isOk())
-				.andExpect(cumple(contratoSoloRespuesta))
+				.andExpect(cumple(contrato))
 				.andExpect(jsonPath("$.items", hasSize(1)))
 				.andExpect(jsonPath("$.pageSize", is(1)));
 		mvc.perform(get("/api/v1/ventas").header("Authorization", token).param("orden", "campoInexistente:asc"))

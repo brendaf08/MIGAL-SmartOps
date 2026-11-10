@@ -40,12 +40,9 @@ components:
       description: >-
         Filtro por estado de la venta. Admite varios valores separados por coma. Sin valor, se incluyen
         las ventas de todos los estados.
-      style: form
-      explode: false
       schema:
-        type: array
-        items:
-          $ref: '#/components/schemas/VentaEstado'
+        type: string
+        pattern: '^(pendiente_abastecimiento|pendiente_despacho|lista_para_despacho|despachada|cancelada)(,(pendiente_abastecimiento|pendiente_despacho|lista_para_despacho|despachada|cancelada))*$'
     VentaClienteFiltro:
       name: clienteId
       in: query

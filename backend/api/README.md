@@ -12,6 +12,7 @@ Este directorio contiene el contrato OpenAPI 3.1 de la API REST de MIGAL SmartOp
 | `componentes/esquemas-comunes.yaml` | Sobre de paginación, importes, cantidades, identificadores y fechas. |
 | `modulos/*.yaml` | Un documento OpenAPI independiente por módulo funcional. |
 | `modulos/ventas.yaml` | Módulo de ventas (CU-10): listado, registro desde cotización, venta directa, cobertura y cancelación. |
+| `modulos/recepciones.yaml` | Módulo de recepciones (CU-13): registro pendiente, precarga desde OCR, validación con movimientos de entrada y recepciones parciales. |
 | `.redocly.yaml` | Configuración del lint y excepciones documentadas. |
 | `openapi.yaml` | Documento unico generado mediante `join`. No se edita a mano. |
 

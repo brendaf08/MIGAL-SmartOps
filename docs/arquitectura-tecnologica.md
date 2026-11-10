@@ -28,7 +28,7 @@ La arquitectura se divide en los siguientes componentes principales:
 
 - La gestión de cotizaciones comprenderá su emisión, aceptación por parte del cliente y validación comercial por MIGAL. Una cotización aceptada y cuya atención haya sido considerada viable podrá convertirse en una única venta registrada, conservando sus productos, cantidades, precios y condiciones comerciales.
 
-- Para aprobar ventas con stock insuficiente, el backend aplicará las reglas de viabilidad acordadas: las categorías de cemento, ladrillos, fierros y agregados podrán continuar mediante la aceptación automática de su viabilidad de abastecimiento; en las demás categorías, la aprobación dependerá de la evaluación de la propietaria responsable del abastecimiento. Esta validación no garantiza que la mercadería esté disponible inmediatamente.
+- Para aprobar ventas con stock insuficiente, el backend aplicará las reglas de viabilidad acordadas según el indicador `aprobacion_automatica` de la categoría efectiva del producto. Las categorías con dicho indicador (cemento y aglomerantes, agregados, ladrillos y bloques, y fierro y acero de construcción, que corresponden a cemento, ladrillos, fierros y agregados) podrán continuar mediante la aceptación automática de su viabilidad de abastecimiento; en las demás categorías, la aprobación dependerá de la evaluación de la propietaria responsable del abastecimiento. Esta validación no garantiza que la mercadería esté disponible inmediatamente.
 
 - Al registrar una venta aprobada, el sistema consultará las existencias libres en todas las ubicaciones y asignará las cantidades disponibles mediante reservas vinculadas a los detalles de venta y a los inventarios correspondientes. Las cantidades que no puedan reservarse permanecerán pendientes de abastecimiento, sin generar salidas físicas de Kardex.
 
@@ -46,6 +46,8 @@ La arquitectura se divide en los siguientes componentes principales:
 
 - Finalmente, el backend proporcionará las funciones de consulta autorizadas que utilizará el Agente de IA mediante *tool calling*, sin permitir que este acceda directamente a la base de datos ni ejecute modificaciones de inventario por su cuenta.
 
+- El contrato de la API REST se organiza en `backend/api/componentes/` y `backend/api/modulos/`, con un documento OpenAPI independiente por módulo, conforme al [ADR-008](adr/adr-008-ajustes-contrato-api.md). El Agente de IA se expone mediante POST /api/v1/agente/mensajes, cuyo cuerpo contiene el campo `mensaje` y, opcionalmente, `conversacionId`. Es un servicio de solo lectura que consulta la información mediante las herramientas autorizadas para el rol del usuario, listadas en GET /api/v1/agente/herramientas.
+
 ## 3. Capa de Servicios Especializados y Visión (Microservicio - Python)
 
 - Los componentes relacionados con el procesamiento de imágenes y la normalización de información no estructurada se desacoplarán del backend principal mediante un microservicio desarrollado en Python.
@@ -61,6 +63,8 @@ La arquitectura se divide en los siguientes componentes principales:
 ## 4. Capa de Persistencia de Datos (Base de Datos - PostgreSQL)
 
 - El almacenamiento de información se gestionará mediante PostgreSQL, utilizando un modelo relacional que mantenga la integridad de las entidades, sus asociaciones y los registros transaccionales.
+
+- La base de datos se aloja en el proyecto de Supabase `migal-smartops`, con PostgreSQL 17, según el [ADR-007](adr/adr-007-hosting-base-de-datos-supabase.md). Supabase se utiliza únicamente como servicio PostgreSQL: el backend es el único cliente de la base de datos y las migraciones de `database/migraciones/` son la única fuente del esquema.
 
 - La base de datos almacenará el catálogo maestro de productos, sus categorías y características comerciales; la configuración de la tienda principal y los almacenes; así como los registros de usuarios, clientes y proveedores.
 

@@ -19,6 +19,12 @@ import org.springframework.stereotype.Component;
 @Component
 public class ConversorDeAutenticacion implements Converter<Jwt, AbstractAuthenticationToken> {
 
+	/** Reclamación que distingue un token de servicio de un token de acceso de usuario. */
+	private static final String RECLAMACION_TIPO = "tipo";
+	private static final String TIPO_SERVICIO = "servicio";
+	/** Reclamación con los alcances del token de servicio, por ejemplo {@code ocr:resultados:escribir}. */
+	private static final String RECLAMACION_ALCANCES = "alcances";
+
 	private final UsuarioRepository usuarios;
 
 	public ConversorDeAutenticacion(UsuarioRepository usuarios) {
@@ -27,6 +33,9 @@ public class ConversorDeAutenticacion implements Converter<Jwt, AbstractAuthenti
 
 	@Override
 	public AbstractAuthenticationToken convert(Jwt jwt) {
+		if (esTokenDeServicio(jwt)) {
+			return convertirServicio(jwt);
+		}
 		Usuario usuario = idDelToken(jwt)
 				.flatMap(usuarios::findById)
 				.filter(Usuario::isEstadoActivo)
@@ -35,6 +44,22 @@ public class ConversorDeAutenticacion implements Converter<Jwt, AbstractAuthenti
 		UsuarioAutenticado principal = new UsuarioAutenticado(usuario.getId(), usuario.getUsername(), usuario.getRol());
 		return new UsernamePasswordAuthenticationToken(principal, jwt,
 				List.of(new SimpleGrantedAuthority("ROLE_" + usuario.getRol().name())));
+	}
+
+	/**
+	 * Un token de servicio lleva la reclamación {@code tipo} con el valor {@code servicio} y la lista {@code alcances}. No
+	 * representa a un usuario ni a un rol (ADR-008): sus alcances se convierten en autoridades {@code SCOPE_}.
+	 */
+	private static boolean esTokenDeServicio(Jwt jwt) {
+		return TIPO_SERVICIO.equals(jwt.getClaimAsString(RECLAMACION_TIPO));
+	}
+
+	private static AbstractAuthenticationToken convertirServicio(Jwt jwt) {
+		List<SimpleGrantedAuthority> autoridades = jwt.getClaimAsStringList(RECLAMACION_ALCANCES) == null
+				? List.of()
+				: jwt.getClaimAsStringList(RECLAMACION_ALCANCES).stream()
+						.map(alcance -> new SimpleGrantedAuthority("SCOPE_" + alcance)).toList();
+		return new UsernamePasswordAuthenticationToken(jwt.getSubject(), jwt, autoridades);
 	}
 
 	private static java.util.Optional<Long> idDelToken(Jwt jwt) {

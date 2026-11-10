@@ -36,6 +36,21 @@ public final class DatosOcr {
 		return new UsuarioAutenticado(id, username, rol);
 	}
 
+	/** Crea un producto de prueba con SKU propio y el estado indicado, y devuelve su identificador. */
+	public long producto(String sku, boolean activo) {
+		return jdbc.queryForObject("""
+				INSERT INTO producto (sku, nombre_oficial, unidad_medida, precio_referencial, stock_minimo, id_categoria,
+				                      estado_activo)
+				VALUES (?, 'Producto OCR de prueba', 'bolsa', 10.00, 0, (SELECT min(id_categoria) FROM categoria), ?)
+				RETURNING id_producto
+				""", Long.class, sku, activo);
+	}
+
+	/** SKU único de prueba, dentro del límite de 50 caracteres. */
+	public static String sku() {
+		return "OCR-" + UUID.randomUUID().toString().substring(0, 12);
+	}
+
 	/** Contenido de tamaño indicado que comienza con la firma de un PDF. */
 	public static byte[] pdfDeTamano(int tamano) {
 		byte[] contenido = new byte[tamano];
@@ -54,5 +69,6 @@ public final class DatosOcr {
 		jdbc.update("DELETE FROM documento_digital WHERE id_usuario IN (SELECT id_usuario FROM usuario "
 				+ "WHERE username LIKE 'ocr-%')");
 		jdbc.update("DELETE FROM usuario WHERE username LIKE 'ocr-%'");
+		jdbc.update("DELETE FROM producto WHERE sku LIKE 'OCR-%'");
 	}
 }

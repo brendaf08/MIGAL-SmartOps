@@ -24,5 +24,8 @@ export const productoSchema = z.object({
   categoria: z.string().min(1, 'Seleccionar la categoría.'),
   unidad: z.enum(UNIDADES, { error: 'Seleccionar la unidad de medida.' }),
   minimo: minimoValido,
+  precioReferencial: z.coerce
+    .number({ error: 'Ingresar el precio referencial.' })
+    .min(0, 'El precio referencial no puede ser negativo.'),
   activo: z.boolean(),
 });

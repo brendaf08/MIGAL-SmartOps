@@ -43,6 +43,7 @@ function FormularioProducto({ inicial, categorias }: FormularioProductoProps) {
       categoria: inicial?.categoria ?? '',
       unidad: inicial?.unidad ?? '',
       minimo: inicial?.minimo ?? '',
+      precioReferencial: inicial?.precioReferencial ?? 0,
       activo: inicial ? inicial.estado === 'Activo' : true,
     },
     validate: zod4Resolver(productoSchema),
@@ -57,6 +58,7 @@ function FormularioProducto({ inicial, categorias }: FormularioProductoProps) {
         categoria: valores.categoria,
         unidad: valores.unidad,
         minimo: Number(valores.minimo),
+        precioReferencial: Number(valores.precioReferencial),
         estado: valores.activo ? 'Activo' : 'Inactivo',
       };
       return inicial ? actualizarProducto(inicial.sku, datos) : registrarProducto(datos);
@@ -136,6 +138,15 @@ function FormularioProducto({ inicial, categorias }: FormularioProductoProps) {
             data={[...UNIDADES]}
             allowDeselect={false}
             {...form.getInputProps('unidad')}
+          />
+          <NumberInput
+            label="Precio referencial"
+            description="Precio comercial de referencia para cotizaciones y ventas."
+            min={0}
+            decimalScale={2}
+            allowNegative={false}
+            clampBehavior="none"
+            {...form.getInputProps('precioReferencial')}
           />
           <div>
             <NumberInput

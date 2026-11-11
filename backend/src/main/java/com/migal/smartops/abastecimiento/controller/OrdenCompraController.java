@@ -50,7 +50,8 @@ import org.springframework.web.bind.annotation.RestController;
 public class OrdenCompraController {
 
 	private static final String ROLES_REPONEDOR = "hasRole('REPONEDOR')";
-	private static final String ROLES_CONSULTA = "hasAnyRole('REPONEDOR','ALMACENERO')";
+	private static final String ROLES_CONSULTA = "hasAnyRole('REPONEDOR','ALMACENERO','ADMINISTRADOR')";
+	private static final String ROLES_LISTADO = "hasAnyRole('REPONEDOR','ADMINISTRADOR')";
 	private static final String ESTADOS = "^(pendiente|parcial|completada)(,(pendiente|parcial|completada))*$";
 	private static final Map<String, String> CAMPOS_ORDENABLES = Map.of("fechaEmision", "fechaEmision", "codigo", "codigo");
 
@@ -63,7 +64,7 @@ public class OrdenCompraController {
 	}
 
 	@GetMapping
-	@PreAuthorize(ROLES_REPONEDOR)
+	@PreAuthorize(ROLES_LISTADO)
 	public PaginaDto<OrdenCompraDto> listar(
 			@RequestParam(required = false) String q,
 			@RequestParam(required = false) String proveedorId,

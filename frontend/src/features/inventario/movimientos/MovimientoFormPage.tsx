@@ -11,7 +11,7 @@ import {
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { zod4Resolver } from 'mantine-form-zod-resolver';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
@@ -23,17 +23,17 @@ import { FormPage } from '@/components/ui/FormPage/FormPage';
 import { ProductoSelect } from '@/components/ui/ProductoSelect/ProductoSelect';
 import { ConfirmDialog } from '@/components/ui/Modal/ConfirmDialog';
 import { Icon } from '@/components/ui/Icon/Icon';
-import { opcionesProducto } from '@/features/catalogo/opciones';
+import { ApiError } from '@/api/cliente';
 import { ubicacionesDe } from '../calculos';
 import {
-  buscarProducto,
-  bloqueoPorStock,
+  bloqueoDeExistencia,
   movimientoSchema,
   TIPOS_MOVIMIENTO,
   UBICACIONES,
   type TipoMovimiento,
 } from './esquema';
-import { registrarMovimiento, type ResultadoMovimiento } from './api';
+import { listarProductosMovibles, registrarMovimiento, type ResultadoMovimiento } from './api';
+import { obtenerDisponibilidadProducto } from '../api';
 import { useSession } from '@/features/seguridad/session';
 import classes from './MovimientoFormPage.module.css';
 
@@ -72,9 +72,22 @@ export function MovimientoFormPage() {
   const [confirmando, setConfirmando] = useState(false);
   /** La constancia solo existe como resultado de confirmar el movimiento en esta pantalla. */
   const [resultado, setResultado] = useState<ResultadoMovimiento | null>(null);
+  /**
+   * Clave de idempotencia de la intención actual: los reintentos del mismo envío la reutilizan, y una nueva
+   * intención (tras un registro o tras un rechazo definitivo) genera otra.
+   */
+  const [claveIdempotencia, setClaveIdempotencia] = useState(() => crypto.randomUUID());
   const form = useForm<ValoresFormulario>({
     initialValues: VALORES_INICIALES,
     validate: zod4Resolver(movimientoSchema),
+  });
+
+  const productos = useQuery({ queryKey: ['movimiento-productos'], queryFn: listarProductosMovibles });
+  const { sku, ubicacion, origen } = form.values;
+  const productoConsulta = useQuery({
+    queryKey: ['movimiento-producto', sku],
+    queryFn: () => obtenerDisponibilidadProducto(sku),
+    enabled: sku !== '',
   });
 
   const mutation = useMutation({
@@ -88,16 +101,21 @@ export function MovimientoFormPage() {
         cantidad: Number(v.cantidad),
         motivo: v.motivo.trim(),
         usuario: user?.name ?? '',
+        claveIdempotencia,
       }),
     onSuccess: (r) => {
       setConfirmando(false);
       setResultado(r);
+      setClaveIdempotencia(crypto.randomUUID());
       void queryClient.invalidateQueries({ queryKey: ['kardex'] });
       void queryClient.invalidateQueries({ queryKey: ['disponibilidad'] });
       void queryClient.invalidateQueries({ queryKey: ['alertas'] });
+      void queryClient.invalidateQueries({ queryKey: ['movimiento-producto'] });
     },
     onError: (e) => {
       setConfirmando(false);
+      // Un rechazo definitivo (4xx) indica una intención no aceptada: el siguiente envío es una nueva intención.
+      if (e instanceof ApiError && e.estado >= 400 && e.estado < 500) setClaveIdempotencia(crypto.randomUUID());
       notifications.show({
         color: 'danger',
         title: 'No se pudo registrar el movimiento',
@@ -106,16 +124,16 @@ export function MovimientoFormPage() {
     },
   });
 
-  const { tipo, sku, ubicacion, origen } = form.values;
+  const { tipo } = form.values;
   const cantidad = Number(form.values.cantidad) || 0;
-  const producto = buscarProducto(sku);
+  const producto = productoConsulta.data ?? null;
   const etiqueta = TIPOS_MOVIMIENTO.find((t) => t.value === tipo)?.label ?? '';
   const movimientos = tipo === 'traslado' ? 2 : 1;
   /** Una salida o un traslado no puede superar la existencia física del almacén de origen. */
   const bloqueo =
     tipo === 'entrada'
       ? null
-      : bloqueoPorStock(sku, tipo === 'traslado' ? origen : ubicacion, cantidad);
+      : bloqueoDeExistencia(producto, tipo === 'traslado' ? origen : ubicacion, cantidad);
 
   if (resultado) {
     return (
@@ -204,7 +222,7 @@ export function MovimientoFormPage() {
             <ProductoSelect
               label="Producto"
               required
-              productos={opcionesProducto()}
+              productos={productos.data ?? []}
               value={sku || null}
               onChange={(s) => form.setFieldValue('sku', s ?? '')}
               error={form.errors.sku}

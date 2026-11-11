@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import type { User } from './roles';
+import { cerrarSesion } from './api';
 import { SessionContext } from './session';
 
 const KEY = 'migal-session';
@@ -22,6 +23,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   };
   const logout = () => {
     window.sessionStorage.removeItem(KEY);
+    cerrarSesion();
     setUser(null);
   };
 

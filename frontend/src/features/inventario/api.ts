@@ -1,7 +1,13 @@
 import { API_REAL, api } from '@/api/cliente';
 import { mockRequest } from '@/api/mock';
 import { todosLosElementos, type PaginaApi } from '@/api/paginas';
-import { aDisponibilidad, type ProductoExistenciasDto } from './adaptadores';
+import {
+  aDisponibilidad,
+  aMovimiento,
+  type AlmacenDto,
+  type MovimientoKardexDto,
+  type ProductoExistenciasDto,
+} from './adaptadores';
 import { resumen } from './calculos';
 import { MOVIMIENTOS, PRODUCTOS } from './fixtures';
 import type {
@@ -31,44 +37,21 @@ interface AlertaStockDto {
   nivelAlerta: 'normal' | 'minimo' | 'critico';
 }
 
-interface MovimientoKardexDto {
-  id: string;
-  fechaHora: string;
-  sku: string;
-  nombreProducto: string;
-  tipoOperacion: 'entrada' | 'salida';
-  cantidad: number;
-  origenMovimiento: 'despacho' | 'recepcion' | 'ajuste' | 'traslado';
-  ubicacionId: string;
-  usuarioId: string;
-}
+/** Ubicaciones (tienda principal y almacenes) del contrato de catálogo. */
+export const listarAlmacenes = () => api.get<AlmacenDto[]>('/almacenes');
 
-interface AlmacenDto {
-  id: string;
-  nombre: string;
-}
-
-const ORIGEN_DE_API: Record<MovimientoKardexDto['origenMovimiento'], Movimiento['origen']> = {
-  despacho: 'Despacho',
-  recepcion: 'Recepcion',
-  ajuste: 'Ajuste',
-  traslado: 'Traslado',
+/** Identificador técnico del producto con el SKU indicado, o `null` si no existe. */
+export const buscarIdProducto = async (sku: string): Promise<string | null> => {
+  const pagina = await api.get<PaginaApi<{ id: string; sku: string }>>('/productos', { sku, pageSize: 1 });
+  return pagina.items.find((p) => p.sku === sku)?.id ?? null;
 };
 
-/** Movimiento de Kardex de la API a la forma de la interfaz. La ubicación y el responsable se muestran por su nombre o identificador. */
-const aMovimiento = (dto: MovimientoKardexDto, nombresUbicacion: Map<string, string>): Movimiento => ({
-  id: dto.id,
-  fecha: dto.fechaHora.slice(0, 10),
-  sku: dto.sku,
-  producto: dto.nombreProducto,
-  tipo: dto.tipoOperacion === 'entrada' ? 'Entrada' : 'Salida',
-  cantidad: dto.cantidad,
-  origen: ORIGEN_DE_API[dto.origenMovimiento],
-  ubicacion: nombresUbicacion.get(dto.ubicacionId) ?? dto.ubicacionId,
-  usuario: dto.usuarioId,
-});
-
-const listarAlmacenesApi = () => api.get<AlmacenDto[]>('/almacenes');
+/** Identificador técnico del producto con el SKU indicado. Lanza un error si el producto no existe. */
+export const productoIdDeSku = async (sku: string): Promise<string> => {
+  const id = await buscarIdProducto(sku);
+  if (!id) throw new Error('El producto no existe en el catálogo.');
+  return id;
+};
 
 const consultarDisponibilidadReal = async ({
   q,
@@ -155,7 +138,7 @@ export const listarMovimientosFiltrados = (filtros: FiltrosKardex): Promise<Movi
       });
 
 const listarMovimientosFiltradosReal = async (filtros: FiltrosKardex): Promise<Movimiento[]> => {
-  const almacenes = await listarAlmacenesApi();
+  const almacenes = await listarAlmacenes();
   // La interfaz filtra por el nombre de la ubicación; el contrato filtra por identificador.
   const ubicacionId = filtros.ubicacion ? almacenes.find((a) => a.nombre === filtros.ubicacion)?.id : undefined;
   if (filtros.ubicacion && !ubicacionId) return [];
@@ -174,6 +157,15 @@ const listarMovimientosFiltradosReal = async (filtros: FiltrosKardex): Promise<M
   );
   return movimientos.map((m) => aMovimiento(m, nombres));
 };
+
+/** Existencias de un producto por SKU para el formulario de movimientos, o `null` si no existe. */
+export const obtenerDisponibilidadProducto = (sku: string): Promise<ProductoDisponibilidad | null> =>
+  API_REAL
+    ? buscarIdProducto(sku).then(async (id) => {
+        if (!id) return null;
+        return aDisponibilidad(await api.get<ProductoExistenciasDto>(`/productos/${encodeURIComponent(id)}/existencias`));
+      })
+    : mockRequest<ProductoDisponibilidad | null>(() => PRODUCTOS.find((p) => p.sku === sku) ?? null);
 
 /** Producto en alerta: nivel según el stock libre y cantidad que falta para llegar al mínimo (P12). */
 export interface Alerta extends ProductoDisponibilidad {

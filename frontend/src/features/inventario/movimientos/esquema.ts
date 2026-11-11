@@ -29,14 +29,21 @@ export const existenciaEn = (p: ProductoDisponibilidad, ubicacion: Ubicacion) =>
   p[CAMPO_UBICACION[ubicacion]];
 
 /** Texto del bloqueo cuando la salida o el traslado superan la existencia del origen; `null` si alcanza. */
-export function bloqueoPorStock(sku: string, ubicacion: string, cantidad: number): string | null {
-  const producto = buscarProducto(sku);
+export function bloqueoDeExistencia(
+  producto: ProductoDisponibilidad | null | undefined,
+  ubicacion: string,
+  cantidad: number,
+): string | null {
   if (!producto || !(ubicacion in CAMPO_UBICACION) || !(cantidad > 0)) return null;
   const hay = existenciaEn(producto, ubicacion as Ubicacion);
   return cantidad > hay
     ? `Stock insuficiente: hay ${formatNumber(hay)} y se solicitan ${formatNumber(cantidad)}`
     : null;
 }
+
+/** Bloqueo para un producto del catálogo de prueba, identificado por SKU. */
+export const bloqueoPorStock = (sku: string, ubicacion: string, cantidad: number) =>
+  bloqueoDeExistencia(buscarProducto(sku), ubicacion, cantidad);
 
 /** Esquema del formulario de movimiento. Los campos según el tipo se exigen en `superRefine`. */
 export const movimientoSchema = z
@@ -77,12 +84,9 @@ export const movimientoSchema = z
     } else if (!v.ubicacion) {
       ctx.addIssue({ code: 'custom', path: ['ubicacion'], message: 'Seleccionar el almacén.' });
     }
-
-    if (v.tipo !== 'entrada') {
-      const origen = v.tipo === 'traslado' ? v.origen : v.ubicacion;
-      const bloqueo = bloqueoPorStock(v.sku, origen, v.cantidad);
-      if (bloqueo) ctx.addIssue({ code: 'custom', path: ['cantidad'], message: bloqueo });
-    }
   });
+
+/* El stock insuficiente no se valida aquí: depende de las existencias del producto, que el formulario obtiene en cada
+ * caso (`bloqueoDeExistencia`) y que la API valida al registrar. */
 
 export type DatosFormulario = z.infer<typeof movimientoSchema>;

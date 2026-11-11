@@ -1,5 +1,16 @@
+import { API_REAL, api } from '@/api/cliente';
 import { mockRequest } from '@/api/mock';
+import { todosLosElementos, type PaginaApi } from '@/api/paginas';
 import type { CambioStock } from '@/components/domain/Constancia/Constancia';
+import { opcionesProducto } from '@/features/catalogo/opciones';
+import type { OpcionProducto } from '@/components/ui/ProductoSelect/ProductoSelect';
+import {
+  aCambioStock,
+  aMovimiento,
+  type CambioExistenciaDto,
+  type MovimientoKardexDto,
+} from '../adaptadores';
+import { listarAlmacenes, productoIdDeSku } from '../api';
 import { MOVIMIENTOS } from '../fixtures';
 import type { Movimiento } from '../types';
 import {
@@ -12,7 +23,7 @@ import {
   type Ubicacion,
 } from './esquema';
 
-/** Datos validados del formulario, con el responsable de la sesión. */
+/** Datos validados del formulario, con el responsable de la sesión y la clave de idempotencia de la intención. */
 export interface DatosMovimiento {
   tipo: TipoMovimiento;
   sku: string;
@@ -22,7 +33,69 @@ export interface DatosMovimiento {
   cantidad: number;
   motivo: string;
   usuario: string;
+  /** UUID que identifica la intención del usuario; se reutiliza en los reintentos de la misma acción. */
+  claveIdempotencia: string;
 }
+
+/** Respuesta de `POST /inventario/movimientos` y `POST /inventario/traslados`, en la forma del contrato. */
+interface ResultadoMovimientoDto {
+  movimientos: MovimientoKardexDto[];
+  cambios: CambioExistenciaDto[];
+}
+
+/** Opciones de producto para el selector: solo productos vigentes, que son los que admiten movimientos. */
+export const listarProductosMovibles = (): Promise<OpcionProducto[]> =>
+  API_REAL
+    ? todosLosElementos((page, pageSize) =>
+        api.get<PaginaApi<{ sku: string; nombreOficial: string }>>('/productos', {
+          estadoActivo: true,
+          page,
+          pageSize,
+        }),
+      ).then((productos) => productos.map((p) => ({ sku: p.sku, nombre: p.nombreOficial })))
+    : Promise.resolve(opcionesProducto());
+
+/** Registro real de un movimiento: ajuste de entrada o salida, o traslado entre dos ubicaciones. */
+const registrarMovimientoReal = async (datos: DatosMovimiento): Promise<ResultadoMovimiento> => {
+  const [productoId, almacenes] = await Promise.all([productoIdDeSku(datos.sku), listarAlmacenes()]);
+  const idDe = (nombre: string) => {
+    const id = almacenes.find((a) => a.nombre === nombre)?.id;
+    if (!id) throw new Error('La ubicación seleccionada no existe.');
+    return id;
+  };
+  const nombres = new Map(almacenes.map((a) => [a.id, a.nombre]));
+
+  const resultado =
+    datos.tipo === 'traslado'
+      ? await api.post<ResultadoMovimientoDto>(
+          '/inventario/traslados',
+          {
+            productoId,
+            ubicacionOrigenId: idDe(datos.origen),
+            ubicacionDestinoId: idDe(datos.destino),
+            cantidad: datos.cantidad,
+            motivo: datos.motivo,
+          },
+          datos.claveIdempotencia,
+        )
+      : await api.post<ResultadoMovimientoDto>(
+          '/inventario/movimientos',
+          {
+            tipoOperacion: datos.tipo,
+            productoId,
+            ubicacionId: idDe(datos.ubicacion),
+            cantidad: datos.cantidad,
+            motivo: datos.motivo,
+          },
+          datos.claveIdempotencia,
+        );
+
+  const nombreProducto = resultado.movimientos[0]?.nombreProducto ?? datos.sku;
+  return {
+    movimientos: resultado.movimientos.map((m) => aMovimiento(m, nombres)),
+    cambios: resultado.cambios.map((c) => aCambioStock(c, nombreProducto, nombres)),
+  };
+};
 
 /** Movimientos creados (un traslado genera dos) y la existencia antes y después por ubicación. */
 export interface ResultadoMovimiento {
@@ -43,8 +116,8 @@ const hoy = () => {
  * Un traslado genera dos movimientos vinculados: salida en el origen y entrada en el destino. Modifica en memoria
  * las existencias y el Kardex de prueba.
  */
-export const registrarMovimiento = (datos: DatosMovimiento) =>
-  mockRequest<ResultadoMovimiento>(() => {
+export const registrarMovimiento = (datos: DatosMovimiento): Promise<ResultadoMovimiento> =>
+  API_REAL ? registrarMovimientoReal(datos) : mockRequest<ResultadoMovimiento>(() => {
     const producto = buscarProducto(datos.sku);
     if (!producto) throw new Error('El producto no existe en el catálogo.');
 

@@ -82,7 +82,15 @@ describe('cotizaciones (API real)', () => {
     const api = await cargarApiReal();
     fetchMock.mockResolvedValueOnce(
       respuesta({
-        items: [cotizacionApi(), cotizacionApi({ id: '813', estado: 'aceptada', descuento: 0, condicionesComerciales: null })],
+        items: [
+          cotizacionApi(),
+          cotizacionApi({
+            id: '813',
+            estado: 'aceptada',
+            descuento: 0,
+            condicionesComerciales: null,
+          }),
+        ],
         total: 2,
         page: 1,
         pageSize: 100,
@@ -103,7 +111,9 @@ describe('cotizaciones (API real)', () => {
       formaPago: 'Contado',
       condiciones: 'Entrega en obra.',
       descuento: 25 / 1140,
-      lineas: [{ id: 1, sku: 'CEM-049', nombre: 'Cemento Sol tipo I 42.5 kg', cantidad: 40, precio: 28.5 }],
+      lineas: [
+        { id: 1, sku: 'CEM-049', nombre: 'Cemento Sol tipo I 42.5 kg', cantidad: 40, precio: 28.5 },
+      ],
     });
     expect(cotizaciones[1]?.estado).toBe('AceptadaCliente');
     expect(cotizaciones[1]?.descuento).toBe(0);
@@ -113,7 +123,9 @@ describe('cotizaciones (API real)', () => {
   it('crea una cotización resolviendo el productoId por SKU y convirtiendo el descuento a monto', async () => {
     const api = await cargarApiReal();
     fetchMock
-      .mockResolvedValueOnce(respuesta({ items: [{ id: '101', sku: 'CEM-049' }], total: 1, page: 1, pageSize: 1 }))
+      .mockResolvedValueOnce(
+        respuesta({ items: [{ id: '101', sku: 'CEM-049' }], total: 1, page: 1, pageSize: 1 }),
+      )
       .mockResolvedValueOnce(respuesta(cotizacionApi(), 201));
 
     const creada = await api.crearCotizacion({
@@ -141,7 +153,9 @@ describe('cotizaciones (API real)', () => {
   it('envía clienteId nulo cuando la cotización no tiene cliente', async () => {
     const api = await cargarApiReal();
     fetchMock
-      .mockResolvedValueOnce(respuesta({ items: [{ id: '101', sku: 'CEM-049' }], total: 1, page: 1, pageSize: 1 }))
+      .mockResolvedValueOnce(
+        respuesta({ items: [{ id: '101', sku: 'CEM-049' }], total: 1, page: 1, pageSize: 1 }),
+      )
       .mockResolvedValueOnce(respuesta(cotizacionApi(), 201));
 
     await api.crearCotizacion({
@@ -174,7 +188,9 @@ describe('cotizaciones (API real)', () => {
   it('actualiza una cotización con PUT', async () => {
     const api = await cargarApiReal();
     fetchMock
-      .mockResolvedValueOnce(respuesta({ items: [{ id: '101', sku: 'CEM-049' }], total: 1, page: 1, pageSize: 1 }))
+      .mockResolvedValueOnce(
+        respuesta({ items: [{ id: '101', sku: 'CEM-049' }], total: 1, page: 1, pageSize: 1 }),
+      )
       .mockResolvedValueOnce(respuesta(cotizacionApi()));
 
     await api.actualizarCotizacion('812', {
@@ -200,6 +216,19 @@ describe('cotizaciones (API real)', () => {
     expect(cabeceras(0)['Idempotency-Key']).toBe('clave-aceptacion-1');
     expect(llamada(0)[1]?.body).toBeUndefined();
     expect(aceptada.estado).toBe('AceptadaCliente');
+  });
+
+  it('registra la validación con cabecera Idempotency-Key y sin cuerpo', async () => {
+    const api = await cargarApiReal();
+    fetchMock.mockResolvedValueOnce(respuesta(cotizacionApi({ estado: 'validada' })));
+
+    const validada = await api.registrarValidacion('812', 'clave-validacion-1');
+
+    expect(llamada(0)[0]).toBe('/api/v1/cotizaciones/812/validacion');
+    expect(llamada(0)[1]?.method).toBe('POST');
+    expect(cabeceras(0)['Idempotency-Key']).toBe('clave-validacion-1');
+    expect(llamada(0)[1]?.body).toBeUndefined();
+    expect(validada.estado).toBe('ValidadaMigal');
   });
 
   it('registra el rechazo con origen cliente, motivo y cabecera Idempotency-Key', async () => {

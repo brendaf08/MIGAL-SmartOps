@@ -55,8 +55,8 @@ describe('Lista de ventas', () => {
 
     await userEvent.type(screen.getByRole('searchbox'), 'Rivera');
 
+    await waitFor(() => expect(within(tabla).queryByText('V-0040')).not.toBeInTheDocument());
     expect(within(tabla).getByText('V-0041')).toBeInTheDocument();
-    expect(within(tabla).queryByText('V-0040')).not.toBeInTheDocument();
   });
 
   it('abre el detalle al hacer clic en una fila', async () => {

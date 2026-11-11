@@ -1,7 +1,9 @@
+/** Cliente embebido en una cotización. El RUC y la dirección no los devuelve la API comercial y se omiten en ese caso. */
 export interface Cliente {
+  id: string;
   nombre: string;
-  ruc: string;
-  direccion: string;
+  ruc?: string;
+  direccion?: string;
 }
 
 export interface LineaCotizacion {

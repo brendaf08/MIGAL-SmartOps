@@ -1,4 +1,4 @@
-import { Button, Skeleton, Stack, Text } from '@mantine/core';
+import { Button, Skeleton, Stack, Text, Textarea } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -40,8 +40,12 @@ export function CotizacionPage() {
   });
   const [rechazando, setRechazando] = useState(false);
   const [aceptando, setAceptando] = useState(false);
+  const [motivoRechazo, setMotivoRechazo] = useState('');
+  // Cada apertura del diálogo inicia una intención nueva; sus reintentos reutilizan la misma clave.
+  const [claveAceptacion, setClaveAceptacion] = useState(() => crypto.randomUUID());
+  const [claveRechazo, setClaveRechazo] = useState(() => crypto.randomUUID());
   const aceptar = useMutation({
-    mutationFn: () => registrarAceptacion(id),
+    mutationFn: () => registrarAceptacion(id, claveAceptacion),
     onSuccess: () => {
       setAceptando(false);
       void queryClient.invalidateQueries({ queryKey: ['cotizacion', id] });
@@ -62,7 +66,7 @@ export function CotizacionPage() {
     },
   });
   const rechazar = useMutation({
-    mutationFn: () => registrarRechazo(id),
+    mutationFn: () => registrarRechazo(id, motivoRechazo, claveRechazo),
     onSuccess: () => {
       setRechazando(false);
       void queryClient.invalidateQueries({ queryKey: ['cotizacion', id] });
@@ -126,11 +130,21 @@ export function CotizacionPage() {
                   variant="default"
                   color="danger"
                   leftSection={<Icon name="x-circle" />}
-                  onClick={() => setRechazando(true)}
+                  onClick={() => {
+                    setClaveRechazo(crypto.randomUUID());
+                    setMotivoRechazo('');
+                    setRechazando(true);
+                  }}
                 >
                   Registrar rechazo
                 </Button>
-                <Button leftSection={<Icon name="check" />} onClick={() => setAceptando(true)}>
+                <Button
+                  leftSection={<Icon name="check" />}
+                  onClick={() => {
+                    setClaveAceptacion(crypto.randomUUID());
+                    setAceptando(true);
+                  }}
+                >
                   Registrar aceptación
                 </Button>
               </>
@@ -181,10 +195,12 @@ export function CotizacionPage() {
               {cliente ? (
                 <Stack gap={4}>
                   <Text fw={600}>{cliente.nombre}</Text>
-                  <Text ff="monospace">RUC {cliente.ruc}</Text>
-                  <Text size="sm" c="dimmed">
-                    {cliente.direccion}
-                  </Text>
+                  {cliente.ruc && <Text ff="monospace">RUC {cliente.ruc}</Text>}
+                  {cliente.direccion && (
+                    <Text size="sm" c="dimmed">
+                      {cliente.direccion}
+                    </Text>
+                  )}
                 </Stack>
               ) : (
                 <Text c="dimmed">Cotización sin cliente identificado.</Text>
@@ -224,7 +240,18 @@ export function CotizacionPage() {
         loading={rechazar.isPending}
         onConfirm={() => rechazar.mutate()}
         onCancel={() => setRechazando(false)}
-      />
+      >
+        <Textarea
+          mt="md"
+          label="Motivo del rechazo"
+          description="Obligatorio para registrar el rechazo en el servidor."
+          autosize
+          minRows={2}
+          maxLength={500}
+          value={motivoRechazo}
+          onChange={(e) => setMotivoRechazo(e.currentTarget.value)}
+        />
+      </ConfirmDialog>
     </>
   );
 }

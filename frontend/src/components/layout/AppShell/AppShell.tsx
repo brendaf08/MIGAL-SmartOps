@@ -151,7 +151,7 @@ export function AppShell({
         data-warehouse={warehouse ? 'true' : undefined}
       >
         {brand}
-        {menu()}
+        <div className={classes.menu}>{menu()}</div>
       </MantineAppShell.Navbar>
 
       <Drawer
@@ -166,7 +166,7 @@ export function AppShell({
         aria-label="Navegación principal"
       >
         {brand}
-        {menu(close)}
+        <div className={classes.menu}>{menu(close)}</div>
       </Drawer>
 
       <MantineAppShell.Main id="contenido" className={classes.main}>

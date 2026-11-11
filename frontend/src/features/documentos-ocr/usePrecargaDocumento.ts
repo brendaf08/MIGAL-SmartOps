@@ -20,8 +20,8 @@ export function lineasDeDocumento(lineas: readonly LineaOcr[]): LineaEditable[] 
  */
 export function usePrecargaDocumento(alCargar: (lineas: LineaEditable[]) => void) {
   const [params] = useSearchParams();
-  const id = Number(params.get('documento'));
-  const habilitado = Number.isInteger(id) && id > 0;
+  const id = params.get('documento') ?? '';
+  const habilitado = id !== '';
   const entregado = useRef(false);
   const callback = useRef(alCargar);
 

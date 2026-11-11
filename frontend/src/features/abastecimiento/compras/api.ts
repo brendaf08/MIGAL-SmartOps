@@ -1,5 +1,6 @@
 import { API_REAL, ApiError, api } from '@/api/cliente';
 import { mockRequest } from '@/api/mock';
+import { recorrerPaginas, type PaginaApi } from '@/api/paginacion';
 import { PRODUCTOS } from '@/features/inventario/fixtures';
 import type { ProductoDisponibilidad } from '@/features/inventario/types';
 import { siguienteCodigo } from '@/lib/codigos';
@@ -39,7 +40,7 @@ export interface NuevaOrdenCompra {
 }
 
 /** Orden de compra tal como la devuelve la API (contrato abastecimiento.yaml, esquema OrdenCompra). */
-interface OrdenCompraApi {
+export interface OrdenCompraApi {
   id: string;
   codigo: string;
   proveedorId: string;
@@ -53,13 +54,6 @@ interface OrdenCompraApi {
     cantidadRecibida: number;
   }[];
   total: number;
-}
-
-interface PaginaApi<T> {
-  items: T[];
-  total: number;
-  page: number;
-  pageSize: number;
 }
 
 interface ProveedorNombreApi {
@@ -103,7 +97,8 @@ const filaDe = (o: OrdenCompra): FilaOrdenCompra => ({
  * el valor visible y el que usan las rutas y los enlaces; el contrato usa el identificador técnico en las rutas
  * y expone el código en el campo codigo. Por ello el código se usa como identificador de la interfaz.
  */
-const aOrden = (orden: OrdenCompraApi): OrdenCompra => ({
+/** Adapta una orden de la API a la forma que usa la interfaz. */
+export const aOrden = (orden: OrdenCompraApi): OrdenCompra => ({
   id: orden.codigo,
   proveedorId: orden.proveedorId,
   fecha: orden.fechaEmision.slice(0, 10),
@@ -128,22 +123,8 @@ const aFila = (orden: OrdenCompraApi, nombres: Map<string, string>): FilaOrdenCo
   total: orden.total,
 });
 
-/** Recorre todas las páginas de un listado paginado de la API. */
-async function recorrerPaginas<T>(ruta: string, consulta: Record<string, string>): Promise<T[]> {
-  const elementos: T[] = [];
-  for (let page = 1; ; page += 1) {
-    const pagina = await api.get<PaginaApi<T>>(ruta, {
-      ...consulta,
-      page,
-      pageSize: TAMANO_PAGINA,
-    });
-    elementos.push(...pagina.items);
-    if (pagina.items.length === 0 || elementos.length >= pagina.total) return elementos;
-  }
-}
-
 /** Busca la orden por su código. El parámetro q de la API localiza el código; la coincidencia exacta la confirma. */
-async function buscarOrdenPorCodigo(codigo: string): Promise<OrdenCompraApi | undefined> {
+export async function buscarOrdenPorCodigo(codigo: string): Promise<OrdenCompraApi | undefined> {
   for (let page = 1; ; page += 1) {
     const pagina = await api.get<PaginaApi<OrdenCompraApi>>('/ordenes-compra', {
       q: codigo,

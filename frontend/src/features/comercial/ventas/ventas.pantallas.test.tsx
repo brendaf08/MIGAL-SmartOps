@@ -200,14 +200,14 @@ describe('Lógica de atención', () => {
 
   it('la completación reserva solo lo atendible y actualiza el stock libre', async () => {
     const antes = existenciaDe('CAB-007').libre;
-    await completarVenta('V-0040');
+    await completarVenta('V-0040', 'clave-completar-prueba');
 
     expect(existenciaDe('CAB-007').libre).toBe(antes - venta('V-0040').lineas[1]!.atendida);
     expect(existenciaDe('CAB-007').libre).toBe(0);
   });
 
   it('no permite cancelar una venta ya despachada', async () => {
-    await expect(cancelarVenta('V-0035')).rejects.toThrow();
+    await expect(cancelarVenta('V-0035', 'Motivo de prueba', 'clave-cancelar-prueba')).rejects.toThrow();
   });
 });
 

@@ -18,6 +18,8 @@ export interface Venta {
   fecha: string;
   /** Vacío si la venta se registró sin cliente. */
   clienteId?: string;
+  /** Nombre del cliente que devuelve la API; los datos simulados lo resuelven desde el maestro de clientes. */
+  clienteNombre?: string;
   /** Cotización aceptada de la que proviene, si corresponde. */
   cotizacionId?: string;
   estado: EstadoVenta;

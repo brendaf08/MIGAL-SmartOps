@@ -56,7 +56,9 @@ const ESTADO_DE_API: Record<CotizacionApi['estado'], EstadoCotizacion> = {
 const PREFIJO_FORMA_PAGO = /^Forma de pago: ([^.\n]+)\.\s*/;
 
 /** Separa la forma de pago y las observaciones del texto de `condicionesComerciales`. */
-const separarCondiciones = (texto: string | null): Pick<Cotizacion, 'formaPago' | 'condiciones'> => {
+const separarCondiciones = (
+  texto: string | null,
+): Pick<Cotizacion, 'formaPago' | 'condiciones'> => {
   if (!texto) return {};
   const coincidencia = PREFIJO_FORMA_PAGO.exec(texto);
   if (!coincidencia) return { condiciones: texto };
@@ -83,15 +85,13 @@ const cotizacionDesde = (c: CotizacionApi): Cotizacion => ({
   cliente: { id: c.cliente.id, nombre: c.cliente.nombreRazonSocial },
   ...separarCondiciones(c.condicionesComerciales),
   descuento: c.subtotal > 0 ? c.descuento / c.subtotal : 0,
-  lineas: c.lineas.map(
-    (l, i): LineaCotizacion => ({
-      id: i + 1,
-      sku: l.sku,
-      nombre: l.nombreProducto,
-      cantidad: l.cantidad,
-      precio: l.precioUnitario,
-    }),
-  ),
+  lineas: c.lineas.map((l, i): LineaCotizacion => ({
+    id: i + 1,
+    sku: l.sku,
+    nombre: l.nombreProducto,
+    cantidad: l.cantidad,
+    precio: l.precioUnitario,
+  })),
 });
 
 /**
@@ -174,6 +174,23 @@ export const registrarAceptacion = (id: string, claveIdempotencia: string): Prom
         if (!found || found.estado !== 'Emitida')
           throw new Error('Solo se puede aceptar una cotización emitida.');
         found.estado = 'AceptadaCliente';
+        return found;
+      });
+
+/**
+ * Validación de viabilidad por MIGAL de una cotización aceptada (CU-09). Con la API cambia el estado a validada,
+ * requisito para convertirla en venta. La clave de idempotencia identifica la intención y se reutiliza en reintentos.
+ */
+export const registrarValidacion = (id: string, claveIdempotencia: string): Promise<Cotizacion> =>
+  API_REAL
+    ? api
+        .post<CotizacionApi>(ruta(id, '/validacion'), undefined, claveIdempotencia)
+        .then(cotizacionDesde)
+    : mockRequest<Cotizacion>(() => {
+        const found = COTIZACIONES.find((c) => c.id === id);
+        if (!found || found.estado !== 'AceptadaCliente')
+          throw new Error('Solo se puede validar una cotización aceptada por el cliente.');
+        found.estado = 'ValidadaMigal';
         return found;
       });
 

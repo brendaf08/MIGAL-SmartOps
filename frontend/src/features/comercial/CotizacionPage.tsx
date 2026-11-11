@@ -13,7 +13,13 @@ import { Icon } from '@/components/ui/Icon/Icon';
 import { ConfirmDialog } from '@/components/ui/Modal/ConfirmDialog';
 import { Stepper } from '@/components/ui/Stepper/Stepper';
 import { formatCurrency, formatDate, formatNumber } from '@/lib/format';
-import { obtenerCotizacion, registrarAceptacion, registrarRechazo } from './api';
+import { API_REAL } from '@/api/cliente';
+import {
+  obtenerCotizacion,
+  registrarAceptacion,
+  registrarRechazo,
+  registrarValidacion,
+} from './api';
 import { PASOS, pasoActual, totales } from './calculos';
 import type { LineaCotizacion } from './types';
 
@@ -61,6 +67,29 @@ export function CotizacionPage() {
       notifications.show({
         color: 'danger',
         title: 'No se pudo registrar la aceptación',
+        message: e.message,
+      });
+    },
+  });
+  const [validando, setValidando] = useState(false);
+  const [claveValidacion, setClaveValidacion] = useState(() => crypto.randomUUID());
+  const validar = useMutation({
+    mutationFn: () => registrarValidacion(id, claveValidacion),
+    onSuccess: () => {
+      setValidando(false);
+      void queryClient.invalidateQueries({ queryKey: ['cotizacion', id] });
+      void queryClient.invalidateQueries({ queryKey: ['cotizaciones'] });
+      notifications.show({
+        color: 'success',
+        title: 'Validación registrada',
+        message: `La cotización ${id} quedó validada por MIGAL.`,
+      });
+    },
+    onError: (e) => {
+      setValidando(false);
+      notifications.show({
+        color: 'danger',
+        title: 'No se pudo validar la cotización',
         message: e.message,
       });
     },
@@ -150,6 +179,19 @@ export function CotizacionPage() {
               </>
             )}
             {cotizacion.estado === 'AceptadaCliente' && (
+              <Button
+                variant={API_REAL ? 'filled' : 'default'}
+                leftSection={<Icon name="check" />}
+                onClick={() => {
+                  setClaveValidacion(crypto.randomUUID());
+                  setValidando(true);
+                }}
+              >
+                Validar viabilidad
+              </Button>
+            )}
+            {(cotizacion.estado === 'ValidadaMigal' ||
+              (cotizacion.estado === 'AceptadaCliente' && !API_REAL)) && (
               <Button component={Link} to={`/ventas/nueva?cotizacion=${id}`}>
                 Convertir en venta
               </Button>
@@ -229,6 +271,19 @@ export function CotizacionPage() {
         loading={aceptar.isPending}
         onConfirm={() => aceptar.mutate()}
         onCancel={() => setAceptando(false)}
+      />
+      <ConfirmDialog
+        open={validando}
+        title={`Validar la cotización ${cotizacion.id}`}
+        description="MIGAL confirma la viabilidad comercial de la cotización aceptada."
+        consequences={[
+          'La cotización queda en estado Validada por MIGAL.',
+          'Podrá convertirse en venta mientras no venza.',
+        ]}
+        confirmLabel="Validar"
+        loading={validar.isPending}
+        onConfirm={() => validar.mutate()}
+        onCancel={() => setValidando(false)}
       />
       <ConfirmDialog
         open={rechazando}

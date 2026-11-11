@@ -38,6 +38,8 @@ export function DespachoPage() {
   const { id = '' } = useParams();
   const queryClient = useQueryClient();
   const [confirming, setConfirming] = useState(false);
+  // Cada apertura de la confirmación inicia una intención nueva; sus reintentos reutilizan la misma clave.
+  const [claveSalida, setClaveSalida] = useState(() => crypto.randomUUID());
   /** La constancia solo existe como resultado de confirmar la salida en esta pantalla. */
   const [cambios, setCambios] = useState<CambioStock[] | null>(null);
   const navigate = useNavigate();
@@ -47,7 +49,7 @@ export function DespachoPage() {
   });
 
   const confirmar = useMutation({
-    mutationFn: () => confirmarSalida(id),
+    mutationFn: () => confirmarSalida(id, claveSalida),
     onSuccess: (r) => {
       setConfirming(false);
       setCambios(r.cambios);
@@ -162,7 +164,10 @@ export function DespachoPage() {
           <Button
             leftSection={<Icon name="despacho" />}
             disabled={!completa}
-            onClick={() => setConfirming(true)}
+            onClick={() => {
+              setClaveSalida(crypto.randomUUID());
+              setConfirming(true);
+            }}
           >
             Confirmar salida
           </Button>

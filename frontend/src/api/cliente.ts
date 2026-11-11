@@ -98,4 +98,45 @@ export const api = {
     peticion<T>('POST', ruta, { cuerpo, claveIdempotencia }),
   put: <T>(ruta: string, cuerpo?: unknown) => peticion<T>('PUT', ruta, { cuerpo }),
   delete: <T>(ruta: string) => peticion<T>('DELETE', ruta),
+  /**
+   * Envía un formulario multipart/form-data con POST. No fija Content-Type: el navegador añade el límite del
+   * cuerpo. Reutiliza el token de la sesión y convierte los errores en ApiError igual que `peticion`.
+   */
+  subir: async <T>(ruta: string, formulario: FormData): Promise<T> => {
+    const cabeceras: Record<string, string> = { Accept: 'application/json' };
+    const token = leerToken();
+    if (token) cabeceras.Authorization = `Bearer ${token}`;
+
+    let respuesta: Response;
+    try {
+      respuesta = await fetch(construirUrl(ruta), {
+        method: 'POST',
+        headers: cabeceras,
+        body: formulario,
+      });
+    } catch {
+      throw new ApiError(
+        0,
+        'SERVICIO_NO_DISPONIBLE',
+        'No fue posible comunicarse con el servidor.',
+      );
+    }
+
+    if (respuesta.ok) {
+      return (respuesta.status === 204 ? undefined : await respuesta.json()) as T;
+    }
+    const problema = (await respuesta.json().catch(() => ({}))) as {
+      code?: string;
+      detail?: string;
+      errores?: ApiError['errores'];
+    } & Record<string, unknown>;
+    const { code, detail, errores, ...extensiones } = problema;
+    throw new ApiError(
+      respuesta.status,
+      code ?? 'ERROR_INTERNO',
+      detail ?? 'Ocurrió un error inesperado.',
+      errores ?? [],
+      extensiones,
+    );
+  },
 };

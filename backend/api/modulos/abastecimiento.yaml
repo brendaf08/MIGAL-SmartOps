@@ -421,7 +421,7 @@ paths:
         y codigo. El orden predeterminado es fechaEmision:desc.
       tags: [Órdenes de compra]
       security: [{bearerAuth: []}]
-      x-roles: [reponedor]
+      x-roles: [reponedor, administrador]
       parameters:
         - {$ref: ../componentes/parametros.yaml#/page}
         - {$ref: ../componentes/parametros.yaml#/pageSize}
@@ -471,7 +471,7 @@ paths:
         Responde RECURSO_NO_ENCONTRADO si el identificador no existe.
       tags: [Órdenes de compra]
       security: [{bearerAuth: []}]
-      x-roles: [reponedor, almacenero]
+      x-roles: [reponedor, almacenero, administrador]
       responses:
         '200': {description: Orden de compra encontrada., content: {application/json: {schema: {$ref: '#/components/schemas/OrdenCompra'}}}}
         '401': {$ref: ../componentes/errores.yaml#/Error401}

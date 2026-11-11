@@ -192,6 +192,12 @@ class AbastecimientoApiTest {
 				.andExpect(status().isOk())
 				.andExpect(cumple(contrato))
 				.andExpect(jsonPath("$.lineas[0].cantidadPendienteRecepcion", is(100.0)));
+
+		mvc.perform(get("/api/v1/ordenes-compra/" + idOrden).header("Authorization", bearer("abs-admin")))
+				.andExpect(status().isOk());
+		mvc.perform(get("/api/v1/ordenes-compra").header("Authorization", bearer("abs-admin")))
+				.andExpect(status().isOk())
+				.andExpect(cumple(contrato));
 	}
 
 	@Test

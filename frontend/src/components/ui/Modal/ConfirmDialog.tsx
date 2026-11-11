@@ -1,4 +1,5 @@
 import { Button, List, Text } from '@mantine/core';
+import type { ReactNode } from 'react';
 import { Modal } from './Modal';
 
 export interface ConfirmDialogProps {
@@ -15,6 +16,8 @@ export interface ConfirmDialogProps {
   loading?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
+  /** Contenido adicional, por ejemplo un campo de captura, que se muestra tras las consecuencias. */
+  children?: ReactNode;
 }
 
 /** Confirmación de acciones irreversibles. El foco inicial recae en cancelar, la acción segura. */
@@ -29,6 +32,7 @@ export function ConfirmDialog({
   loading,
   onConfirm,
   onCancel,
+  children,
 }: ConfirmDialogProps) {
   return (
     <Modal
@@ -60,6 +64,7 @@ export function ConfirmDialog({
           ))}
         </List>
       )}
+      {children}
     </Modal>
   );
 }

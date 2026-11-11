@@ -2,6 +2,7 @@ import { hoyIso, sumarDias } from './calculos';
 import type { Cliente, Cotizacion } from './types';
 
 const andes: Cliente = {
+  id: 'CLI-001',
   nombre: 'Constructora Los Andes S.A.C.',
   ruc: '20456789012',
   direccion: 'Av. Los Constructores 120, Arequipa',
@@ -54,6 +55,7 @@ export const COTIZACIONES: Cotizacion[] = [
     emision: sumarDias(hoy, -5),
     vencimiento: sumarDias(hoy, 9),
     cliente: {
+      id: 'CLI-002',
       nombre: 'Ferrocentro Quispe E.I.R.L.',
       ruc: '20567890123',
       direccion: 'Jr. Comercio 45, Cusco',

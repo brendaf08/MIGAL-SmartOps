@@ -23,7 +23,7 @@ import {
   type DatosCotizacion,
 } from '../api';
 import { diasEntre, hoyIso, sumarDias, totales } from '../calculos';
-import { CLIENTES } from '../clientes/fixtures';
+import { listarClientes } from '../clientes/api';
 import type { Cotizacion } from '../types';
 import {
   esquemaCotizacion,
@@ -49,9 +49,7 @@ function valoresIniciales(cotizacion?: Cotizacion): ValoresCotizacion {
   }
   const { cliente } = cotizacion;
   return {
-    clienteId: cliente
-      ? (CLIENTES.find((c) => c.documento === cliente.ruc)?.id ?? '')
-      : SIN_CLIENTE,
+    clienteId: cliente ? cliente.id : SIN_CLIENTE,
     lineas: cotizacion.lineas.map((l) => ({
       id: l.id,
       sku: l.sku,
@@ -65,15 +63,11 @@ function valoresIniciales(cotizacion?: Cotizacion): ValoresCotizacion {
   };
 }
 
-/** Convierte los valores del formulario al contrato de la API: el descuento pasa de soles a fracción. */
+/** Convierte los valores del formulario a los datos de la cotización: el descuento pasa de soles a fracción. */
 function datosDesde(valores: ValoresCotizacion): DatosCotizacion {
   const subtotal = subtotalLineas(valores.lineas);
-  const cliente = CLIENTES.find((c) => c.id === valores.clienteId);
   return {
-    cliente:
-      valores.clienteId === SIN_CLIENTE || !cliente
-        ? undefined
-        : { nombre: cliente.nombre, ruc: cliente.documento, direccion: '' },
+    clienteId: valores.clienteId === SIN_CLIENTE ? undefined : valores.clienteId,
     lineas: valores.lineas.map(({ sku, cantidad, precio }) => ({ sku, cantidad, precio })),
     descuento: subtotal > 0 ? Math.round((valores.descuento / subtotal) * 1e6) / 1e6 : 0,
     validezDias: valores.validezDias,
@@ -95,6 +89,7 @@ function CotizacionForm({ cotizacion }: CotizacionFormProps) {
   const soloLectura = cotizacion !== undefined && cotizacion.estado !== 'Emitida';
   const hoy = hoyIso();
   const [pendiente, setPendiente] = useState<ValoresCotizacion | null>(null);
+  const clientes = useQuery({ queryKey: ['clientes'], queryFn: listarClientes }).data ?? [];
 
   const form = useForm<ValoresCotizacion>({
     initialValues: valoresIniciales(cotizacion),
@@ -144,7 +139,7 @@ function CotizacionForm({ cotizacion }: CotizacionFormProps) {
   // Los clientes inactivos se listan deshabilitados para indicar por qué no se pueden elegir.
   const opcionesCliente = [
     { value: SIN_CLIENTE, label: 'Continuar sin cliente' },
-    ...CLIENTES.map((c) => ({
+    ...clientes.map((c) => ({
       value: c.id,
       label: `${c.nombre}, ${c.documento}${c.estado === 'Inactivo' ? ' (inactivo)' : ''}`,
       disabled: c.estado === 'Inactivo',

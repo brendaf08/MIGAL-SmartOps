@@ -58,7 +58,7 @@ export const registrarMovimiento = (datos: DatosMovimiento) =>
     }
 
     const fecha = hoy();
-    const id = Math.max(0, ...MOVIMIENTOS.map((m) => m.id));
+    const id = Math.max(0, ...MOVIMIENTOS.map((m) => Number(m.id)));
     const nuevos: Movimiento[] = [];
     const cambios: CambioStock[] = [];
 
@@ -75,7 +75,7 @@ export const registrarMovimiento = (datos: DatosMovimiento) =>
         unidad: producto.unidad,
       });
       nuevos.push({
-        id: id + nuevos.length + 1,
+        id: String(id + nuevos.length + 1),
         fecha,
         sku: producto.sku,
         producto: producto.nombre,

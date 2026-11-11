@@ -1,4 +1,4 @@
-import { Anchor, Button, Skeleton, Text } from '@mantine/core';
+import { Anchor, Button, Skeleton, Text, Textarea } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -67,6 +67,14 @@ export function VentaDetallePage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [dialogo, setDialogo] = useState<'completar' | 'cancelar' | null>(null);
+  const [motivo, setMotivo] = useState('');
+  // Cada apertura de un diálogo inicia una intención nueva; sus reintentos reutilizan la misma clave.
+  const [clave, setClave] = useState(() => crypto.randomUUID());
+  const abrir = (accion: 'completar' | 'cancelar') => {
+    setClave(crypto.randomUUID());
+    setMotivo('');
+    setDialogo(accion);
+  };
   /** La constancia solo existe como resultado de completar la atención en esta pantalla. */
   const [resultado, setResultado] = useState<ResultadoCompletar | null>(null);
   const { data: venta, isError } = useQuery({
@@ -80,7 +88,7 @@ export function VentaDetallePage() {
   };
 
   const completar = useMutation({
-    mutationFn: () => completarVenta(id),
+    mutationFn: () => completarVenta(id, clave),
     onSuccess: (r) => {
       setDialogo(null);
       setResultado(r);
@@ -97,7 +105,7 @@ export function VentaDetallePage() {
   });
 
   const cancelar = useMutation({
-    mutationFn: () => cancelarVenta(id),
+    mutationFn: () => cancelarVenta(id, motivo, clave),
     onSuccess: () => {
       setDialogo(null);
       setResultado(null);
@@ -131,7 +139,8 @@ export function VentaDetallePage() {
   }
   if (!venta) return <Skeleton height={240} />;
 
-  const cliente = CLIENTES.find((c) => c.id === venta.clienteId)?.nombre ?? 'Sin cliente';
+  const cliente =
+    venta.clienteNombre ?? CLIENTES.find((c) => c.id === venta.clienteId)?.nombre ?? 'Sin cliente';
   const totales = totalesVenta(venta);
   const activa = ESTADOS_ACTIVOS.includes(venta.estado);
   const pendientes = tienePendientes(venta);
@@ -228,7 +237,7 @@ export function VentaDetallePage() {
             variant="outline"
             color="danger"
             leftSection={<Icon name="status-danger" />}
-            onClick={() => setDialogo('cancelar')}
+            onClick={() => abrir('cancelar')}
           >
             Cancelar venta
           </Button>
@@ -236,7 +245,7 @@ export function VentaDetallePage() {
             <Button
               leftSection={<Icon name="check" />}
               disabled={sinStock}
-              onClick={() => setDialogo('completar')}
+              onClick={() => abrir('completar')}
             >
               Completar venta
             </Button>
@@ -275,7 +284,18 @@ export function VentaDetallePage() {
         loading={cancelar.isPending}
         onConfirm={() => cancelar.mutate()}
         onCancel={() => setDialogo(null)}
-      />
+      >
+        <Textarea
+          mt="md"
+          label="Motivo de la cancelación"
+          description="Obligatorio para registrar la cancelación en el servidor."
+          autosize
+          minRows={2}
+          maxLength={500}
+          value={motivo}
+          onChange={(e) => setMotivo(e.currentTarget.value)}
+        />
+      </ConfirmDialog>
     </>
   );
 }

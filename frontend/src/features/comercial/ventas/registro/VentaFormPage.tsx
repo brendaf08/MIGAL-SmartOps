@@ -24,7 +24,6 @@ import { opcionesProducto } from '@/features/catalogo/opciones';
 import { PRODUCTOS } from '@/features/inventario/fixtures';
 import { formatCurrency, formatNumber } from '@/lib/format';
 import { ClientePicker, SIN_CLIENTE } from '../../clientes/ClientePicker';
-import { CLIENTES } from '../../clientes/fixtures';
 import type { Cotizacion } from '../../types';
 import {
   cotizacionUtilizable,
@@ -43,9 +42,8 @@ type Origen = 'manual' | 'cotizacion' | 'documento';
 
 const redondear = (n: number) => Math.round(n * 100) / 100;
 
-/** Cliente registrado con el mismo RUC que la cotización, si existe. */
-const clienteDeCotizacion = (c: Cotizacion | undefined) =>
-  CLIENTES.find((cl) => cl.documento === c?.cliente?.ruc)?.id ?? null;
+/** Cliente de la cotización, identificado por su id técnico. */
+const clienteDeCotizacion = (c: Cotizacion | undefined) => c?.cliente?.id ?? null;
 
 /** Líneas de la cotización en el formato del editor, con el descuento global convertido a soles. */
 const lineasDeCotizacion = (c: Cotizacion) => {
@@ -73,6 +71,8 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
 
   const [origen, setOrigen] = useState<Origen>(inicial ? 'cotizacion' : 'manual');
   const [confirmando, setConfirmando] = useState(false);
+  // Cada apertura de la confirmación inicia una intención nueva; sus reintentos reutilizan la misma clave.
+  const [claveRegistro, setClaveRegistro] = useState(() => crypto.randomUUID());
   const [resultado, setResultado] = useState<ResultadoVenta | null>(null);
   const cotizaciones = useQuery({
     queryKey: ['cotizaciones-aceptadas'],
@@ -105,7 +105,10 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
   const motivo = (() => {
     if (values.lineas.length === 0 || values.lineas.some((l) => !l.sku))
       return 'Agregar al menos un producto.';
-    if (origen === 'cotizacion' && !cotizacionUtilizable(values.cotizacionId ?? ''))
+    if (
+      origen === 'cotizacion' &&
+      !(cotizaciones.data ?? []).some((c) => c.id === values.cotizacionId)
+    )
       return 'La cotización debe estar aceptada y sin convertir en venta.';
     if (values.cliente === null) return 'Elegir el cliente o continuar sin cliente.';
     if (sinCobertura && values.modalidad === null)
@@ -151,6 +154,7 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
       cotizacionId: origen === 'cotizacion' ? (values.cotizacionId ?? undefined) : undefined,
       descuento: values.descuento,
       modalidad: values.modalidad as ModalidadAtencion | null,
+      claveIdempotencia: claveRegistro,
       lineas: values.lineas.map((l) => ({
         sku: l.sku,
         nombre: PRODUCTOS.find((p) => p.sku === l.sku)?.nombre ?? l.sku,
@@ -253,7 +257,10 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
         reason={motivo}
         submitLabel="Confirmar venta"
         canSubmit={motivo === null}
-        onSubmit={form.onSubmit(() => setConfirmando(true))}
+        onSubmit={form.onSubmit(() => {
+          setClaveRegistro(crypto.randomUUID());
+          setConfirmando(true);
+        })}
         onCancel={() => window.history.back()}
       >
         <Card title="Cliente">
@@ -283,7 +290,9 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
                 onChange={elegirCotizacion}
               />
             )}
-            {cotizacionParam && !cotizacionUtilizable(cotizacionParam) && (
+            {cotizaciones.isSuccess &&
+              cotizacionParam &&
+              !(cotizaciones.data ?? []).some((c) => c.id === cotizacionParam) && (
               <Alert tone="warning" title="Cotización no disponible">
                 La cotización no está aceptada o ya se convirtió en venta.
               </Alert>

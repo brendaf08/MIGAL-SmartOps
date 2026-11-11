@@ -26,7 +26,7 @@ const ESTADOS: EstadoVenta[] = [
 ];
 
 const nombreCliente = (venta: Venta) =>
-  CLIENTES.find((c) => c.id === venta.clienteId)?.nombre ?? 'Sin cliente';
+  venta.clienteNombre ?? CLIENTES.find((c) => c.id === venta.clienteId)?.nombre ?? 'Sin cliente';
 
 const columns: Column<Venta>[] = [
   { key: 'id', header: 'Venta', mono: true, primary: true },

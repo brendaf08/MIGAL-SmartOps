@@ -75,3 +75,15 @@ Los cambios de esquema se almacenan en `database/migraciones/`. La herramienta e
 ## Ubicar las semillas
 
 Los datos de desarrollo se ubicarían en `database/semillas/`. Esta ubicación es una propuesta del ADR-005 y la carpeta aún no existe. Las semillas contienen únicamente datos ficticios, están separadas de las migraciones y no se ejecutan en producción.
+
+## Datos de demostración (solo desarrollo local)
+
+El script `datos-demostracion/demo.sql` carga ubicaciones, productos con stock inicial, clientes y proveedores para
+probar las pantallas con la API real. No forma parte de las migraciones y no debe ejecutarse en Supabase ni en
+producción. Requiere que el backend haya creado el administrador inicial y es idempotente.
+
+Para cargarlo en el contenedor local de PostgreSQL, con las variables del archivo `.env` de la raíz:
+
+```bash
+docker exec -i migal-postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 < database/datos-demostracion/demo.sql
+```

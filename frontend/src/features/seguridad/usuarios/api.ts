@@ -1,4 +1,7 @@
+import { API_REAL, api } from '@/api/cliente';
 import { mockRequest } from '@/api/mock';
+import { todosLosElementos, type PaginaApi } from '@/api/paginas';
+import { aUsuarioRegistro, type UsuarioRegistradoDto } from '@/features/seguridad/adaptadores';
 import { USUARIOS_REGISTRO, type UsuarioRegistro } from '@/features/seguridad/usuarios-tipos';
 import type { Role } from '@/features/seguridad/roles';
 
@@ -11,7 +14,12 @@ export interface DatosUsuario {
 }
 
 /** CU-02. Las operaciones modifican `USUARIOS_REGISTRO` en memoria hasta contar con la API. */
-export const listarUsuarios = () => mockRequest(() => USUARIOS_REGISTRO.map((u) => ({ ...u })));
+export const listarUsuarios = (): Promise<UsuarioRegistro[]> =>
+  API_REAL
+    ? todosLosElementos((page, pageSize) =>
+        api.get<PaginaApi<UsuarioRegistradoDto>>('/usuarios', { page, pageSize }),
+      ).then((usuarios) => usuarios.map(aUsuarioRegistro))
+    : mockRequest(() => USUARIOS_REGISTRO.map((u) => ({ ...u })));
 
 export const obtenerUsuario = (id: string) =>
   mockRequest<UsuarioRegistro>(() => {
@@ -45,8 +53,13 @@ export const actualizarUsuario = (id: string, datos: Pick<DatosUsuario, 'nombre'
     return { ...usuario };
   });
 
-export const revocarAcceso = (id: string) =>
-  mockRequest<UsuarioRegistro>(() => {
+/** CU-02, flujo alternativo 3. La revocación es lógica: el usuario conserva su registro. */
+export const revocarAcceso = (id: string): Promise<UsuarioRegistro> =>
+  API_REAL
+    ? api
+        .put<UsuarioRegistradoDto>(`/usuarios/${encodeURIComponent(id)}/estado`, { estadoActivo: false })
+        .then(aUsuarioRegistro)
+    : mockRequest<UsuarioRegistro>(() => {
     const usuario = USUARIOS_REGISTRO.find((u) => u.id === id);
     if (!usuario) throw new Error('USUARIO_NO_ENCONTRADO');
     usuario.estado = 'Inactivo';

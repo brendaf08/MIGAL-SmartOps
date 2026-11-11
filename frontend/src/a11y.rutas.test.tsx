@@ -82,9 +82,9 @@ describe('Cobertura de la navegación', () => {
     20000,
   );
 
-  it('cada rol ve en la navegación solo los módulos que le corresponden', async () => {
+  it('cada rol ve en la navegación sus módulos y el administrador los ve todos', async () => {
     const esperados: Record<Role, string[]> = {
-      Administrador: ['Catálogo', 'Agente de IA', 'Usuarios y roles'],
+      Administrador: NAV.flatMap((g) => g.items).map((i) => i.label),
       Vendedor: [
         'Disponibilidad',
         'Documentos OCR',

@@ -243,7 +243,8 @@ export function CotizacionPage() {
       >
         <Textarea
           mt="md"
-          label="Motivo del rechazo (opcional)"
+          label="Motivo del rechazo"
+          description="Obligatorio para registrar el rechazo en el servidor."
           autosize
           minRows={2}
           maxLength={500}

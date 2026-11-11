@@ -214,13 +214,13 @@ describe('cotizaciones (API real)', () => {
     expect(rechazada.estado).toBe('Rechazada');
   });
 
-  it('envía un motivo por defecto en el rechazo cuando el usuario no lo informa', async () => {
+  it('no envía el rechazo sin motivo, porque la API lo exige', async () => {
     const api = await cargarApiReal();
-    fetchMock.mockResolvedValueOnce(respuesta(cotizacionApi({ estado: 'rechazada' })));
 
-    await api.registrarRechazo('812', '', 'clave-rechazo-2');
-
-    expect(cuerpo(0).motivo).toBe('Sin motivo informado.');
+    await expect(api.registrarRechazo('812', '   ', 'clave-rechazo-2')).rejects.toThrow(
+      'Indicar el motivo del rechazo.',
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('propaga los códigos de error de la API, como COTIZACION_VENCIDA en la aceptación', async () => {

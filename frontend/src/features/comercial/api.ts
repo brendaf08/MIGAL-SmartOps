@@ -179,7 +179,7 @@ export const registrarAceptacion = (id: string, claveIdempotencia: string): Prom
 
 /**
  * CU-09, flujo alternativo 2. El rechazo no libera ni reserva existencias, porque la cotización nunca las reservó.
- * Con la API, el motivo es obligatorio; si el usuario no lo informa, se registra un texto que lo indica.
+ * Con la API, el motivo es obligatorio: sin texto no se envía la solicitud.
  */
 export const registrarRechazo = (
   id: string,
@@ -187,13 +187,17 @@ export const registrarRechazo = (
   claveIdempotencia: string,
 ): Promise<Cotizacion> =>
   API_REAL
-    ? api
-        .post<CotizacionApi>(
-          ruta(id, '/rechazo'),
-          { origen: 'cliente', motivo: motivo?.trim() || 'Sin motivo informado.' },
-          claveIdempotencia,
-        )
-        .then(cotizacionDesde)
+    ? (async () => {
+        const texto = motivo?.trim() ?? '';
+        if (!texto) throw new Error('Indicar el motivo del rechazo.');
+        return api
+          .post<CotizacionApi>(
+            ruta(id, '/rechazo'),
+            { origen: 'cliente', motivo: texto },
+            claveIdempotencia,
+          )
+          .then(cotizacionDesde);
+      })()
     : mockRequest<Cotizacion>(() => {
         const found = COTIZACIONES.find((c) => c.id === id);
         if (!found || found.estado !== 'Emitida')

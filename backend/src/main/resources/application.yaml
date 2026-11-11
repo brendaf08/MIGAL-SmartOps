@@ -1,6 +1,10 @@
 spring:
   application:
     name: smartops
+  config:
+    # Lee el archivo .env de la raíz del repositorio, si existe, para definir las variables de conexión y de
+    # seguridad sin exportarlas en cada terminal. El archivo está excluido del control de versiones.
+    import: optional:file:../.env[.properties]
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/migal_smartops}
     username: ${SPRING_DATASOURCE_USERNAME:migal_app}

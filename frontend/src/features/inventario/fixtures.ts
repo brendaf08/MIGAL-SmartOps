@@ -37,7 +37,7 @@ export const PRODUCTOS: ProductoDisponibilidad[] = Array.from({ length: 48 }, (_
 /** Movimientos de Kardex de prueba, del más reciente al más antiguo. */
 export const MOVIMIENTOS: Movimiento[] = [
   {
-    id: 8,
+    id: '8',
     fecha: '2026-11-05',
     sku: 'CEM-001',
     producto: 'Cemento Sol tipo I, bolsa 42.5 kg',
@@ -48,7 +48,7 @@ export const MOVIMIENTOS: Movimiento[] = [
     usuario: 'Rosa Quispe',
   },
   {
-    id: 7,
+    id: '7',
     fecha: '2026-11-05',
     sku: 'FIE-003',
     producto: 'Fierro corrugado 1/2 in x 9 m',
@@ -59,7 +59,7 @@ export const MOVIMIENTOS: Movimiento[] = [
     usuario: 'Rosa Quispe',
   },
   {
-    id: 6,
+    id: '6',
     fecha: '2026-11-04',
     sku: 'TUB-006',
     producto: 'Tubo PVC desagüe 4 in x 3 m',
@@ -70,7 +70,7 @@ export const MOVIMIENTOS: Movimiento[] = [
     usuario: 'Rosa Quispe',
   },
   {
-    id: 5,
+    id: '5',
     fecha: '2026-11-04',
     sku: 'TUB-006',
     producto: 'Tubo PVC desagüe 4 in x 3 m',
@@ -81,7 +81,7 @@ export const MOVIMIENTOS: Movimiento[] = [
     usuario: 'Rosa Quispe',
   },
   {
-    id: 4,
+    id: '4',
     fecha: '2026-11-02',
     sku: 'LAD-002',
     producto: 'Ladrillo King Kong 18 huecos',
@@ -92,7 +92,7 @@ export const MOVIMIENTOS: Movimiento[] = [
     usuario: 'Rosa Quispe',
   },
   {
-    id: 3,
+    id: '3',
     fecha: '2026-10-30',
     sku: 'PIN-005',
     producto: 'Pintura látex blanco, balde 4 L',
@@ -103,7 +103,7 @@ export const MOVIMIENTOS: Movimiento[] = [
     usuario: 'Carlos Medina',
   },
   {
-    id: 2,
+    id: '2',
     fecha: '2026-10-29',
     sku: 'CAB-007',
     producto: 'Cable THW 12 AWG, rollo 100 m',
@@ -114,7 +114,7 @@ export const MOVIMIENTOS: Movimiento[] = [
     usuario: 'Rosa Quispe',
   },
   {
-    id: 1,
+    id: '1',
     fecha: '2026-10-28',
     sku: 'CLA-008',
     producto: 'Clavos de 3 in, bolsa 1 kg',

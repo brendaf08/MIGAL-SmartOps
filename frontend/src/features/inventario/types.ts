@@ -30,7 +30,8 @@ export interface RespuestaDisponibilidad {
 
 /** Movimiento de Kardex: un traslado interno genera dos (salida en el origen y entrada en el destino). */
 export interface Movimiento {
-  id: number;
+  /** Identificador técnico opaco del movimiento. */
+  id: string;
   fecha: string;
   sku: string;
   producto: string;

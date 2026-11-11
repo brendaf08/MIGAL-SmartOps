@@ -103,7 +103,7 @@ export function KardexPage() {
   const [page, setPage] = useState(1);
   const [hojaAbierta, setHojaAbierta] = useState(false);
   /** Fila creada por el registro de movimiento; se monta sin resaltado y lo recibe al entrar. */
-  const [resaltado, setResaltado] = useState<number>();
+  const [resaltado, setResaltado] = useState<string>();
   const [debouncedQ] = useDebouncedValue(filtros.q, 300);
   const consulta = { ...filtros, q: debouncedQ };
 
@@ -115,7 +115,7 @@ export function KardexPage() {
 
   /* El resaltado se aplica tras el montaje: la tabla recibe la clave después de su primer render. */
   useEffect(() => {
-    const id = (location.state as { changedKey?: number } | null)?.changedKey;
+    const id = (location.state as { changedKey?: string } | null)?.changedKey;
     if (id === undefined) return;
     const timer = window.setTimeout(() => setResaltado(id), 0);
     return () => window.clearTimeout(timer);

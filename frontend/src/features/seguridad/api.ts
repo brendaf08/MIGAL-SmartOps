@@ -1,19 +1,14 @@
 import { API_REAL, api, borrarToken, guardarToken } from '@/api/cliente';
 import { mockRequest } from '@/api/mock';
+import { todosLosElementos, type PaginaApi } from '@/api/paginas';
 import { USUARIOS } from './fixtures';
-import { ROLES, type Role, type User } from './roles';
+import { rolDeApi, type UsuarioRegistradoDto } from './adaptadores';
+import type { User } from './roles';
 
 interface RespuestaSesion {
   token: string;
   usuario: { nombres: string; apellidos: string; rol: string };
 }
-
-/** El backend envía el rol en minúsculas (ADR-008); la interfaz lo muestra con inicial mayúscula. */
-const rolDeApi = (rol: string): Role => {
-  const encontrado = ROLES.find((r) => r.toLowerCase() === rol);
-  if (!encontrado) throw new Error('Rol desconocido.');
-  return encontrado;
-};
 
 const iniciarSesionReal = async (usuario: string, clave: string): Promise<User> => {
   try {
@@ -45,7 +40,17 @@ export const iniciarSesion = (usuario: string, clave: string): Promise<User> =>
       });
 
 /** CU-02. Nunca expone las contraseñas. */
-export const listarUsuarios = () =>
-  mockRequest<UsuarioResumen[]>(() =>
-    USUARIOS.map(({ usuario, name, role }) => ({ usuario, name, role })),
-  );
+export const listarUsuarios = (): Promise<UsuarioResumen[]> =>
+  API_REAL
+    ? todosLosElementos((page, pageSize) =>
+        api.get<PaginaApi<UsuarioRegistradoDto>>('/usuarios', { page, pageSize }),
+      ).then((usuarios) =>
+        usuarios.map((u) => ({
+          usuario: u.username,
+          name: `${u.nombres} ${u.apellidos}`.trim(),
+          role: rolDeApi(u.rol),
+        })),
+      )
+    : mockRequest<UsuarioResumen[]>(() =>
+        USUARIOS.map(({ usuario, name, role }) => ({ usuario, name, role })),
+      );

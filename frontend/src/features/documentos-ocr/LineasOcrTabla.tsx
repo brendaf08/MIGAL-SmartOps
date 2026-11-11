@@ -7,7 +7,7 @@ const OPCIONES = PRODUCTOS.map((p) => ({ value: p.sku, label: `${p.sku}, ${p.nom
 
 /** Campos comunes de una línea extraída por el OCR y asociada, o no, a un producto. */
 export interface LineaOcrFila {
-  id: number;
+  id: number | string;
   texto: string;
   sku: string;
   score: number;
@@ -18,7 +18,7 @@ export interface LineasOcrTablaProps<T extends LineaOcrFila> {
   caption: string;
   lineas: T[];
   /** Asocia un producto del catálogo a la línea; vacío si se quita la asociación. */
-  onSkuChange: (id: number, sku: string) => void;
+  onSkuChange: (id: T['id'], sku: string) => void;
   /** Columnas que siguen a la de coincidencia: cantidades, pedido y diferencia según el flujo. */
   columnas: Column<T>[];
 }

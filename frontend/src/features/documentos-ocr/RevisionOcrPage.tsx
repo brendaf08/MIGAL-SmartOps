@@ -21,7 +21,7 @@ const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno
 export function RevisionOcrPage() {
   const navigate = useNavigate();
   const { id: idParam } = useParams();
-  const id = Number(idParam);
+  const id = idParam ?? '';
   const [params] = useSearchParams();
   const destino = leerDestino(params.get('destino'));
   const [lineas, setLineas] = useState<LineaOcr[] | null>(null);
@@ -30,7 +30,7 @@ export function RevisionOcrPage() {
   const query = useQuery({
     queryKey: ['documento', id],
     queryFn: () => obtenerDocumento(id),
-    enabled: Number.isInteger(id),
+    enabled: id !== '',
   });
   const documento = query.data;
   const filas = lineas ?? documento?.lineas ?? [];

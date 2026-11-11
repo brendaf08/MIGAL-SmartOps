@@ -87,9 +87,9 @@ export function OrdenRecepcionPage() {
   /** Con `documento=ID` la revisión del OCR (P24) llega ya validada: sus líneas se precargan en el paso del documento. */
   const [usarPrecargado, setUsarPrecargado] = useState(params.has('documento'));
   const precargado = useQuery({
-    queryKey: ['documento', Number(params.get('documento'))],
-    queryFn: () => obtenerDocumento(Number(params.get('documento'))),
-    enabled: params.has('documento') && Number.isInteger(Number(params.get('documento'))),
+    queryKey: ['documento', params.get('documento') ?? ''],
+    queryFn: () => obtenerDocumento(params.get('documento') ?? ''),
+    enabled: params.has('documento'),
   });
   const ocr = lineasOcr ?? (usarPrecargado ? (precargado.data?.lineas ?? null) : null);
   const [lineas, setLineas] = useState<LineaRecepcion[]>([]);
@@ -144,7 +144,7 @@ export function OrdenRecepcionPage() {
     procesar.reset();
   };
 
-  const actualizarOcr = (id: number, patch: Partial<LineaOcr>) =>
+  const actualizarOcr = (id: string, patch: Partial<LineaOcr>) =>
     setLineasOcr((prev) => (prev ?? ocr)?.map((l) => (l.id === id ? { ...l, ...patch } : l)) ?? null);
   const actualizarConteo = (id: number, patch: Partial<LineaRecepcion>) =>
     setLineas((prev) => prev.map((l) => (l.id === id ? { ...l, ...patch } : l)));

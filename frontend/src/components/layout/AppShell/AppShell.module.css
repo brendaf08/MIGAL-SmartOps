@@ -55,12 +55,34 @@
   color: var(--nav-ink);
 }
 
+.navbar {
+  display: flex;
+  flex-direction: column;
+}
+
 .drawer {
   padding-bottom: env(safe-area-inset-bottom);
 }
 
 .drawerBody {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
   padding: 0;
+}
+
+/* La marca queda fija y solo el menú se desplaza cuando no cabe en la altura disponible. */
+.menu {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-bottom: var(--space-4);
+}
+
+.brand {
+  flex: none;
 }
 
 .brand {

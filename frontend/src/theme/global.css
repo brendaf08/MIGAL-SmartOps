@@ -59,6 +59,24 @@ p {
   box-shadow: var(--shadow-focus);
 }
 
+/* Separación entre la etiqueta de un campo y el control, igual para todos los campos. */
+.mantine-InputWrapper-label {
+  margin-bottom: var(--space-2);
+}
+
+/*
+ * El campo de contraseña tiene el control interno dentro de un contenedor con borde. El anillo de foco se dibuja
+ * en el contenedor (igual que en los demás campos) y no en el control interno, donde quedaba recortado.
+ */
+.mantine-PasswordInput-innerInput:focus-visible {
+  box-shadow: none;
+}
+
+.mantine-PasswordInput-input:focus-within {
+  border-color: var(--input-bd);
+  box-shadow: var(--shadow-focus);
+}
+
 /*
  * Responsive: en teléfono y en pantallas táctiles todo control alcanza 44 px (--touch-min), y en teléfono los
  * campos usan 16 px para evitar el acercamiento automático de iOS. La página nunca se desplaza en horizontal.
@@ -78,6 +96,17 @@ body {
   .mantine-ActionIcon-root {
     min-width: var(--touch-min);
     min-height: var(--touch-min);
+  }
+
+  /* Con altura mínima en lugar de fija, la etiqueta debe centrarse en vertical dentro del botón. */
+  .mantine-Button-root {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .mantine-Button-root[data-block] {
+    display: flex;
   }
 }
 

@@ -21,12 +21,13 @@
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
+  justify-content: space-between;
   gap: var(--space-3);
   margin-bottom: var(--space-3);
 }
 
 .buscar {
-  flex: 1 1 280px;
+  width: min(100%, 20rem);
 }
 
 .picker {
@@ -43,6 +44,10 @@
 
 /* Teléfono: las acciones se apilan a ancho completo, con la principal arriba. */
 @mixin smaller-than $mantine-breakpoint-sm {
+  .buscar {
+    width: 100%;
+  }
+
   .acciones,
   .accionesPrincipales {
     flex-direction: column-reverse;

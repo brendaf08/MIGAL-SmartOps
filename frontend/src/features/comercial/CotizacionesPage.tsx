@@ -110,7 +110,8 @@ export function CotizacionesPage() {
             placeholder="Buscar por número o cliente"
             value={busqueda}
             onChange={setBusqueda}
-            maw={320}
+            w={{ base: '100%', sm: 320 }}
+            maw="100%"
           />
         </Group>
         <div role="tabpanel">

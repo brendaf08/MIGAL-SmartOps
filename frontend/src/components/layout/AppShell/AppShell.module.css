@@ -81,12 +81,20 @@
   padding-bottom: var(--space-4);
 
   /* Barra de desplazamiento discreta, del mismo tono que la navegación: pista transparente y pulgar translúcido. */
-  scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--nav-ink) 28%, transparent) transparent;
   color-scheme: dark;
+
+  /* Firefox no admite los pseudoelementos de WebKit; en Chromium y Safari las propiedades estándar mostrarían flechas. */
+  @supports not selector(::-webkit-scrollbar) {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--nav-ink) 28%, transparent) transparent;
+  }
 
   &::-webkit-scrollbar {
     width: 8px;
+  }
+
+  &::-webkit-scrollbar-button {
+    display: none;
   }
 
   &::-webkit-scrollbar-track {

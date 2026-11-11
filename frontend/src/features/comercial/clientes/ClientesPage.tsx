@@ -64,24 +64,23 @@ export function ClientesPage() {
         }
       />
       <div className={classes.filtros}>
-        <div className={classes.buscar}>
-          <SearchInput
-            label="Buscar cliente"
-            placeholder="Nombre o documento"
-            value={texto}
-            onChange={setTexto}
-          />
-        </div>
+        <Tabs
+          aria-label="Estado de los clientes"
+          value={tab}
+          onChange={setTab}
+          items={[
+            { value: 'activos', label: 'Activos', count: activos.length },
+            { value: 'inactivos', label: 'Inactivos', count: inactivos.length },
+          ]}
+        />
+        <SearchInput
+          className={classes.buscar}
+          aria-label="Buscar cliente"
+          placeholder="Nombre o documento"
+          value={texto}
+          onChange={setTexto}
+        />
       </div>
-      <Tabs
-        aria-label="Estado de los clientes"
-        value={tab}
-        onChange={setTab}
-        items={[
-          { value: 'activos', label: 'Activos', count: activos.length },
-          { value: 'inactivos', label: 'Inactivos', count: inactivos.length },
-        ]}
-      />
       <div role="tabpanel" style={{ marginTop: 'var(--space-3)' }}>
         <QueryTable
           query={{ data: filas, isLoading: query.isLoading, isError: query.isError }}

@@ -7,6 +7,7 @@ import { Link } from 'react-router';
 import { StatusBadge } from '@/components/domain/StatusBadge/StatusBadge';
 import { PageHeader } from '@/components/layout/PageHeader/PageHeader';
 import type { Column } from '@/components/ui/DataTable/DataTable';
+import { Icon } from '@/components/ui/Icon/Icon';
 import { EmptyState } from '@/components/ui/EmptyState/EmptyState';
 import { ConfirmDialog } from '@/components/ui/Modal/ConfirmDialog';
 import { QueryTable } from '@/components/ui/QueryTable/QueryTable';
@@ -120,25 +121,28 @@ export function UsuariosPage() {
         title="Usuarios y roles"
         description="Usuarios internos y el rol que define sus permisos."
         actions={
-          <Button component={Link} to="/usuarios/nuevo">
+          <Button component={Link} to="/usuarios/nuevo" leftSection={<Icon name="plus" />}>
             Registrar usuario
           </Button>
         }
       />
       <Stack gap="md">
-        <Tabs
-          aria-label="Filtrar usuarios por estado"
-          items={FILTROS.map((f) => ({ value: f, label: f, count: porEstado(f).length }))}
-          value={filtro}
-          onChange={(v) => setFiltro(v as Filtro)}
-        />
-        <SearchInput
-          aria-label="Buscar usuario"
-          placeholder="Nombre o usuario"
-          value={q}
-          onChange={setQ}
-          maw={320}
-        />
+        <Group justify="space-between" align="flex-end" gap="md">
+          <Tabs
+            aria-label="Filtrar usuarios por estado"
+            items={FILTROS.map((f) => ({ value: f, label: f, count: porEstado(f).length }))}
+            value={filtro}
+            onChange={(v) => setFiltro(v as Filtro)}
+          />
+          <SearchInput
+            aria-label="Buscar usuario"
+            placeholder="Nombre o usuario"
+            value={q}
+            onChange={setQ}
+            w={{ base: '100%', sm: 320 }}
+            maw="100%"
+          />
+        </Group>
         <QueryTable
           query={{ data: filas, isLoading: query.isLoading, isError: query.isError }}
           errorTitle="No se pudieron cargar los usuarios"

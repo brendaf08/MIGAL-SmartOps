@@ -15,6 +15,7 @@ export function MovementBadge({ tipo, cantidad }: MovementBadgeProps) {
   return (
     <Group gap="xs" wrap="nowrap">
       <Badge
+        style={{ flexShrink: 0, overflow: 'visible' }}
         color={entrada ? 'success' : 'brand'}
         leftSection={<Icon name={entrada ? 'arrow-down' : 'arrow-up'} size={16} />}
       >

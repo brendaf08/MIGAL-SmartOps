@@ -67,14 +67,14 @@ const columns: Column<Movimiento>[] = [
     render: (m) => {
       const par = parDe(m);
       return (
-        <>
+        <Stack gap={0}>
           <span>{ORIGEN_TEXTO[m.origen]}</span>
           {par && (
-            <small>
+            <Text size="xs" c="dimmed">
               {m.tipo === 'Salida' ? `Hacia ${par.ubicacion}` : `Desde ${par.ubicacion}`}
-            </small>
+            </Text>
           )}
-        </>
+        </Stack>
       );
     },
   },
@@ -206,7 +206,7 @@ export function KardexPage() {
           </Button>
         </Group>
       ) : (
-        <SimpleGrid cols={{ base: 1, sm: 3, lg: 6 }} mb="sm">
+        <SimpleGrid cols={{ base: 1, sm: 3, lg: 6 }} mb="sm" style={{ alignItems: 'end' }}>
           {campos}
         </SimpleGrid>
       )}

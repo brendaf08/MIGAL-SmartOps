@@ -64,6 +64,15 @@ p {
   margin-bottom: var(--space-2);
 }
 
+/* Con descripción, la etiqueta y la descripción forman un bloque y la separación se aplica después de la descripción. */
+.mantine-InputWrapper-label:has(+ .mantine-InputWrapper-description) {
+  margin-bottom: 2px;
+}
+
+.mantine-InputWrapper-label + .mantine-InputWrapper-description {
+  margin-bottom: var(--space-2);
+}
+
 /*
  * El campo de contraseña tiene el control interno dentro de un contenedor con borde. El anillo de foco se dibuja
  * en el contenedor (igual que en los demás campos) y no en el control interno, donde quedaba recortado.

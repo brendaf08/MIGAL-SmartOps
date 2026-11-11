@@ -1,4 +1,4 @@
-import { Button } from '@mantine/core';
+import { Button, Group } from '@mantine/core';
 import { useDebouncedValue } from '@mantine/hooks';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router';
 import { StatusBadge } from '@/components/domain/StatusBadge/StatusBadge';
 import { PageHeader } from '@/components/layout/PageHeader/PageHeader';
 import type { Column } from '@/components/ui/DataTable/DataTable';
+import { Icon } from '@/components/ui/Icon/Icon';
 import { QueryTable } from '@/components/ui/QueryTable/QueryTable';
 import { SearchInput } from '@/components/ui/SearchInput/SearchInput';
 import { Tabs } from '@/components/ui/Tabs/Tabs';
@@ -57,27 +58,34 @@ export function ProveedoresPage() {
         title="Proveedores"
         description="Proveedores registrados, su contacto y los productos que suministran."
         actions={
-          <Button onClick={() => void navigate('/proveedores/nuevo')}>Registrar proveedor</Button>
+          <Button
+            leftSection={<Icon name="plus" />}
+            onClick={() => void navigate('/proveedores/nuevo')}
+          >
+            Registrar proveedor
+          </Button>
         }
       />
-      <SearchInput
-        aria-label="Buscar proveedor"
-        placeholder="Razón social o RUC"
-        value={q}
-        onChange={setQ}
-        mb="md"
-        maw={360}
-      />
-      <Tabs
-        aria-label="Filtrar por estado"
-        value={vista}
-        onChange={(v) => setVista(v as Vista)}
-        items={[
-          { value: 'todos', label: 'Todos' },
-          { value: 'activos', label: 'Activos' },
-          { value: 'inactivos', label: 'Inactivos' },
-        ]}
-      />
+      <Group justify="space-between" align="flex-end" gap="md" mb="sm">
+        <Tabs
+          aria-label="Filtrar por estado"
+          value={vista}
+          onChange={(v) => setVista(v as Vista)}
+          items={[
+            { value: 'todos', label: 'Todos' },
+            { value: 'activos', label: 'Activos' },
+            { value: 'inactivos', label: 'Inactivos' },
+          ]}
+        />
+        <SearchInput
+          aria-label="Buscar proveedor"
+          placeholder="Razón social o RUC"
+          value={q}
+          onChange={setQ}
+          w={{ base: '100%', sm: 320 }}
+          maw="100%"
+        />
+      </Group>
       <div role="tabpanel" style={{ marginTop: 'var(--space-3)' }}>
         <QueryTable
           query={query}

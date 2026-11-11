@@ -6,11 +6,17 @@ import { Link, useNavigate } from 'react-router';
 import { StatusBadge } from '@/components/domain/StatusBadge/StatusBadge';
 import { PageHeader } from '@/components/layout/PageHeader/PageHeader';
 import { type Column } from '@/components/ui/DataTable/DataTable';
+import { Icon } from '@/components/ui/Icon/Icon';
 import { Pagination } from '@/components/ui/Pagination/Pagination';
 import { QueryTable } from '@/components/ui/QueryTable/QueryTable';
 import { SearchInput } from '@/components/ui/SearchInput/SearchInput';
 import { formatNumber } from '@/lib/format';
-import { buscarCatalogo, listarCategorias, type EstadoProducto, type ProductoCatalogo } from './api';
+import {
+  buscarCatalogo,
+  listarCategorias,
+  type EstadoProducto,
+  type ProductoCatalogo,
+} from './api';
 import classes from './Catalogo.module.css';
 
 const PAGE_SIZE = 20;
@@ -58,16 +64,17 @@ export function CatalogoPage() {
   const categorias = useQuery({ queryKey: ['catalogo-categorias'], queryFn: listarCategorias });
   const query = useQuery({
     queryKey: ['catalogo', debouncedQ, categoria, estado, page],
-    queryFn: () =>
-      buscarCatalogo({ q: debouncedQ, categoria, estado, page, pageSize: PAGE_SIZE }),
+    queryFn: () => buscarCatalogo({ q: debouncedQ, categoria, estado, page, pageSize: PAGE_SIZE }),
     placeholderData: keepPreviousData,
   });
 
   /** Cambiar un filtro vuelve a la primera página de resultados. */
-  const conFiltro = <T,>(set: (value: T) => void) => (value: T) => {
-    set(value);
-    setPage(1);
-  };
+  const conFiltro =
+    <T,>(set: (value: T) => void) =>
+    (value: T) => {
+      set(value);
+      setPage(1);
+    };
 
   return (
     <>
@@ -75,7 +82,7 @@ export function CatalogoPage() {
         title="Catálogo"
         description="Productos del catálogo maestro con su unidad y stock mínimo."
         actions={
-          <Button component={Link} to="/catalogo/nuevo">
+          <Button component={Link} to="/catalogo/nuevo" leftSection={<Icon name="plus" />}>
             Registrar producto
           </Button>
         }
@@ -102,7 +109,9 @@ export function CatalogoPage() {
           allowDeselect={false}
           data={ESTADOS}
           value={estado || TODOS}
-          onChange={(value) => conFiltro(setEstado)(value === TODOS || !value ? '' : (value as EstadoProducto))}
+          onChange={(value) =>
+            conFiltro(setEstado)(value === TODOS || !value ? '' : (value as EstadoProducto))
+          }
           className={classes.filtro}
         />
       </div>

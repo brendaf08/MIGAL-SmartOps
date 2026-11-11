@@ -46,7 +46,9 @@ export function AgenteIAPage() {
     consulta.mutate(text);
   };
 
-  useEffect(() => end.current?.scrollIntoView?.({ block: 'end' }), [mensajes, consulta.isPending]);
+  useEffect(() => {
+    end.current?.scrollIntoView?.({ block: 'end' });
+  }, [mensajes, consulta.isPending]);
 
   return (
     <>

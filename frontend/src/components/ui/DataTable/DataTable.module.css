@@ -38,6 +38,11 @@
   font-family: var(--mantine-font-family-monospace);
 }
 
+/* La fuente monoespaciada es de los datos; los encabezados conservan la fuente de la interfaz. */
+th.mono {
+  font-family: var(--mantine-font-family);
+}
+
 .sortButton {
   display: inline-flex;
   align-items: center;
@@ -127,6 +132,7 @@
       content: attr(data-label);
       flex: none;
       color: var(--ink-muted);
+      font-family: var(--mantine-font-family);
       font-weight: 600;
       text-align: left;
     }

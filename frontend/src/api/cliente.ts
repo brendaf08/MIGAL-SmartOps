@@ -30,8 +30,7 @@ export class ApiError extends Error {
   }
 }
 
-export const guardarToken = (token: string): void =>
-  window.sessionStorage.setItem(CLAVE_TOKEN, token);
+export const guardarToken = (token: string): void => window.sessionStorage.setItem(CLAVE_TOKEN, token);
 export const borrarToken = (): void => window.sessionStorage.removeItem(CLAVE_TOKEN);
 const leerToken = (): string | null => window.sessionStorage.getItem(CLAVE_TOKEN);
 
@@ -46,8 +45,7 @@ export interface OpcionesPeticion {
 function construirUrl(ruta: string, consulta?: OpcionesPeticion['consulta']): string {
   const parametros = new URLSearchParams();
   Object.entries(consulta ?? {}).forEach(([nombre, valor]) => {
-    if (valor !== null && valor !== undefined && valor !== '')
-      parametros.set(nombre, String(valor));
+    if (valor !== null && valor !== undefined && valor !== '') parametros.set(nombre, String(valor));
   });
   const texto = parametros.toString();
   return `${BASE}${ruta}${texto ? `?${texto}` : ''}`;
@@ -95,8 +93,7 @@ export async function peticion<T>(
 }
 
 export const api = {
-  get: <T>(ruta: string, consulta?: OpcionesPeticion['consulta']) =>
-    peticion<T>('GET', ruta, { consulta }),
+  get: <T>(ruta: string, consulta?: OpcionesPeticion['consulta']) => peticion<T>('GET', ruta, { consulta }),
   post: <T>(ruta: string, cuerpo?: unknown, claveIdempotencia?: string) =>
     peticion<T>('POST', ruta, { cuerpo, claveIdempotencia }),
   put: <T>(ruta: string, cuerpo?: unknown) => peticion<T>('PUT', ruta, { cuerpo }),

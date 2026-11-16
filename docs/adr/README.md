@@ -17,6 +17,7 @@ Esta carpeta contiene los registros de decisiones de arquitectura (ADR, Architec
 | [ADR-009](adr-009-ajustes-seguridad-y-componentes-contrato.md) | Ajustes de seguridad, sesión y componentes del contrato. |
 | [ADR-010](adr-010-estrategia-implementacion-backend.md) | Estrategia de implementación del backend. |
 | [ADR-011](adr-011-estrategia-ocr-fuzzy-matching.md) | Estrategia de OCR y Fuzzy Matching para el catálogo ferretero. |
+| [ADR-012](adr-012-integracion-ocr-y-agente-con-gemini.md) | Integración del servicio de OCR y del Agente de IA con Gemini. |
 
 ## Registrar una decisión
 

@@ -31,6 +31,7 @@ import {
   type ResultadoCompletar,
 } from './api';
 import type { LineaVenta } from './tipos';
+import { useCatalogoVigente } from '@/features/catalogo/catalogoVigente';
 
 const unidadDe = (sku: string) => PRODUCTOS.find((p) => p.sku === sku)?.unidad ?? 'unidad';
 
@@ -66,6 +67,8 @@ export function VentaDetallePage() {
   const { id = '' } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  // Copia local del catálogo vigente para los selectores y las búsquedas por SKU (API real).
+  useCatalogoVigente();
   const [dialogo, setDialogo] = useState<'completar' | 'cancelar' | null>(null);
   const [motivo, setMotivo] = useState('');
   // Cada apertura de un diálogo inicia una intención nueva; sus reintentos reutilizan la misma clave.

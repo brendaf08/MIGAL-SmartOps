@@ -36,8 +36,12 @@ def procesar_documento(solicitud: SolicitudProcesamiento, contenido: bytes, tipo
     """Extrae, asigna SKU y registra el resultado. Un fallo del modelo no envía resultado (ADR-012, punto 4)."""
     try:
         extraccion = extraer_con_reintento(modelo(), contenido, tipo_mime)
-    except Exception:  # noqa: BLE001 - el backend registrará SERVICIO_NO_DISPONIBLE al vencer el plazo
-        REGISTRO.exception("No se pudo extraer el documento %s", solicitud.idDocumento)
+    except Exception as error:  # noqa: BLE001 - el backend registrará SERVICIO_NO_DISPONIBLE al vencer el plazo
+        if getattr(error, "code", None) == 429:
+            # Cuota de la API agotada: un mensaje breve basta, la traza no aporta.
+            REGISTRO.error("Cuota de Gemini agotada; no se procesó el documento %s", solicitud.idDocumento)
+        else:
+            REGISTRO.exception("No se pudo extraer el documento %s", solicitud.idDocumento)
         return
     lineas_leidas = [linea for linea in extraccion.lineas if linea.textoCrudo.strip()]
     if not extraccion.legible or not lineas_leidas:

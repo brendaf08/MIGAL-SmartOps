@@ -28,6 +28,9 @@ management:
         include: health,info
 
 migal:
+  cors:
+    # Orígenes externos autorizados para la API, separados por coma. Vacío: solo el mismo origen (nginx con proxy).
+    origenes: ${MIGAL_CORS_ORIGENES:}
   seguridad:
     jwt:
       # Clave de firma HS256 de al menos 32 caracteres. Se define solo mediante la variable de entorno.

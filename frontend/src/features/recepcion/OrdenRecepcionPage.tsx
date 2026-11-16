@@ -98,7 +98,10 @@ export function OrdenRecepcionPage() {
   /** La constancia solo existe como resultado de confirmar. */
   const [cerrada, setCerrada] = useState<ResultadoRecepcion | null>(null);
 
-  const ordenes = useQuery({ queryKey: ['ordenes-recepcion'], queryFn: listarOrdenesRecepcionables });
+  const ordenes = useQuery({
+    queryKey: ['ordenes-recepcion'],
+    queryFn: listarOrdenesRecepcionables,
+  });
   const orden = ordenes.data?.find((o) => o.id === ordenId) ?? null;
 
   const procesar = useMutation({
@@ -107,7 +110,7 @@ export function OrdenRecepcionPage() {
   });
 
   const confirmar = useMutation({
-    mutationFn: () => confirmarRecepcion(orden!.id, lineas, nota),
+    mutationFn: () => confirmarRecepcion(orden!, lineas, nota),
     onSuccess: (resultado) => {
       void queryClient.invalidateQueries({ queryKey: ['recepciones'] });
       void queryClient.invalidateQueries({ queryKey: ['ordenes-recepcion'] });
@@ -145,7 +148,9 @@ export function OrdenRecepcionPage() {
   };
 
   const actualizarOcr = (id: string, patch: Partial<LineaOcr>) =>
-    setLineasOcr((prev) => (prev ?? ocr)?.map((l) => (l.id === id ? { ...l, ...patch } : l)) ?? null);
+    setLineasOcr(
+      (prev) => (prev ?? ocr)?.map((l) => (l.id === id ? { ...l, ...patch } : l)) ?? null,
+    );
   const actualizarConteo = (id: number, patch: Partial<LineaRecepcion>) =>
     setLineas((prev) => prev.map((l) => (l.id === id ? { ...l, ...patch } : l)));
 
@@ -199,7 +204,9 @@ export function OrdenRecepcionPage() {
   const resumen = resumirRecepcion(lineas);
   const motivoPaso2 =
     resumen.motivoBloqueo ??
-    (resumen.sobrantes > 0 && !nota.trim() ? 'Registrar una nota para explicar el sobrante.' : null);
+    (resumen.sobrantes > 0 && !nota.trim()
+      ? 'Registrar una nota para explicar el sobrante.'
+      : null);
   const conEntrada = lineas.filter((l) => l.recibido > 0).length;
 
   const columnasOcr: Column<LineaOcr>[] = [
@@ -290,9 +297,7 @@ export function OrdenRecepcionPage() {
           <>
             <Alert
               title={
-                ocr
-                  ? 'Datos precargados desde el documento'
-                  : 'La carga no modifica el inventario'
+                ocr ? 'Datos precargados desde el documento' : 'La carga no modifica el inventario'
               }
             >
               {ocr
@@ -449,8 +454,7 @@ export function OrdenRecepcionPage() {
               {plural(resumen.total, 'línea', 'líneas')}:{' '}
               {plural(resumen.completas, 'completa', 'completas')},{' '}
               {plural(resumen.parciales, 'parcial', 'parciales')},{' '}
-              {plural(resumen.sobrantes, 'sobrante', 'sobrantes')},{' '}
-              {resumen.sinAsociar} sin asociar
+              {plural(resumen.sobrantes, 'sobrante', 'sobrantes')}, {resumen.sinAsociar} sin asociar
             </Text>
           }
           reason={motivoPaso2}

@@ -30,6 +30,9 @@ import org.springframework.stereotype.Component;
 public class HerramientasDespacho implements ProveedorDeHerramientas {
 
 	private static final Set<RolUsuario> ROLES = Set.of(RolUsuario.ALMACENERO, RolUsuario.ADMINISTRADOR);
+	/** Id técnico de la guía, parámetro de ruta de las consultas de una guía. */
+	private static final ParametroHerramienta GUIA = ParametroHerramienta.identificador(
+			"Id técnico de la guía de despacho; no es su código.");
 
 	private final DespachoService despacho;
 
@@ -41,13 +44,20 @@ public class HerramientasDespacho implements ProveedorDeHerramientas {
 	public List<DefinicionHerramienta> definiciones() {
 		return List.of(
 				new DefinicionHerramienta("listarGuiasDespacho", "Listar guías de despacho", "GET /guias-despacho",
-						ROLES, this::listarGuias),
+						ROLES, ParametroHerramienta.conRangoDeFechas(
+								ParametroHerramienta.texto("q", "Texto libre a buscar en las guías."),
+								ParametroHerramienta.enumerado("estado", "Estado de la guía.", "preparacion",
+										"emitida", "salida_confirmada", "entregada", "anulada"),
+								ParametroHerramienta.entero("idVenta", "Id técnico de la venta de origen.")),
+						this::listarGuias),
 				new DefinicionHerramienta("consultarGuiaDespacho", "Consultar una guía de despacho",
-						"GET /guias-despacho/{id}", ROLES, this::consultarGuia),
+						"GET /guias-despacho/{id}", ROLES, List.of(GUIA), this::consultarGuia),
 				new DefinicionHerramienta("obtenerDocumentoGuia", "Obtener el documento de una guía de despacho",
-						"GET /guias-despacho/{id}/documento", ROLES, this::consultarGuia),
+						"GET /guias-despacho/{id}/documento", ROLES, List.of(GUIA), this::consultarGuia),
 				new DefinicionHerramienta("listarVentasPendientesDespacho",
 						"Listar ventas pendientes de despacho", "GET /ventas-pendientes-despacho", ROLES,
+						ParametroHerramienta.conRangoDeFechas(
+								ParametroHerramienta.texto("q", "Texto libre a buscar en las ventas.")),
 						this::ventasPendientes));
 	}
 

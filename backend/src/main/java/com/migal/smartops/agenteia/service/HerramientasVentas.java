@@ -38,8 +38,14 @@ public class HerramientasVentas implements ProveedorDeHerramientas {
 	@Override
 	public List<DefinicionHerramienta> definiciones() {
 		return List.of(
-				new DefinicionHerramienta("listarVentas", "Listar ventas", "GET /ventas", ROLES, this::listar),
+				new DefinicionHerramienta("listarVentas", "Listar ventas", "GET /ventas", ROLES,
+						ParametroHerramienta.conRangoDeFechas(
+								ParametroHerramienta.enumerado("estado", "Estado de la venta.", "pendiente_abastecimiento",
+										"pendiente_despacho", "lista_para_despacho", "despachada", "cancelada"),
+								ParametroHerramienta.entero("clienteId", "Id técnico del cliente.")),
+						this::listar),
 				new DefinicionHerramienta("consultarVenta", "Consultar una venta", "GET /ventas/{id}", ROLES,
+						List.of(ParametroHerramienta.identificador("Id técnico de la venta; no es su código.")),
 						this::consultar));
 	}
 

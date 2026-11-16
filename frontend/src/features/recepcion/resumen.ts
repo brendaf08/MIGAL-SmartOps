@@ -15,7 +15,7 @@ export interface ResumenRecepcion {
   parciales: number;
   sobrantes: number;
   sinAsociar: number;
-  /** Solo las líneas sin producto asociado impiden confirmar; la recepción parcial se admite (RF-COM-11). */
+  /** La recepción parcial se admite, pero exige una cantidad positiva y todas las líneas asociadas (RF-COM-11). */
   puedeConfirmar: boolean;
   /** Texto del bloqueo para mostrar junto a la acción principal; `null` si no hay bloqueo. */
   motivoBloqueo: string | null;
@@ -24,8 +24,10 @@ export interface ResumenRecepcion {
 /** Compara lo recibido con lo pedido; una línea sin producto no tiene diferencia que evaluar. */
 export function diferenciaLinea(linea: LineaRecepcion): DiferenciaLinea {
   if (!linea.sku) return { tipo: 'sinAsociar' };
-  if (linea.recibido < linea.pedido) return { tipo: 'faltan', cantidad: linea.pedido - linea.recibido };
-  if (linea.recibido > linea.pedido) return { tipo: 'sobran', cantidad: linea.recibido - linea.pedido };
+  if (linea.recibido < linea.pedido)
+    return { tipo: 'faltan', cantidad: linea.pedido - linea.recibido };
+  if (linea.recibido > linea.pedido)
+    return { tipo: 'sobran', cantidad: linea.recibido - linea.pedido };
   return { tipo: 'completa' };
 }
 
@@ -38,6 +40,8 @@ export function resumirRecepcion(lineas: LineaRecepcion[]): ResumenRecepcion {
   if (lineas.length === 0) motivoBloqueo = 'No hay líneas para confirmar.';
   else if (sinAsociar > 0) {
     motivoBloqueo = `Falta asociar ${sinAsociar} ${sinAsociar === 1 ? 'línea' : 'líneas'} a un producto del catálogo.`;
+  } else if (lineas.every((linea) => linea.recibido === 0)) {
+    motivoBloqueo = 'Registrar una cantidad recibida mayor que cero.';
   }
 
   return {

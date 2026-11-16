@@ -48,3 +48,5 @@ backend/almacen-documentos/
 .interface-design/
 .impeccable/
 frontend/CLAUDE.md
+# Evidencias y reportes locales de extremo a extremo (base temporal por ejecución).
+/artifacts/e2e-local/

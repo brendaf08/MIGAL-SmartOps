@@ -77,7 +77,7 @@ class ProveedorLlmTest {
 	}
 
 	private static DefinicionHerramienta definicion(String nombre) {
-		return new DefinicionHerramienta(nombre, "Prueba", "GET /prueba", Set.of(RolUsuario.ALMACENERO),
+		return new DefinicionHerramienta(nombre, "Prueba", "GET /prueba", Set.of(RolUsuario.ALMACENERO), List.of(),
 				parametros -> null);
 	}
 }

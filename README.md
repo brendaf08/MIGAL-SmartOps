@@ -72,7 +72,7 @@ MIGAL-SmartOps/
 │   └── generar-secuencias.py
 ├── backend/
 ├── frontend/
-├── servicio-python/
+├── servicio-ocr/
 ├── database/
 │   └── migraciones/
 ├── entregas/
@@ -95,7 +95,7 @@ MIGAL-SmartOps/
 | `requirements.txt` | Dependencias de Python para las herramientas generales del repositorio. |
 | `backend/` | Backend principal. |
 | `frontend/` | Aplicación web en React + TypeScript. Instalación, scripts y estructura en [frontend/README.md](frontend/README.md). |
-| `servicio-python/` | Servicio especializado de OCR e IA. |
+| `servicio-ocr/` | Servicio de OCR y Fuzzy Matching en Python. |
 | `database/` | Archivos y migraciones de la base de datos. |
 | `entregas/` | Informes y archivos correspondientes a cada hito. |
 | `.github/` | Plantillas y configuración de colaboración en GitHub. |
@@ -113,6 +113,14 @@ La carpeta `.venv/` se crea localmente durante la preparación del entorno. No s
 | Despliegue | Docker |
 
 Las instrucciones de instalación, configuración y ejecución de la aplicación se mantienen en el README de cada componente.
+
+Para levantar el sistema completo en contenedores (base de datos, backend, servicio de OCR y frontend), con las variables de `.env` definidas, ejecutar desde la raíz:
+
+```text
+docker compose --profile completo up -d --build --wait
+```
+
+El frontend queda en `http://localhost:8081` y llama a la API mediante el proxy de nginx. Sin el perfil, `docker compose up -d` inicia solo la base de datos, como se describe en el [README de la base de datos](database/README.md). Para detener el sistema sin borrar los datos, usar `docker compose --profile completo down`, sin `-v`.
 
 El entorno descrito a continuación corresponde a las herramientas de documentación y no inicia la aplicación MIGAL SmartOps.
 

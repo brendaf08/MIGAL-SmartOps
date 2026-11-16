@@ -4,10 +4,13 @@ import { AppShell } from '@/components/layout/AppShell/AppShell';
 import { useSession } from '@/features/seguridad/session';
 import { useWarehouseMode } from '@/theme';
 import { NAV } from './navigation';
+import { useCatalogoVigente } from '@/features/catalogo/catalogoVigente';
 
 /** Marco de las rutas internas: la clave de cada ítem de navegación es su ruta. */
 export function ShellLayout() {
   const { user, logout } = useSession();
+  // Carga el catálogo vigente al entrar, para que las pantallas lo encuentren listo (API real).
+  useCatalogoVigente(Boolean(user));
   const navigate = useNavigate();
   const current = useLocation().pathname.split('/')[1];
   const { warehouse, toggle: toggleWarehouse } = useWarehouseMode();

@@ -35,6 +35,8 @@ export function ProductoSelect({
     <Select
       placeholder="Seleccionar producto"
       searchable
+      // El catálogo real tiene cientos de productos: se muestran los primeros que coinciden con la búsqueda.
+      limit={50}
       comboboxProps={{ width: 360, position: 'bottom-start' }}
       data={ordenados.map((p) => ({ value: p.sku, label: `${p.sku}, ${p.nombre}` }))}
       value={value}

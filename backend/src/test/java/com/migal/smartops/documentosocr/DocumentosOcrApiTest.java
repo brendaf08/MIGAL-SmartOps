@@ -4,7 +4,6 @@ import static com.migal.smartops.contrato.ValidadorContrato.cumple;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
@@ -250,7 +249,8 @@ class DocumentosOcrApiTest {
 				.andExpect(status().isOk())
 				.andExpect(cumple(contrato))
 				.andExpect(jsonPath("$.estadoProcesamiento", is("procesado_ocr")))
-				.andExpect(jsonPath("$.detalles[0].sku", nullValue()))
+				.andExpect(jsonPath("$.detalles[0].sku", is(sku)))
+				.andExpect(jsonPath("$.detalles[0].requiereRevision", is(false)))
 				.andExpect(jsonPath("$.detalles[0].coincidencias[0].sku", is(sku)));
 
 		mvc.perform(put(RUTA + "/" + id + "/resultados").contentType(JSON).content(cuerpo)

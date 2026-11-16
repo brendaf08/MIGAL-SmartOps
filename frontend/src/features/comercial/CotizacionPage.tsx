@@ -14,6 +14,8 @@ import { ConfirmDialog } from '@/components/ui/Modal/ConfirmDialog';
 import { Stepper } from '@/components/ui/Stepper/Stepper';
 import { formatCurrency, formatDate, formatNumber } from '@/lib/format';
 import { API_REAL } from '@/api/cliente';
+import type { Role } from '@/features/seguridad/roles';
+import { useSession } from '@/features/seguridad/session';
 import {
   obtenerCotizacion,
   registrarAceptacion,
@@ -36,9 +38,23 @@ const columns: Column<LineaCotizacion>[] = [
   },
 ];
 
+/**
+ * Roles que pueden ejecutar cada acción, según x-roles del contrato comercial y de ventas. Una acción que el backend
+ * rechazaría para el rol no se muestra.
+ */
+const ROLES_ACCION = {
+  modificar: ['Vendedor'],
+  rechazar: ['Vendedor', 'Administrador'],
+  aceptar: ['Vendedor'],
+  validar: ['Administrador'],
+  convertir: ['Vendedor'],
+} satisfies Record<string, Role[]>;
+
 /** CU-09: detalle de una cotización con su ciclo de vida, líneas, totales, cliente y condiciones. */
 export function CotizacionPage() {
   const { id = '' } = useParams();
+  const { user } = useSession();
+  const puede = (roles: Role[]) => user !== null && user !== undefined && roles.includes(user.role);
   const queryClient = useQueryClient();
   const { data: cotizacion, isError } = useQuery({
     queryKey: ['cotizacion', id],
@@ -152,33 +168,39 @@ export function CotizacionPage() {
             </Button>
             {cotizacion.estado === 'Emitida' && (
               <>
-                <Button variant="default" component={Link} to={`/cotizaciones/${id}/editar`}>
-                  Modificar
-                </Button>
-                <Button
-                  variant="default"
-                  color="danger"
-                  leftSection={<Icon name="x-circle" />}
-                  onClick={() => {
-                    setClaveRechazo(crypto.randomUUID());
-                    setMotivoRechazo('');
-                    setRechazando(true);
-                  }}
-                >
-                  Registrar rechazo
-                </Button>
-                <Button
-                  leftSection={<Icon name="check" />}
-                  onClick={() => {
-                    setClaveAceptacion(crypto.randomUUID());
-                    setAceptando(true);
-                  }}
-                >
-                  Registrar aceptación
-                </Button>
+                {puede(ROLES_ACCION.modificar) && (
+                  <Button variant="default" component={Link} to={`/cotizaciones/${id}/editar`}>
+                    Modificar
+                  </Button>
+                )}
+                {puede(ROLES_ACCION.rechazar) && (
+                  <Button
+                    variant="default"
+                    color="danger"
+                    leftSection={<Icon name="x-circle" />}
+                    onClick={() => {
+                      setClaveRechazo(crypto.randomUUID());
+                      setMotivoRechazo('');
+                      setRechazando(true);
+                    }}
+                  >
+                    Registrar rechazo
+                  </Button>
+                )}
+                {puede(ROLES_ACCION.aceptar) && (
+                  <Button
+                    leftSection={<Icon name="check" />}
+                    onClick={() => {
+                      setClaveAceptacion(crypto.randomUUID());
+                      setAceptando(true);
+                    }}
+                  >
+                    Registrar aceptación
+                  </Button>
+                )}
               </>
             )}
-            {cotizacion.estado === 'AceptadaCliente' && (
+            {cotizacion.estado === 'AceptadaCliente' && puede(ROLES_ACCION.validar) && (
               <Button
                 variant={API_REAL ? 'filled' : 'default'}
                 leftSection={<Icon name="check" />}
@@ -191,11 +213,12 @@ export function CotizacionPage() {
               </Button>
             )}
             {(cotizacion.estado === 'ValidadaMigal' ||
-              (cotizacion.estado === 'AceptadaCliente' && !API_REAL)) && (
-              <Button component={Link} to={`/ventas/nueva?cotizacion=${id}`}>
-                Convertir en venta
-              </Button>
-            )}
+              (cotizacion.estado === 'AceptadaCliente' && !API_REAL)) &&
+              puede(ROLES_ACCION.convertir) && (
+                <Button component={Link} to={`/ventas/nueva?cotizacion=${id}`}>
+                  Convertir en venta
+                </Button>
+              )}
           </>
         }
       />

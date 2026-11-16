@@ -111,6 +111,8 @@ def singular(palabra: str) -> str:
 def normalizar(texto: str) -> TextoNormalizado:
     """Normaliza una descripción y separa sus medidas críticas."""
     actual = _sin_tildes(texto.lower()).replace("º", "°")
+    # El símbolo de diámetro llega como `ø`, `φ`, `∅` o `⌀` según el modelo; los dos últimos no son letras.
+    actual = actual.replace("∅", " ø ").replace("⌀", " ø ")
     actual = _CANTIDAD_INICIAL.sub("", actual, count=1)
     for palabras, fraccion in _FRACCION_PALABRAS.items():
         actual = re.sub(rf"\b{palabras}\s+pulgadas?\b", f'{fraccion}"', actual)

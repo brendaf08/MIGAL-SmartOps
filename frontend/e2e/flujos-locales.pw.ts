@@ -119,7 +119,8 @@ test('SIMULADO PARCIAL: cotización → venta/reserva → despacho (selectores d
   await page.goto(`/cotizaciones/${cotizacion}`);
   await page.getByRole('button', { name: 'Validar viabilidad' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Validar' }).click();
-  await expect(page.getByRole('link', { name: 'Convertir en venta' })).toBeVisible();
+  // Validada la viabilidad, la acción desaparece. Convertir en venta corresponde solo al Vendedor.
+  await expect(page.getByRole('button', { name: 'Validar viabilidad' })).toBeHidden();
 
   // CU-09: el Administrador valida la viabilidad y el Vendedor registra la venta (registrarVentaDesdeCotizacion).
   await cerrarSesion(page);

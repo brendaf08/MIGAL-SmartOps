@@ -40,9 +40,15 @@ public class HerramientasRecepciones implements ProveedorDeHerramientas {
 	public List<DefinicionHerramienta> definiciones() {
 		return List.of(
 				new DefinicionHerramienta("listarRecepciones", "Listar recepciones de mercadería", "GET /recepciones",
-						ROLES, this::listar),
+						ROLES, ParametroHerramienta.conRangoDeFechas(
+								ParametroHerramienta.entero("ordenCompraId", "Id técnico de la orden de compra."),
+								ParametroHerramienta.enumerado("estado", "Estado de la recepción.", "pendiente",
+										"validada")),
+						this::listar),
 				new DefinicionHerramienta("consultarRecepcion", "Consultar una recepción de mercadería",
-						"GET /recepciones/{id}", ROLES, this::consultar));
+						"GET /recepciones/{id}", ROLES,
+						List.of(ParametroHerramienta.identificador("Id técnico de la recepción; no es su código.")),
+						this::consultar));
 	}
 
 	private ResultadoHerramienta listar(Map<String, String> parametros) {

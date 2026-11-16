@@ -1,100 +1,89 @@
 # Base de datos
 
-Este directorio define la base de datos del proyecto. El motor es PostgreSQL, según el [ADR-005](../docs/adr/adr-005-base-de-datos.md), y la imagen de referencia se fija en el archivo `compose.yaml` de la raíz. No se incluye un esquema SQL validado. Las migraciones se incorporan en `migraciones/` después de resolver y aprobar el modelo de datos.
+Este directorio contiene el esquema PostgreSQL de MIGAL SmartOps, administrado mediante migraciones Flyway en `migraciones/`. El proyecto Supabase `migal-smartops` tiene aplicadas la línea base 0 y las migraciones V1 a V15; el historial consultado el 15 de noviembre de 2026 muestra todas con ejecución exitosa.
 
-## Verificar los requisitos
+El entorno local usa PostgreSQL en Docker Compose. El backend ejecuta Flyway al iniciar y crea el administrador inicial si no existe uno activo.
 
-- Docker Desktop o Docker Engine con el complemento Docker Compose v2.
-- Espacio libre suficiente para la imagen `postgres:17.11-alpine` y el volumen de datos.
+## Requisitos
 
-## Preparar el entorno
+- Docker Desktop o Docker Engine con Docker Compose v2.
+- Espacio para la imagen `postgres:17.11-alpine` y el volumen local.
 
-Desde la raíz del repositorio, copiar la plantilla de variables:
+## Configurar PostgreSQL local
 
-```text
-copy .env.example .env
+Desde la raíz, copia la plantilla:
+
+```powershell
+Copy-Item .env.example .env
 ```
 
-Reemplazar el valor de `POSTGRES_PASSWORD` por una credencial local. El archivo `.env` está excluido del control de versiones y no se publica. Las variables son las siguientes:
+En `.env`, define una contraseña local propia para `POSTGRES_PASSWORD`. Este archivo está excluido de Git. No uses aquí credenciales de Supabase.
 
-| Variable | Descripción | Valor de la plantilla |
+| Variable | Uso | Valor de plantilla |
 | --- | --- | --- |
-| `POSTGRES_DB` | Nombre de la base de datos. | `migal_smartops` |
-| `POSTGRES_USER` | Usuario propietario de la base de datos. | `migal_app` (ficticio) |
-| `POSTGRES_PASSWORD` | Contraseña del usuario. Obligatoria. | `cambiar-este-valor` |
-| `POSTGRES_PUERTO` | Puerto publicado en `127.0.0.1`. Opcional. | `5432` |
+| `POSTGRES_DB` | Base local | `migal_smartops` |
+| `POSTGRES_USER` | Usuario propietario de la base local | `migal_app` |
+| `POSTGRES_PASSWORD` | Contraseña local obligatoria | Reemplazar el ejemplo |
+| `POSTGRES_PUERTO` | Puerto local opcional | `5432` |
 
-Si alguna variable obligatoria no está definida, Compose interrumpe la ejecución e informa la variable faltante.
+Para que el backend se conecte a esta base, define además `SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/migal_smartops`, `SPRING_DATASOURCE_USERNAME=migal_app` y `SPRING_DATASOURCE_PASSWORD` con la misma contraseña local. Define también `MIGAL_JWT_SECRETO` (mínimo 32 caracteres), `MIGAL_ADMIN_USERNAME` y `MIGAL_ADMIN_CLAVE`. Usa valores locales sin comillas en el archivo `.env`; no publiques esos valores.
 
-## Iniciar el entorno
+## Iniciar y consultar el entorno local
 
-Ejecutar el siguiente comando desde la raíz del repositorio:
+Desde la raíz:
 
-```text
-docker compose up -d
-```
-
-El contenedor se denomina `migal-postgres`. Los datos se almacenan en el volumen nombrado `migal-postgres-datos`. El contenedor se reinicia automáticamente, salvo que se detenga de forma explícita.
-
-## Consultar el estado
-
-```text
+```powershell
+docker compose up -d --wait
 docker compose ps
 ```
 
-El servicio `postgres` debe mostrar el estado `healthy` una vez superada la comprobación de `pg_isready`.
+El servicio se llama `postgres`, el contenedor `migal-postgres` y el volumen persistente `migal-postgres-datos`. El puerto se publica solo en `127.0.0.1`. `docker compose ps` debe mostrar estado `healthy`.
 
-## Conectar con la base de datos
+Conecta con psql:
 
-```text
+```powershell
 docker compose exec postgres psql -U migal_app -d migal_smartops
 ```
 
-El puerto publicado solo acepta conexiones desde el equipo local.
+Para detener el contenedor y conservar los datos:
 
-## Detener el entorno
-
-```text
+```powershell
 docker compose down
 ```
 
-Este comando detiene y elimina el contenedor, pero conserva el volumen `migal-postgres-datos`. Los datos persisten en la siguiente ejecución.
+Para eliminar también el volumen y reconstruir la base local desde cero:
 
-## Eliminar los datos
-
-```text
+```powershell
 docker compose down -v
 ```
 
-Advertencia: este comando elimina el contenedor y el volumen `migal-postgres-datos`. Se pierden todos los datos almacenados en la base de datos, de forma irreversible. Se recomienda ejecutarlo solo cuando se requiera reconstruir la base de datos desde cero.
+Este último comando elimina permanentemente los datos del volumen local, incluidas las migraciones y los datos de demostración. No afecta Supabase.
 
-## Ubicar las migraciones
+## Migraciones
 
-Los cambios de esquema se almacenan en `database/migraciones/`. La herramienta es Flyway Community Edition con scripts SQL planos, y la convención de nombres (`V<número>__<descripción>.sql`) y las reglas de inmutabilidad se describen en el ADR-005. La ejecución de Flyway y la cuenta de migraciones, distinta de la cuenta de la aplicación, se definen en el ADR de arquitectura del backend. Estos mecanismos no forman parte de este entorno.
+Las migraciones versionadas están en `database/migraciones/` y siguen el patrón `V<número>__<descripción>.sql`. No edites una migración que ya se aplicó: agrega una migración nueva. Flyway conserva el historial en `flyway_schema_history`.
 
-## Ubicar las semillas
+En una base local nueva, inicia el backend desde `backend/`; Flyway aplicará V1–V15 y las migraciones posteriores pendientes.
 
-Los datos de desarrollo se ubicarían en `database/semillas/`. Esta ubicación es una propuesta del ADR-005 y la carpeta aún no existe. Las semillas contienen únicamente datos ficticios, están separadas de las migraciones y no se ejecutan en producción.
+## Estado de Supabase
 
-## Datos de demostración (solo desarrollo local)
+La verificación del 15 de noviembre de 2026 encontró en el esquema `public` las tablas del sistema y `flyway_schema_history`, con línea base 0 y las migraciones V1–V15 exitosas. Por tanto, la base Supabase actual ya tiene el esquema aplicado.
 
-El script `datos-demostracion/demo.sql` carga ubicaciones, productos con stock inicial, clientes y proveedores para
-probar las pantallas con la API real. No forma parte de las migraciones y no debe ejecutarse en Supabase ni en
-producción. Requiere que el backend haya creado el administrador inicial y es idempotente.
+La configuración `spring.flyway.baseline-on-migrate=true` y `spring.flyway.baseline-version=0` se usó en la primera aplicación, debido a una función propia presente en el esquema `public`. No vuelvas a activar estas opciones para el proyecto actual. Solo evalúalas al configurar otro proyecto Supabase y retíralas luego de su primera ejecución.
 
-Para cargarlo en el contenedor local de PostgreSQL, con las variables del archivo `.env` de la raíz:
+Para cambios futuros, aplica migraciones nuevas mediante Flyway desde el backend. No cambies el esquema con el editor SQL de Supabase ni con sus migraciones propias: se debe preservar un único historial.
 
-```bash
-docker exec -i migal-postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 < database/datos-demostracion/demo.sql
+La conexión a Supabase requiere credenciales administradas por el responsable del proyecto. No las guardes en Git ni las compartas en mensajes. Las reglas definitivas para separar el rol de migración del rol de aplicación siguen pendientes según ADR-007.
+
+## Datos de demostración
+
+`datos-demostracion/demo.sql` agrega ubicaciones, productos, clientes y proveedores ficticios para probar el entorno local con la API. No es una migración y no debe ejecutarse en Supabase ni en producción. El backend debe haber creado antes el administrador inicial.
+
+Desde la raíz, en PowerShell:
+
+```powershell
+cmd.exe /c "docker exec -i migal-postgres psql -U migal_app -d migal_smartops -v ON_ERROR_STOP=1 < database\datos-demostracion\demo.sql"
 ```
 
-## Aplicar las migraciones en Supabase
+El script es idempotente. El stock inicial se registra mediante los datos de demostración del entorno local; los datos reales de MIGAL no forman parte de esta carga.
 
-El proyecto `migal-smartops` de Supabase (PostgreSQL 17) no contiene tablas hasta que se ejecutan las migraciones. El esquema completo se define en `migraciones/V1` a `V15` y es la única fuente, según el ADR-007. No se aplica mediante el editor SQL ni las migraciones propias de Supabase, para conservar un único historial (`flyway_schema_history`).
-
-1. Obtener en el panel de Supabase (Connect) la cadena de conexión del pooler en modo sesión y la contraseña de la base de datos.
-2. Definir en el archivo `.env` de la raíz `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME` y `SPRING_DATASOURCE_PASSWORD`, además de `MIGAL_JWT_SECRETO`, `MIGAL_ADMIN_USERNAME` y `MIGAL_ADMIN_CLAVE`. El backend lee ese archivo al iniciar (`spring.config.import`), por lo que no se exportan variables en cada terminal. Las plantillas figuran en `.env.example`. Para volver a la base local, comentar las variables `SPRING_DATASOURCE_*`.
-3. En la primera ejecución, activar también `spring.flyway.baseline-on-migrate=true` y `spring.flyway.baseline-version=0` en `.env`, porque el esquema `public` de Supabase incluye una función propia y Flyway exige una línea base. Retirarlas después. Iniciar el backend desde `backend/`. Flyway ejecuta las migraciones pendientes al arrancar, también las nuevas que se agreguen en el futuro y la aplicación crea el administrador inicial.
-4. Verificar en Supabase que las tablas del esquema `public` tienen RLS habilitado y que `flyway_schema_history` registra las quince versiones.
-
-No cargar `datos-demostracion/demo.sql` en Supabase. La definición de los roles de migración y de aplicación (ADR-007, punto 6) queda pendiente de un cambio posterior.

@@ -87,3 +87,14 @@ Para cargarlo en el contenedor local de PostgreSQL, con las variables del archiv
 ```bash
 docker exec -i migal-postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 < database/datos-demostracion/demo.sql
 ```
+
+## Aplicar las migraciones en Supabase
+
+El proyecto `migal-smartops` de Supabase (PostgreSQL 17) no contiene tablas hasta que se ejecutan las migraciones. El esquema completo se define en `migraciones/V1` a `V15` y es la única fuente, según el ADR-007. No se aplica mediante el editor SQL ni las migraciones propias de Supabase, para conservar un único historial (`flyway_schema_history`).
+
+1. Obtener en el panel de Supabase (Connect) la cadena de conexión del pooler en modo sesión y la contraseña de la base de datos.
+2. Definir en el archivo `.env` de la raíz `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME` y `SPRING_DATASOURCE_PASSWORD`, además de `MIGAL_JWT_SECRETO`, `MIGAL_ADMIN_USERNAME` y `MIGAL_ADMIN_CLAVE`. El backend lee ese archivo al iniciar (`spring.config.import`), por lo que no se exportan variables en cada terminal. Las plantillas figuran en `.env.example`. Para volver a la base local, comentar las variables `SPRING_DATASOURCE_*`.
+3. En la primera ejecución, activar también `spring.flyway.baseline-on-migrate=true` y `spring.flyway.baseline-version=0` en `.env`, porque el esquema `public` de Supabase incluye una función propia y Flyway exige una línea base. Retirarlas después. Iniciar el backend desde `backend/`. Flyway ejecuta las migraciones pendientes al arrancar, también las nuevas que se agreguen en el futuro y la aplicación crea el administrador inicial.
+4. Verificar en Supabase que las tablas del esquema `public` tienen RLS habilitado y que `flyway_schema_history` registra las quince versiones.
+
+No cargar `datos-demostracion/demo.sql` en Supabase. La definición de los roles de migración y de aplicación (ADR-007, punto 6) queda pendiente de un cambio posterior.

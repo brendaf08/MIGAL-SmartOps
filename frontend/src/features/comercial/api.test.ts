@@ -124,7 +124,12 @@ describe('cotizaciones (API real)', () => {
     const api = await cargarApiReal();
     fetchMock
       .mockResolvedValueOnce(
-        respuesta({ items: [{ id: '101', sku: 'CEM-049' }], total: 1, page: 1, pageSize: 1 }),
+        respuesta({
+          items: [{ productoId: '101', sku: 'CEM-049' }],
+          total: 1,
+          page: 1,
+          pageSize: 1,
+        }),
       )
       .mockResolvedValueOnce(respuesta(cotizacionApi(), 201));
 
@@ -137,7 +142,7 @@ describe('cotizaciones (API real)', () => {
       condiciones: 'Entrega en obra.',
     });
 
-    expect(llamada(0)[0]).toBe('/api/v1/productos?sku=CEM-049&pageSize=1');
+    expect(llamada(0)[0]).toBe('/api/v1/inventario/disponibilidad?sku=CEM-049&pageSize=1');
     expect(llamada(1)[0]).toBe('/api/v1/cotizaciones');
     expect(llamada(1)[1]?.method).toBe('POST');
     expect(cuerpo(1)).toEqual({
@@ -154,7 +159,12 @@ describe('cotizaciones (API real)', () => {
     const api = await cargarApiReal();
     fetchMock
       .mockResolvedValueOnce(
-        respuesta({ items: [{ id: '101', sku: 'CEM-049' }], total: 1, page: 1, pageSize: 1 }),
+        respuesta({
+          items: [{ productoId: '101', sku: 'CEM-049' }],
+          total: 1,
+          page: 1,
+          pageSize: 1,
+        }),
       )
       .mockResolvedValueOnce(respuesta(cotizacionApi(), 201));
 

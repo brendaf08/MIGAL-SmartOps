@@ -14,6 +14,7 @@ export function construirLineas(
     const leidas = (ocr ?? []).filter((l) => l.sku === linea.sku);
     return {
       id: i + 1,
+      productoId: linea.productoId,
       texto: linea.nombre,
       sku: linea.sku,
       score: leidas.length > 0 ? Math.max(...leidas.map((l) => l.score)) : 1,

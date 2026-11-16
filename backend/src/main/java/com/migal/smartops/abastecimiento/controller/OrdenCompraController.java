@@ -1,6 +1,7 @@
 package com.migal.smartops.abastecimiento.controller;
 
 import com.migal.smartops.abastecimiento.controller.AbastecimientoDtos.OrdenCompraDto;
+import com.migal.smartops.abastecimiento.controller.AbastecimientoDtos.OrdenCompraRecepcionableDto;
 import com.migal.smartops.abastecimiento.controller.SolicitudesAbastecimiento.CierreOrden;
 import com.migal.smartops.abastecimiento.controller.SolicitudesAbastecimiento.LineaOrdenSolicitud;
 import com.migal.smartops.abastecimiento.controller.SolicitudesAbastecimiento.OrdenActualizacion;
@@ -80,6 +81,19 @@ public class OrdenCompraController {
 				: Arrays.stream(estado.split(",")).map(EstadoOrdenCompra::de).toList();
 		Long idProveedor = proveedorId == null ? null : Identificadores.numero(proveedorId);
 		return PaginaDto.de(ordenes.listar(q, idProveedor, estados, desde, hasta, paginacion), OrdenCompraDto::de);
+	}
+
+	@GetMapping("/recepcionables")
+	@PreAuthorize("hasRole('ALMACENERO')")
+	public PaginaDto<OrdenCompraRecepcionableDto> listarRecepcionables(
+			@RequestParam(defaultValue = "1") @Min(1) int page,
+			@RequestParam(defaultValue = "20") @Min(1) @Max(100) int pageSize,
+			@RequestParam(required = false) String orden) {
+		var paginacion = Ordenamiento.paginacion(page, pageSize, orden, CAMPOS_ORDENABLES,
+				Sort.by(Sort.Direction.DESC, "fechaEmision"));
+		var estadosRecepcionables = List.of(EstadoOrdenCompra.PENDIENTE, EstadoOrdenCompra.PARCIAL);
+		return PaginaDto.de(ordenes.listar(null, null, estadosRecepcionables, null, null, paginacion),
+				OrdenCompraRecepcionableDto::de);
 	}
 
 	@PostMapping

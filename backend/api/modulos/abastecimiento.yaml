@@ -259,6 +259,39 @@ components:
               type: array
               items: {$ref: '#/components/schemas/OrdenCompra'}
 
+    OrdenCompraRecepcionable:
+      type: object
+      description: Vista mínima de una orden pendiente o parcial para registrar su recepción (CU-13).
+      required: [id, codigo, proveedor, estado, lineas]
+      properties:
+        id: {$ref: ../componentes/esquemas-comunes.yaml#/Identificador}
+        codigo: {$ref: ../componentes/esquemas-comunes.yaml#/Codigo}
+        proveedor: {type: string, description: Razón social que identifica la orden al Almacenero.}
+        estado: {$ref: '#/components/schemas/OrdenCompraEstado'}
+        lineas:
+          type: array
+          items: {$ref: '#/components/schemas/OrdenCompraRecepcionableLinea'}
+    OrdenCompraRecepcionableLinea:
+      type: object
+      required: [productoId, sku, nombre, cantidadComprada, cantidadRecibida, cantidadPendienteRecepcion]
+      properties:
+        productoId: {$ref: ../componentes/esquemas-comunes.yaml#/Identificador}
+        sku: {$ref: ../componentes/esquemas-comunes.yaml#/Sku}
+        nombre: {type: string, description: Denominación del producto del catálogo.}
+        cantidadComprada: {$ref: ../componentes/esquemas-comunes.yaml#/CantidadPositiva}
+        cantidadRecibida: {$ref: ../componentes/esquemas-comunes.yaml#/CantidadNoNegativa}
+        cantidadPendienteRecepcion: {$ref: ../componentes/esquemas-comunes.yaml#/CantidadNoNegativa}
+    OrdenCompraRecepcionablePagina:
+      description: Página de órdenes pendientes o parciales visibles para recepción.
+      allOf:
+        - $ref: ../componentes/esquemas-comunes.yaml#/Pagina
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: {$ref: '#/components/schemas/OrdenCompraRecepcionable'}
+
 paths:
   /proveedores:
     get:
@@ -454,6 +487,28 @@ paths:
       responses:
         '201': {description: Orden de compra registrada en estado pendiente., content: {application/json: {schema: {$ref: '#/components/schemas/OrdenCompra'}}}}
         '400': {$ref: ../componentes/errores.yaml#/Error400}
+        '401': {$ref: ../componentes/errores.yaml#/Error401}
+        '403': {$ref: ../componentes/errores.yaml#/Error403}
+        '422': {$ref: ../componentes/errores.yaml#/Error422}
+        '500': {$ref: ../componentes/errores.yaml#/Error500}
+
+  /ordenes-compra/recepcionables:
+    get:
+      operationId: listarOrdenesRecepcionables
+      summary: Listar órdenes disponibles para recepción
+      description: >-
+        Devuelve solo las órdenes pendientes o parciales y los datos mínimos para que el Almacenero elija
+        una orden y registre las cantidades recibidas (CU-13). No expone el directorio completo de
+        proveedores ni el listado general de órdenes.
+      tags: [Órdenes de compra]
+      security: [{bearerAuth: []}]
+      x-roles: [almacenero]
+      parameters:
+        - {$ref: ../componentes/parametros.yaml#/page}
+        - {$ref: ../componentes/parametros.yaml#/pageSize}
+        - {$ref: ../componentes/parametros.yaml#/orden}
+      responses:
+        '200': {description: Página acotada de órdenes pendientes o parciales., content: {application/json: {schema: {$ref: '#/components/schemas/OrdenCompraRecepcionablePagina'}}}}
         '401': {$ref: ../componentes/errores.yaml#/Error401}
         '403': {$ref: ../componentes/errores.yaml#/Error403}
         '422': {$ref: ../componentes/errores.yaml#/Error422}

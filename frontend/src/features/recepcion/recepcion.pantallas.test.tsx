@@ -40,7 +40,11 @@ describe('Recepción desde una orden de compra', () => {
     await continuar();
     await userEvent.click(await screen.findByRole('button', { name: 'Registrar sin documento' }));
 
+    const confirmacion = screen.getByRole('button', { name: 'Confirmar recepción' });
+    expect(confirmacion).toBeDisabled();
+    expect(screen.getByText('Registrar una cantidad recibida mayor que cero.')).toBeInTheDocument();
     await recibir('Ladrillo King Kong 18 huecos', 60);
+    expect(confirmacion).toBeEnabled();
     await userEvent.click(screen.getByRole('button', { name: 'Confirmar recepción' }));
     await userEvent.click(
       within(await screen.findByRole('dialog', { name: 'Confirmar recepción OC-0088' })).getByRole(
@@ -53,7 +57,9 @@ describe('Recepción desde una orden de compra', () => {
     expect(parcial).toHaveTextContent('Recepción parcial: quedan por recibir');
     expect(parcial).toHaveTextContent('en 1 línea');
 
-    await userEvent.click(within(parcial).getByRole('button', { name: 'Registrar otra recepción' }));
+    await userEvent.click(
+      within(parcial).getByRole('button', { name: 'Registrar otra recepción' }),
+    );
     await continuar();
     await userEvent.click(await screen.findByRole('button', { name: 'Registrar sin documento' }));
     await recibir('Ladrillo King Kong 18 huecos', 3940);
@@ -86,7 +92,10 @@ describe('Recepción desde una orden de compra', () => {
     );
     expect(within(barra).getByRole('button', { name: 'Confirmar recepción' })).toBeDisabled();
 
-    await userEvent.type(screen.getByRole('textbox', { name: 'Nota del sobrante' }), 'Caja adicional');
+    await userEvent.type(
+      screen.getByRole('textbox', { name: 'Nota del sobrante' }),
+      'Caja adicional',
+    );
     expect(within(barra).queryByRole('status')).not.toBeInTheDocument();
     expect(within(barra).getByRole('button', { name: 'Confirmar recepción' })).toBeEnabled();
   });

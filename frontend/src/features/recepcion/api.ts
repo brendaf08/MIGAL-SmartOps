@@ -2,11 +2,6 @@ import { API_REAL, ApiError, api } from '@/api/cliente';
 import { mockRequest } from '@/api/mock';
 import { recorrerPaginas } from '@/api/paginacion';
 import type { CambioStock } from '@/components/domain/Constancia/Constancia';
-import {
-  aOrden,
-  buscarOrdenPorCodigo,
-  type OrdenCompraApi,
-} from '@/features/abastecimiento/compras/api';
 import { ORDENES_COMPRA, PROVEEDORES } from '@/features/abastecimiento/fixtures';
 import type { LineaOrdenCompra, OrdenCompra } from '@/features/abastecimiento/tipos';
 import { PRODUCTOS } from '@/features/inventario/fixtures';
@@ -40,10 +35,20 @@ const nombreProveedor = (orden: OrdenCompra) =>
 
 /** Orden que admite recepciones: pendiente o con recepción parcial. */
 export interface OrdenRecepcionable {
+  /** Código de negocio que se muestra al usuario. */
   id: string;
+  /** Identificador técnico requerido por POST /recepciones. */
+  ordenCompraId: string;
   proveedor: string;
   estado: 'Pendiente' | 'Parcial';
-  lineas: LineaOrdenCompra[];
+  lineas: LineaOrdenRecepcionable[];
+}
+
+export interface LineaOrdenRecepcionable extends Pick<
+  LineaOrdenCompra,
+  'sku' | 'nombre' | 'cantidad' | 'recibido'
+> {
+  productoId?: string;
 }
 
 /** Resultado de confirmar: la recepción, la existencia antes y después y lo que queda pendiente en la orden. */
@@ -174,21 +179,36 @@ const listarRecepcionesReal = async (): Promise<RecepcionListada[]> => {
 };
 
 const listarOrdenesRecepcionablesReal = async (): Promise<OrdenRecepcionable[]> => {
-  const [ordenes, proveedores] = await Promise.all([
-    recorrerPaginas<OrdenCompraApi>('/ordenes-compra', { estado: 'pendiente,parcial' }),
-    recorrerPaginas<{ id: string; razonSocial: string }>('/proveedores'),
-  ]);
-  const nombres = new Map(proveedores.map((p) => [p.id, p.razonSocial] as const));
-  return ordenes.map((o) => {
-    const orden = aOrden(o);
-    return {
-      id: orden.id,
-      proveedor: nombres.get(o.proveedorId) ?? '',
-      estado: orden.estado as OrdenRecepcionable['estado'],
-      lineas: orden.lineas,
-    };
-  });
+  const ordenes = await recorrerPaginas<OrdenRecepcionableApi>('/ordenes-compra/recepcionables');
+  return ordenes.map((o) => ({
+    id: o.codigo,
+    ordenCompraId: o.id,
+    proveedor: o.proveedor,
+    estado: o.estado === 'parcial' ? 'Parcial' : 'Pendiente',
+    lineas: o.lineas.map((l) => ({
+      productoId: l.productoId,
+      sku: l.sku,
+      nombre: l.nombre,
+      cantidad: l.cantidadComprada,
+      recibido: l.cantidadRecibida,
+    })),
+  }));
 };
+
+interface OrdenRecepcionableApi {
+  id: string;
+  codigo: string;
+  proveedor: string;
+  estado: 'pendiente' | 'parcial';
+  lineas: {
+    productoId: string;
+    sku: string;
+    nombre: string;
+    cantidadComprada: number;
+    cantidadRecibida: number;
+    cantidadPendienteRecepcion: number;
+  }[];
+}
 
 /** Recepciones registradas en esta sesión y todavía no validadas, por código de orden. */
 const pendientesPorOrden = new Map<string, string>();
@@ -197,9 +217,27 @@ const clavesPorIntencion = new Map<string, string>();
 
 const hoy = () => new Date().toLocaleDateString('en-CA');
 
-const productosPorSku = async (): Promise<Map<string, string>> => {
-  const productos = await recorrerPaginas<{ id: string; sku: string }>('/productos');
-  return new Map(productos.map((p) => [p.sku, p.id] as const));
+const productosPorSku = async (lineas: LineaRecepcion[]): Promise<Map<string, string>> => {
+  const productos = new Map(
+    lineas
+      .filter((linea) => linea.productoId)
+      .map((linea) => [linea.sku, linea.productoId!] as const),
+  );
+  const skusPendientes = [
+    ...new Set(lineas.map((linea) => linea.sku).filter((sku) => sku && !productos.has(sku))),
+  ];
+  const paginas = await Promise.all(
+    skusPendientes.map((sku) =>
+      api.get<{ items: { productoId: string; sku: string }[] }>('/inventario/disponibilidad', {
+        sku,
+        pageSize: 1,
+      }),
+    ),
+  );
+  paginas
+    .flatMap((pagina) => pagina.items)
+    .forEach((producto) => productos.set(producto.sku, producto.productoId));
+  return productos;
 };
 
 const ubicacionDeRecepcion = async (): Promise<string> => {
@@ -230,29 +268,26 @@ const lineasSolicitud = (
  * intención (mismos datos) y se reutiliza en los reintentos.
  */
 const confirmarRecepcionReal = async (
-  ordenCodigo: string,
+  orden: Pick<OrdenRecepcionable, 'id' | 'ordenCompraId'>,
   lineas: LineaRecepcion[],
   nota: string,
 ): Promise<ResultadoRecepcion> => {
   const observaciones = nota.trim();
-  const huella = JSON.stringify([
-    ordenCodigo,
-    lineas.map((l) => [l.sku, l.recibido]),
-    observaciones,
-  ]);
+  const huella = JSON.stringify([orden.id, lineas.map((l) => [l.sku, l.recibido]), observaciones]);
   const clave = clavesPorIntencion.get(huella) ?? crypto.randomUUID();
   clavesPorIntencion.set(huella, clave);
 
-  const orden = await buscarOrdenPorCodigo(ordenCodigo);
-  if (!orden) throw new Error('ORDEN_NO_ENCONTRADA');
-  const [productos, ubicacionId] = await Promise.all([productosPorSku(), ubicacionDeRecepcion()]);
+  const [productos, ubicacionId] = await Promise.all([
+    productosPorSku(lineas),
+    ubicacionDeRecepcion(),
+  ]);
   const solicitud = {
     fechaRecepcion: hoy(),
     observaciones: observaciones || null,
     lineas: lineasSolicitud(lineas, productos, ubicacionId),
   };
 
-  let recepcionId = pendientesPorOrden.get(ordenCodigo);
+  let recepcionId = pendientesPorOrden.get(orden.id);
   if (recepcionId) {
     try {
       await api.put(`/recepciones/${recepcionId}`, solicitud);
@@ -260,18 +295,18 @@ const confirmarRecepcionReal = async (
       // Una recepción ya validada en un intento anterior se confirma con la misma clave, que devuelve su respuesta.
       if (!(error instanceof ApiError && error.codigo === 'TRANSICION_NO_PERMITIDA')) {
         if (error instanceof ApiError && error.codigo === 'RECURSO_NO_ENCONTRADO') {
-          pendientesPorOrden.delete(ordenCodigo);
+          pendientesPorOrden.delete(orden.id);
         }
         throw error;
       }
     }
   } else {
     const registrada = await api.post<RecepcionApi>('/recepciones', {
-      ordenCompraId: orden.id,
+      ordenCompraId: orden.ordenCompraId,
       ...solicitud,
     });
     recepcionId = registrada.id;
-    pendientesPorOrden.set(ordenCodigo, recepcionId);
+    pendientesPorOrden.set(orden.id, recepcionId);
   }
 
   const resultado = await api.post<ResultadoValidacionApi>(
@@ -279,7 +314,7 @@ const confirmarRecepcionReal = async (
     observaciones ? { observaciones } : undefined,
     clave,
   );
-  pendientesPorOrden.delete(ordenCodigo);
+  pendientesPorOrden.delete(orden.id);
   clavesPorIntencion.delete(huella);
   return aResultado(resultado);
 };
@@ -300,6 +335,7 @@ export const listarOrdenesRecepcionables = (): Promise<OrdenRecepcionable[]> =>
     : mockRequest<OrdenRecepcionable[]>(() =>
         ORDENES_COMPRA.filter((o) => o.estado !== 'Completada').map((o) => ({
           id: o.id,
+          ordenCompraId: o.id,
           proveedor: nombreProveedor(o),
           estado: o.estado as OrdenRecepcionable['estado'],
           lineas: o.lineas.map((l) => ({ ...l })),
@@ -308,15 +344,15 @@ export const listarOrdenesRecepcionables = (): Promise<OrdenRecepcionable[]> =>
 
 /** CU-13. Los movimientos de entrada al Kardex se generan solo aquí, con las cantidades efectivamente recibidas. */
 export const confirmarRecepcion = (
-  ordenId: string,
+  orden: OrdenRecepcionable,
   lineas: LineaRecepcion[],
   nota: string,
 ): Promise<ResultadoRecepcion> =>
   API_REAL
-    ? confirmarRecepcionReal(ordenId, lineas, nota)
+    ? confirmarRecepcionReal(orden, lineas, nota)
     : mockRequest<ResultadoRecepcion>(() => {
-        const orden = ORDENES_COMPRA.find((o) => o.id === ordenId);
-        if (!orden || orden.estado === 'Completada') {
+        const ordenCompra = ORDENES_COMPRA.find((o) => o.id === orden.id);
+        if (!ordenCompra || ordenCompra.estado === 'Completada') {
           throw new Error('La orden ya no admite recepciones.');
         }
         if (lineas.some((l) => !l.sku)) {
@@ -327,16 +363,16 @@ export const confirmarRecepcion = (
         }
 
         for (const linea of lineas) {
-          const enOrden = orden.lineas.find((l) => l.sku === linea.sku);
+          const enOrden = ordenCompra.lineas.find((l) => l.sku === linea.sku);
           if (enOrden) enOrden.recibido += linea.recibido;
         }
-        const pendientes = orden.lineas.filter((l) => l.recibido < l.cantidad);
-        orden.estado = pendientes.length === 0 ? 'Completada' : 'Parcial';
+        const pendientes = ordenCompra.lineas.filter((l) => l.recibido < l.cantidad);
+        ordenCompra.estado = pendientes.length === 0 ? 'Completada' : 'Parcial';
 
         const recepcion: Recepcion = {
           id: siguienteId(),
-          orden: orden.id,
-          proveedor: nombreProveedor(orden),
+          orden: ordenCompra.id,
+          proveedor: nombreProveedor(ordenCompra),
           almacen: ALMACEN,
           fecha: new Date().toISOString().slice(0, 10),
           estado: 'Validada',
@@ -347,7 +383,7 @@ export const confirmarRecepcion = (
         return {
           recepcion,
           cambios: cambiosDeEntrada(lineas),
-          estadoOrden: orden.estado,
+          estadoOrden: ordenCompra.estado,
           porRecibir: pendientes.reduce((suma, l) => suma + (l.cantidad - l.recibido), 0),
           lineasPendientes: pendientes.length,
         };

@@ -3,11 +3,10 @@ import { StatusBadge } from '@/components/domain/StatusBadge/StatusBadge';
 import { Card } from '@/components/ui/Card/Card';
 import { DataTable, type Column } from '@/components/ui/DataTable/DataTable';
 import { Icon } from '@/components/ui/Icon/Icon';
-import type { LineaOrdenCompra } from '@/features/abastecimiento/tipos';
 import { formatNumber } from '@/lib/format';
-import type { OrdenRecepcionable } from './api';
+import type { LineaOrdenRecepcionable, OrdenRecepcionable } from './api';
 
-const porRecibir = (linea: LineaOrdenCompra) => Math.max(linea.cantidad - linea.recibido, 0);
+const porRecibir = (linea: LineaOrdenRecepcionable) => Math.max(linea.cantidad - linea.recibido, 0);
 
 const columnasOrdenes: Column<OrdenRecepcionable>[] = [
   { key: 'id', header: 'Orden de compra', mono: true, primary: true },
@@ -32,7 +31,7 @@ const columnasOrdenes: Column<OrdenRecepcionable>[] = [
   },
 ];
 
-const columnasProductos: Column<LineaOrdenCompra>[] = [
+const columnasProductos: Column<LineaOrdenRecepcionable>[] = [
   { key: 'sku', header: 'Producto', mono: true, primary: true },
   { key: 'nombre', header: 'Descripción', phone: false },
   { key: 'cantidad', header: 'Pedido', numeric: true, render: (l) => formatNumber(l.cantidad) },

@@ -34,6 +34,7 @@ La documentación de `docs/` contiene las definiciones técnicas acordadas del s
 | [Decisiones de arquitectura](docs/adr/README.md) | Registros de decisiones técnicas, sus alternativas y consecuencias. |
 | [Sistema de diseño](docs/diseno/README.md) | Fundamentos visuales, tokens, componentes, pantallas de referencia y prototipo del frontend. |
 | [Plan de implementación del OCR y del Agente de IA](docs/plan-implementacion-ia-ocr.md) | Fases, pruebas y criterios de terminado del OCR, el Fuzzy Matching y el Agente de IA. |
+| [Verificación E2E local](docs/e2e-local.md) | Ejecución Playwright local con PostgreSQL temporal y reportes ignorados por Git. |
 
 Todas las imágenes de los diagramas se almacenan en `docs/imagenes/`. Los documentos las muestran mediante enlaces relativos.
 

@@ -293,5 +293,21 @@ describe('Aceptación y rechazo desde el detalle', () => {
 
     const enlace = await screen.findByRole('link', { name: 'Convertir en venta' });
     expect(enlace).toHaveAttribute('href', '/ventas/nueva?cotizacion=COT-0230');
+    expect(screen.queryByRole('button', { name: 'Validar viabilidad' })).not.toBeInTheDocument();
+  });
+
+  it('muestra al Administrador solo las acciones que el contrato le permite', async () => {
+    renderApp('/cotizaciones/COT-0231', 'Administrador');
+
+    expect(await screen.findByRole('button', { name: 'Registrar rechazo' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Registrar aceptación' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Modificar' })).not.toBeInTheDocument();
+  });
+
+  it('ofrece validar la viabilidad al Administrador y no convertir en venta', async () => {
+    renderApp('/cotizaciones/COT-0230', 'Administrador');
+
+    expect(await screen.findByRole('button', { name: 'Validar viabilidad' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Convertir en venta' })).not.toBeInTheDocument();
   });
 });

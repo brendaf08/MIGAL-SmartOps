@@ -36,9 +36,16 @@ public class HerramientasCatalogo implements ProveedorDeHerramientas {
 	public List<DefinicionHerramienta> definiciones() {
 		return List.of(
 				new DefinicionHerramienta("listarProductos", "Listar productos del catálogo", "GET /productos", ROLES,
+						List.of(ParametroHerramienta.texto("q", "Texto libre a buscar en el SKU o el nombre."),
+								ParametroHerramienta.texto("sku", "SKU exacto del producto."),
+								ParametroHerramienta.entero("idCategoria", "Id técnico de la categoría."),
+								ParametroHerramienta.booleano("estadoActivo",
+										"Vigencia del producto; sin valor, solo productos activos.")),
 						this::listar),
 				new DefinicionHerramienta("consultarProducto", "Consultar un producto del catálogo",
-						"GET /productos/{id}", ROLES, this::consultar));
+						"GET /productos/{id}", ROLES,
+						List.of(ParametroHerramienta.identificador("Id técnico del producto; no es el SKU.")),
+						this::consultar));
 	}
 
 	private ResultadoHerramienta listar(Map<String, String> parametros) {

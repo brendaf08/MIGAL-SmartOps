@@ -44,13 +44,32 @@ public class HerramientasInventario implements ProveedorDeHerramientas {
 	public List<DefinicionHerramienta> definiciones() {
 		return List.of(
 				new DefinicionHerramienta("consultarDisponibilidad", "Consultar disponibilidad de productos",
-						"GET /inventario/disponibilidad", CONSULTA_GENERAL, this::disponibilidad),
+						"GET /inventario/disponibilidad", CONSULTA_GENERAL, List.of(
+								ParametroHerramienta.texto("q", "Texto libre a buscar en el SKU o el nombre del producto."),
+								ParametroHerramienta.texto("sku", "SKU exacto del producto."),
+								ParametroHerramienta.entero("categoriaId", "Id técnico de la categoría del catálogo."),
+								ParametroHerramienta.booleano("soloAlerta",
+										"Si es true, solo productos en nivel mínimo o crítico.")),
+						this::disponibilidad),
 				new DefinicionHerramienta("consultarExistenciasProducto", "Consultar existencias de un producto",
-						"GET /productos/{id}/existencias", CONSULTA_GENERAL, this::existencias),
+						"GET /productos/{id}/existencias", CONSULTA_GENERAL,
+						List.of(ParametroHerramienta.identificador("Id técnico del producto; no es el SKU.")),
+						this::existencias),
 				new DefinicionHerramienta("listarAlertasStock", "Listar productos en alerta de stock",
-						"GET /inventario/alertas", ALERTAS, this::alertas),
+						"GET /inventario/alertas", ALERTAS,
+						List.of(ParametroHerramienta.enumerado("nivel", "Nivel de alerta; sin valor incluye ambos.",
+								"critico", "minimo")),
+						this::alertas),
 				new DefinicionHerramienta("consultarKardex", "Consultar movimientos de Kardex",
-						"GET /inventario/movimientos", KARDEX, this::kardex));
+						"GET /inventario/movimientos", KARDEX, ParametroHerramienta.conRangoDeFechas(
+								ParametroHerramienta.texto("q", "Texto libre a buscar en los movimientos."),
+								ParametroHerramienta.texto("sku", "SKU exacto del producto."),
+								ParametroHerramienta.entero("ubicacionId", "Id técnico de la tienda o el almacén."),
+								ParametroHerramienta.enumerado("tipoOperacion", "Tipo de movimiento.", "entrada",
+										"salida"),
+								ParametroHerramienta.enumerado("origen", "Operación que originó el movimiento.",
+										"despacho", "recepcion", "ajuste", "traslado")),
+						this::kardex));
 	}
 
 	private ResultadoHerramienta disponibilidad(Map<String, String> parametros) {

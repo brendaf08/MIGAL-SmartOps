@@ -1,6 +1,7 @@
 package com.migal.smartops.agenteia.service;
 
 import com.migal.smartops.seguridad.model.RolUsuario;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
@@ -14,12 +15,14 @@ import java.util.function.Function;
  * @param descripcion descripción breve de la consulta
  * @param operacion   método y ruta de la operación, por ejemplo {@code GET /inventario/alertas}
  * @param roles       roles autorizados a usar la herramienta, según x-roles del contrato
+ * @param parametros  parámetros que el modelo puede enviar, coherentes con los de la operación del contrato
  * @param ejecucion   función que consulta el servicio de negocio y devuelve el resultado
  */
 public record DefinicionHerramienta(String nombre, String descripcion, String operacion, Set<RolUsuario> roles,
-		Function<Map<String, String>, ResultadoHerramienta> ejecucion) {
+		List<ParametroHerramienta> parametros, Function<Map<String, String>, ResultadoHerramienta> ejecucion) {
 
 	public DefinicionHerramienta {
 		roles = Set.copyOf(roles);
+		parametros = parametros == null ? List.of() : List.copyOf(parametros);
 	}
 }

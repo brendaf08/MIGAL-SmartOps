@@ -2,29 +2,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { guardarToken } from '@/api/cliente';
 import { activarApiReal, problema, simularServidor, type PeticionSimulada } from '@/test/apiReal';
 
-const ordenApi = {
-  id: '87',
-  codigo: 'OC-0087',
-  proveedorId: '12',
-  fechaEmision: '2026-11-03T10:15:00-05:00',
-  estado: 'parcial',
-  observaciones: null,
-  fechaEntregaEstimada: null,
-  modalidadPago: null,
-  total: 2650,
-  lineas: [
-    {
-      sku: 'CEM-049',
-      nombre: 'Cemento Sol tipo I 42.5 kg',
-      cantidadComprada: 100,
-      costoUnitario: 26.5,
-      subtotal: 2650,
-      cantidadRecibida: 40,
-      cantidadPendienteRecepcion: 60,
-    },
-  ],
-};
-
 const recepcionApi = (estado: 'pendiente' | 'validada', codigo = 'R-0012') => ({
   id: '12',
   codigo,
@@ -84,11 +61,10 @@ const resultadoApi = {
 
 /** Respuestas comunes de las consultas auxiliares de la confirmación. */
 function respuestaAuxiliar(peticion: PeticionSimulada) {
-  if (peticion.url.pathname === '/api/v1/ordenes-compra') {
-    return { cuerpo: { items: [ordenApi], total: 1, page: 1, pageSize: 100 } };
-  }
-  if (peticion.url.pathname === '/api/v1/productos') {
-    return { cuerpo: { items: [{ id: '42', sku: 'CEM-049' }], total: 1, page: 1, pageSize: 100 } };
+  if (peticion.url.pathname === '/api/v1/inventario/disponibilidad') {
+    return {
+      cuerpo: { items: [{ productoId: '42', sku: 'CEM-049' }], total: 1, page: 1, pageSize: 1 },
+    };
   }
   if (peticion.url.pathname === '/api/v1/almacenes') {
     return { cuerpo: [{ id: '102', nombre: 'Almacén 1' }] };
@@ -98,6 +74,7 @@ function respuestaAuxiliar(peticion: PeticionSimulada) {
 
 const lineaEnPantalla = {
   id: 1,
+  productoId: '42',
   texto: 'Cemento Sol tipo I 42.5 kg',
   sku: 'CEM-049',
   score: 1,
@@ -143,17 +120,31 @@ describe('recepciones con la API real', () => {
     ]);
   });
 
-  it('lista solo las órdenes pendientes o parciales con su proveedor y sus líneas', async () => {
+  it('lista solo las órdenes pendientes o parciales desde la ruta acotada de recepción', async () => {
     const { listarOrdenesRecepcionables } = await import('./api');
     const llamadas: PeticionSimulada[] = [];
     simularServidor((peticion) => {
       llamadas.push(peticion);
-      if (peticion.url.pathname === '/api/v1/ordenes-compra') {
-        return { cuerpo: { items: [ordenApi], total: 1, page: 1, pageSize: 100 } };
-      }
       return {
         cuerpo: {
-          items: [{ id: '12', razonSocial: 'Distribuidora Andina S.A.C.' }],
+          items: [
+            {
+              id: '87',
+              codigo: 'OC-0087',
+              proveedor: 'Distribuidora Andina S.A.C.',
+              estado: 'parcial',
+              lineas: [
+                {
+                  productoId: '42',
+                  sku: 'CEM-049',
+                  nombre: 'Cemento Sol tipo I 42.5 kg',
+                  cantidadComprada: 100,
+                  cantidadRecibida: 40,
+                  cantidadPendienteRecepcion: 60,
+                },
+              ],
+            },
+          ],
           total: 1,
           page: 1,
           pageSize: 100,
@@ -163,19 +154,20 @@ describe('recepciones con la API real', () => {
 
     const ordenes = await listarOrdenesRecepcionables();
 
-    expect((llamadas[0] as PeticionSimulada).url.searchParams.get('estado')).toBe('pendiente,parcial');
+    expect(llamadas.map((p) => p.url.pathname)).toEqual(['/api/v1/ordenes-compra/recepcionables']);
     expect(ordenes).toEqual([
       {
         id: 'OC-0087',
+        ordenCompraId: '87',
         proveedor: 'Distribuidora Andina S.A.C.',
         estado: 'Parcial',
         lineas: [
           {
+            productoId: '42',
             sku: 'CEM-049',
             nombre: 'Cemento Sol tipo I 42.5 kg',
             cantidad: 100,
             recibido: 40,
-            precio: 26.5,
           },
         ],
       },
@@ -195,7 +187,17 @@ describe('recepciones con la API real', () => {
       return { cuerpo: resultadoApi };
     });
 
-    const resultado = await confirmarRecepcion('OC-0087', [lineaEnPantalla], '');
+    const resultado = await confirmarRecepcion(
+      {
+        id: 'OC-0087',
+        ordenCompraId: '87',
+        proveedor: 'Distribuidora Andina S.A.C.',
+        estado: 'Parcial',
+        lineas: [],
+      },
+      [lineaEnPantalla],
+      '',
+    );
 
     const alta = llamadas.find(
       (p) => p.metodo === 'POST' && p.url.pathname === '/api/v1/recepciones',
@@ -247,10 +249,17 @@ describe('recepciones con la API real', () => {
       return { cuerpo: resultadoApi };
     });
 
-    await expect(confirmarRecepcion('OC-0087', [lineaEnPantalla], '')).rejects.toMatchObject({
+    const orden = {
+      id: 'OC-0087',
+      ordenCompraId: '87',
+      proveedor: 'Distribuidora Andina S.A.C.',
+      estado: 'Parcial' as const,
+      lineas: [],
+    };
+    await expect(confirmarRecepcion(orden, [lineaEnPantalla], '')).rejects.toMatchObject({
       codigo: 'SERVICIO_NO_DISPONIBLE',
     });
-    await confirmarRecepcion('OC-0087', [lineaEnPantalla], '');
+    await confirmarRecepcion(orden, [lineaEnPantalla], '');
 
     const registros = llamadas.filter(
       (p) => p.metodo === 'POST' && p.url.pathname === '/api/v1/recepciones',
@@ -279,7 +288,19 @@ describe('recepciones con la API real', () => {
       });
     });
 
-    await expect(confirmarRecepcion('OC-0087', [lineaEnPantalla], '')).rejects.toMatchObject({
+    await expect(
+      confirmarRecepcion(
+        {
+          id: 'OC-0087',
+          ordenCompraId: '87',
+          proveedor: 'Distribuidora Andina S.A.C.',
+          estado: 'Parcial',
+          lineas: [],
+        },
+        [lineaEnPantalla],
+        '',
+      ),
+    ).rejects.toMatchObject({
       codigo: 'SOBRANTE_SIN_NOTA',
       estado: 422,
       message: 'Explicar el sobrante en las observaciones.',

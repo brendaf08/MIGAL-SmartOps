@@ -69,4 +69,30 @@ public final class AbastecimientoDtos {
 					orden.getObservaciones(), orden.getModalidadPago(), orden.total(), lineas);
 		}
 	}
+
+	/** Vista mínima de una orden pendiente o parcial que el Almacenero puede recibir (CU-13). */
+	public record OrdenCompraRecepcionableDto(String id, String codigo, String proveedor, String estado,
+			List<OrdenLineaRecepcionableDto> lineas) {
+
+		public static OrdenCompraRecepcionableDto de(OrdenDetalle detalle) {
+			OrdenCompra orden = detalle.orden();
+			List<OrdenLineaRecepcionableDto> lineas = orden.getLineas().stream()
+					.sorted(java.util.Comparator.comparing(l -> l.getProducto().getSku()))
+					.map(l -> {
+						BigDecimal recibida = detalle.recibidoPorProducto()
+								.getOrDefault(l.getProducto().getId(), BigDecimal.ZERO);
+						return new OrdenLineaRecepcionableDto(String.valueOf(l.getProducto().getId()),
+								l.getProducto().getSku(), l.getProducto().getNombreOficial(), l.getCantidadComprada(), recibida,
+								l.getCantidadComprada().subtract(recibida).max(BigDecimal.ZERO));
+					})
+					.toList();
+			return new OrdenCompraRecepcionableDto(String.valueOf(orden.getId()), orden.getCodigo(),
+					orden.getProveedor().getRazonSocial(), orden.getEstado().valor(), lineas);
+		}
+	}
+
+	/** Producto de una orden que el Almacenero puede recibir; evita consultar el catálogo maestro. */
+	public record OrdenLineaRecepcionableDto(String productoId, String sku, String nombre, BigDecimal cantidadComprada,
+			BigDecimal cantidadRecibida, BigDecimal cantidadPendienteRecepcion) {
+	}
 }

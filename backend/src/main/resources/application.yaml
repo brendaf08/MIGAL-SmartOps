@@ -62,6 +62,11 @@ migal:
     directorio: ${MIGAL_DOCUMENTOS_DIRECTORIO:almacen-documentos}
     tamano-maximo-bytes: 10485760
   agente:
-    # Proveedor del modelo de lenguaje del agente: simulado (por defecto, para desarrollo y pruebas) o no-configurado,
-    # que responde SERVICIO_NO_DISPONIBLE. No hay proveedor real definido ni credenciales en el repositorio.
+    # Proveedor del modelo de lenguaje del agente: simulado (por defecto, para desarrollo y pruebas), no-configurado,
+    # que responde SERVICIO_NO_DISPONIBLE, o gemini, que usa la API de Gemini (ADR-012). No hay credenciales en el
+    # repositorio: la clave se define solo con la variable de entorno GEMINI_API_KEY.
     proveedor: ${MIGAL_AGENTE_PROVEEDOR:simulado}
+    gemini:
+      api-key: ${GEMINI_API_KEY:}
+      # Modelo Gemini Flash estable. Vacío usa el valor por defecto de PropiedadesAgenteGemini.
+      modelo: ${MIGAL_AGENTE_GEMINI_MODELO:}

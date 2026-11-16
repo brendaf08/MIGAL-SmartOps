@@ -2,7 +2,7 @@ import { Button, Radio, Select, Stack, Text } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { zod4Resolver } from 'mantine-form-zod-resolver';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { Constancia } from '@/components/domain/Constancia/Constancia';
 import { StatusBadge } from '@/components/domain/StatusBadge/StatusBadge';
@@ -69,7 +69,7 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
   const inicial = cotizacionParam ? cotizacionUtilizable(cotizacionParam) : undefined;
   const carga = inicial ? lineasDeCotizacion(inicial) : undefined;
 
-  const [origen, setOrigen] = useState<Origen>(inicial ? 'cotizacion' : 'manual');
+  const [origen, setOrigen] = useState<Origen>(cotizacionParam ? 'cotizacion' : 'manual');
   const [confirmando, setConfirmando] = useState(false);
   // Cada apertura de la confirmación inicia una intención nueva; sus reintentos reutilizan la misma clave.
   const [claveRegistro, setClaveRegistro] = useState(() => crypto.randomUUID());
@@ -91,6 +91,21 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
     validate: zod4Resolver(crearEsquemaVenta(stock)),
   });
   const { values } = form;
+  const cotizacionPrecargada = useRef(!cotizacionParam || Boolean(inicial));
+  useEffect(() => {
+    if (!cotizacionParam || !cotizaciones.isSuccess || cotizacionPrecargada.current) return;
+    cotizacionPrecargada.current = true;
+    const cotizacion = cotizaciones.data.find((c) => c.id === cotizacionParam);
+    if (!cotizacion) return;
+    const cargaCotizacion = lineasDeCotizacion(cotizacion);
+    form.setValues({
+      cliente: clienteDeCotizacion(cotizacion),
+      cotizacionId: cotizacion.id,
+      lineas: cargaCotizacion.lineas,
+      descuento: cargaCotizacion.descuento,
+      modalidad: null,
+    });
+  }, [cotizacionParam, cotizaciones.data, cotizaciones.isSuccess, form]);
   const precarga = usePrecargaDocumento((lineas) => {
     form.setFieldValue('lineas', lineas);
     setOrigen('documento');
@@ -293,10 +308,10 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
             {cotizaciones.isSuccess &&
               cotizacionParam &&
               !(cotizaciones.data ?? []).some((c) => c.id === cotizacionParam) && (
-              <Alert tone="warning" title="Cotización no disponible">
-                La cotización no está aceptada o ya se convirtió en venta.
-              </Alert>
-            )}
+                <Alert tone="warning" title="Cotización no disponible">
+                  La cotización no está aceptada o ya se convirtió en venta.
+                </Alert>
+              )}
             {origen === 'documento' && (
               <div>
                 <Button component={Link} to="/documentos/procesar?destino=venta" variant="default">

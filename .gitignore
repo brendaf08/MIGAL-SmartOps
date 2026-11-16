@@ -53,3 +53,6 @@ frontend/CLAUDE.md
 /artifacts/e2e-local/
 # Metadatos de instalación del servicio de OCR (pip install -e).
 *.egg-info/
+
+# Catálogo real de MIGAL generado en local (precios del negocio)
+database/datos-demostracion/local/

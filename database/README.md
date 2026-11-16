@@ -92,6 +92,20 @@ Para probar el OCR con notas de venta reales, `datos-demostracion/catalogo-notas
 fierro, agregados, gasfitería y electricidad con 200 unidades en el Almacén 1. Se ejecuta después de `demo.sql`, con
 el mismo comando, y también es idempotente.
 
+Para una demostración con el catálogo real de MIGAL, `datos-demostracion/generar_catalogo_real.py` convierte la
+exportación de productos de Odoo (`Catalogo_Migal.xlsx`) en `datos-demostracion/local/catalogo-real.sql`. Esa carpeta
+está excluida de Git porque contiene los precios del negocio; no se versionan ni el Excel ni el SQL generado. El
+script desactiva los productos de ejemplo, registra cada producto con su código de Odoo como SKU y asigna existencias
+con casos agotados y bajo el mínimo. Requiere `openpyxl`:
+
+```bash
+python database/datos-demostracion/generar_catalogo_real.py RUTA/Catalogo_Migal.xlsx [RUTA/precios.csv]
+docker exec -i migal-postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 < database/datos-demostracion/local/catalogo-real.sql
+```
+
+El archivo opcional `precios.csv` (líneas `codigo,precio`) completa los productos que llegan sin precio desde Odoo;
+los que siguen sin precio se cargan con precio 0.
+
 ## Estado de Supabase y migraciones
 
 La verificación del 15 de noviembre de 2026 encontró en el esquema `public` las tablas del sistema y `flyway_schema_history`, con línea base 0 y migraciones V1 a V15, todas con `success = true`. El esquema del proyecto Supabase actual ya está aplicado. La migración V16 (`fecha_encolado` de `documento_digital`, ADR-012) se aplica en Supabase cuando el backend arranque por primera vez con una versión que la incluya; hasta entonces el proyecto permanece en V15.

@@ -54,7 +54,9 @@ services:
       MIGAL_OCR_PROVEEDOR: ${MIGAL_OCR_PROVEEDOR:-simulado}
       MIGAL_OCR_URL: http://servicio-ocr:8000
       MIGAL_AGENTE_PROVEEDOR: ${MIGAL_AGENTE_PROVEEDOR:-simulado}
-      MIGAL_AGENTE_GEMINI_MODELO: ${MIGAL_AGENTE_GEMINI_MODELO:-}
+      # gemini-3.8-flash, el valor por defecto del código, respondía con sobrecarga en las pruebas del 16-11-2026.
+      MIGAL_AGENTE_GEMINI_MODELO: ${MIGAL_AGENTE_GEMINI_MODELO:-gemini-3.6-flash}
+      MIGAL_AGENTE_GEMINI_TIEMPOLECTURA: ${MIGAL_AGENTE_GEMINI_TIEMPOLECTURA:-PT30S}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       MIGAL_CORS_ORIGENES: ${MIGAL_CORS_ORIGENES:-}
     ports:
@@ -77,7 +79,9 @@ services:
     environment:
       BACKEND_URL: http://backend:8080
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
-      MIGAL_OCR_GEMINI_MODELO: ${MIGAL_OCR_GEMINI_MODELO:-gemini-3.8-flash}
+      MIGAL_OCR_GEMINI_MODELO: ${MIGAL_OCR_GEMINI_MODELO:-gemini-3.6-flash}
+      # Dos intentos de 25 s caben en el plazo de 60 s de la vigilancia del backend (ADR-012, punto 4).
+      TIEMPO_MODELO_SEGUNDOS: ${TIEMPO_MODELO_SEGUNDOS:-25}
     # Sin puerto publicado: solo el backend lo invoca dentro de la red de Compose.
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/salud')"]

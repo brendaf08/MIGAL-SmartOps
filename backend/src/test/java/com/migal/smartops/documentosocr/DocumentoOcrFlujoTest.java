@@ -109,8 +109,13 @@ class DocumentoOcrFlujoTest {
 
 		assertEquals(EstadoProcesamiento.PENDIENTE, ilegible.getEstado());
 		assertEquals("DOCUMENTO_ILEGIBLE", ilegible.getCodigoError());
+		// La carga es el primer encolado; el reprocesamiento registra uno nuevo sin alterar la fecha de subida (V16).
+		assertEquals(ilegible.getFechaSubida(), ilegible.getFechaEncolado());
 		documentos.reprocesar(almacenero, documento.getId());
-		assertNull(documentos.consultar(almacenero, documento.getId()).getCodigoError());
+		DocumentoDigital reencolado = documentos.consultar(almacenero, documento.getId());
+		assertNull(reencolado.getCodigoError());
+		assertEquals(ilegible.getFechaSubida(), reencolado.getFechaSubida());
+		assertTrue(!reencolado.getFechaEncolado().isBefore(ilegible.getFechaEncolado()));
 		ErrorDeNegocio sinError = assertThrows(ErrorDeNegocio.class,
 				() -> documentos.reprocesar(almacenero, documento.getId()));
 		assertEquals(CodigoError.TRANSICION_NO_PERMITIDA, sinError.codigo());

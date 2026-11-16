@@ -1,6 +1,7 @@
 package com.migal.smartops.seguridad;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.migal.smartops.seguridad.config.PropiedadesJwt;
@@ -12,6 +13,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
 import javax.crypto.SecretKey;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -50,6 +52,27 @@ class TokenServiceTest {
 		assertEquals(28800L, token.expiraEn());
 		assertEquals(AHORA, jwt.getIssuedAt());
 		assertEquals(AHORA.plus(Duration.ofHours(8)), jwt.getExpiresAt());
+	}
+
+	@Test
+	void emiteElTokenDeResultadosDelOcrParaUnDocumento() {
+		TokenService.Token token = servicio.emitirServicio(812L, Duration.ofMinutes(6));
+		Jwt jwt = configuracion.decodificadorJwt(clave).decode(token.valor());
+
+		assertEquals("servicio-ocr", jwt.getSubject());
+		assertEquals("servicio", jwt.getClaimAsString("tipo"));
+		assertEquals(List.of("ocr:resultados:escribir"), jwt.getClaimAsStringList("alcances"));
+		assertEquals(812L, ((Number) jwt.getClaim("idDocumento")).longValue());
+		assertNull(jwt.getClaim("rol"));
+		assertEquals(360L, token.expiraEn());
+		assertEquals(AHORA.plus(Duration.ofMinutes(6)), jwt.getExpiresAt());
+	}
+
+	@Test
+	void exigeUnaVigenciaPositivaParaElTokenDeServicio() {
+		assertThrows(IllegalArgumentException.class, () -> servicio.emitirServicio(1L, Duration.ZERO));
+		assertThrows(IllegalArgumentException.class, () -> servicio.emitirServicio(1L, Duration.ofSeconds(-1)));
+		assertThrows(IllegalArgumentException.class, () -> servicio.emitirServicio(1L, null));
 	}
 
 	@Test

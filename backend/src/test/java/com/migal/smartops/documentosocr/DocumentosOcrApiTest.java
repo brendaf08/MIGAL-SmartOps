@@ -20,6 +20,8 @@ import com.migal.smartops.contrato.ValidadorContrato;
 import com.migal.smartops.seguridad.model.RolUsuario;
 import com.migal.smartops.seguridad.model.Usuario;
 import com.migal.smartops.seguridad.repository.UsuarioRepository;
+import com.migal.smartops.seguridad.service.TokenService;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
@@ -68,6 +70,8 @@ class DocumentosOcrApiTest {
 	private PasswordEncoder codificador;
 	@Autowired
 	private JwtEncoder emisor;
+	@Autowired
+	private TokenService tokens;
 	@Autowired
 	private JdbcTemplate jdbc;
 
@@ -242,7 +246,7 @@ class DocumentosOcrApiTest {
 				.andExpect(jsonPath("$.code", is("PERMISO_INSUFICIENTE")));
 
 		mvc.perform(put(RUTA + "/" + id + "/resultados").contentType(JSON).content(cuerpo)
-						.header("Authorization", tokenServicio()))
+						.header("Authorization", tokenServicio(id)))
 				.andExpect(status().isOk())
 				.andExpect(cumple(contrato))
 				.andExpect(jsonPath("$.estadoProcesamiento", is("procesado_ocr")))
@@ -250,10 +254,36 @@ class DocumentosOcrApiTest {
 				.andExpect(jsonPath("$.detalles[0].coincidencias[0].sku", is(sku)));
 
 		mvc.perform(put(RUTA + "/" + id + "/resultados").contentType(JSON).content(cuerpo)
-						.header("Authorization", tokenServicio()))
+						.header("Authorization", tokenServicio(id)))
 				.andExpect(status().isConflict())
 				.andExpect(cumple(contratoSoloRespuesta))
 				.andExpect(jsonPath("$.code", is("TRANSICION_NO_PERMITIDA")));
+	}
+
+	@Test
+	void resultadosDelOcrExigenUnTokenEmitidoParaElDocumento() throws Exception {
+		String token = bearer("ocr-almacenero");
+		String id = subir(token, "ilegible-0813.jpg");
+		String otro = subir(token, "ilegible-0814.jpg");
+		String cuerpo = "{\"resultado\":\"ilegible\",\"detalles\":[]}";
+
+		mvc.perform(put(RUTA + "/" + id + "/resultados").contentType(JSON).content(cuerpo)
+						.header("Authorization", tokenServicio(otro)))
+				.andExpect(status().isForbidden())
+				.andExpect(cumple(contratoSoloRespuesta))
+				.andExpect(jsonPath("$.code", is("PERMISO_INSUFICIENTE")));
+
+		mvc.perform(put(RUTA + "/" + id + "/resultados").contentType(JSON).content(cuerpo)
+						.header("Authorization", tokenServicioSinDocumento()))
+				.andExpect(status().isForbidden())
+				.andExpect(cumple(contratoSoloRespuesta))
+				.andExpect(jsonPath("$.code", is("PERMISO_INSUFICIENTE")));
+
+		mvc.perform(put(RUTA + "/" + id + "/resultados").contentType(JSON).content(cuerpo)
+						.header("Authorization", tokenServicio(id)))
+				.andExpect(status().isOk())
+				.andExpect(cumple(contrato))
+				.andExpect(jsonPath("$.codigoError", is("DOCUMENTO_ILEGIBLE")));
 	}
 
 	@Test
@@ -326,8 +356,13 @@ class DocumentosOcrApiTest {
 		return "Bearer " + JsonPath.read(resultado.getResponse().getContentAsString(), "$.token");
 	}
 
-	/** Token de servicio del servicio de OCR, con el alcance de resultados. */
-	private String tokenServicio() {
+	/** Token de resultados que el backend emite para el servicio de OCR y un documento (ADR-012). */
+	private String tokenServicio(String idDocumento) {
+		return "Bearer " + tokens.emitirServicio(Long.parseLong(idDocumento), Duration.ofMinutes(5)).valor();
+	}
+
+	/** Token de servicio con el alcance de resultados, pero sin la reclamación idDocumento. */
+	private String tokenServicioSinDocumento() {
 		Instant ahora = Instant.now();
 		JwtClaimsSet claims = JwtClaimsSet.builder().subject("servicio-ocr").claim("tipo", "servicio")
 				.claim("alcances", List.of("ocr:resultados:escribir")).issuedAt(ahora)

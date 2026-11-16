@@ -567,7 +567,9 @@ paths:
         ilegible, conserva el estado pendiente y registra DOCUMENTO_ILEGIBLE en codigoError. La
         operación no crea ventas, reservas ni movimientos de Kardex. Responde TRANSICION_NO_PERMITIDA
         si el documento no está pendiente. Operación exclusiva del servicio de OCR: no se expone al
-        frontend.
+        frontend. El token de servicio lo emite el backend para cada documento encolado y lleva la
+        reclamación idDocumento; un token sin ella, o emitido para otro documento, responde
+        PERMISO_INSUFICIENTE (ADR-012).
       tags:
         - Documentos OCR
       security:

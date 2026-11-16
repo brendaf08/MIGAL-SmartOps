@@ -18,6 +18,7 @@ import com.migal.smartops.documentosocr.model.EstadoProcesamiento;
 import com.migal.smartops.documentosocr.model.TipoDocumento;
 import com.migal.smartops.documentosocr.service.DocumentoOcrService;
 import com.migal.smartops.seguridad.config.UsuarioAutenticado;
+import com.migal.smartops.seguridad.service.TokenService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -30,7 +31,9 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -105,8 +108,24 @@ public class DocumentoOcrController {
 
 	@PutMapping("/{id}/resultados")
 	@PreAuthorize(ALCANCE_RESULTADOS)
-	public DocumentoDto registrarResultados(@PathVariable String id, @Valid @RequestBody ResultadosSolicitud solicitud) {
-		return respuesta(documentos.registrarResultados(Identificadores.numero(id), solicitud.aResultado()));
+	public DocumentoDto registrarResultados(Authentication autenticacion, @PathVariable String id,
+			@Valid @RequestBody ResultadosSolicitud solicitud) {
+		long idDocumento = Identificadores.numero(id);
+		exigirTokenDelDocumento(autenticacion, idDocumento);
+		return respuesta(documentos.registrarResultados(idDocumento, solicitud.aResultado()));
+	}
+
+	/**
+	 * El token de resultados se emite para un documento (ADR-012, punto 5). Un token sin la reclamación
+	 * {@code idDocumento}, o emitido para otro documento, no autoriza a registrar el resultado.
+	 */
+	private static void exigirTokenDelDocumento(Authentication autenticacion, long idDocumento) {
+		Object reclamacion = autenticacion instanceof JwtAuthenticationToken token
+				? token.getToken().getClaim(TokenService.RECLAMACION_ID_DOCUMENTO)
+				: null;
+		if (!(reclamacion instanceof Number numero) || numero.longValue() != idDocumento) {
+			throw new ErrorDeNegocio(CodigoError.PERMISO_INSUFICIENTE, "El token no corresponde al documento.");
+		}
 	}
 
 	@PutMapping("/{id}/detalles/{idDetalle}")

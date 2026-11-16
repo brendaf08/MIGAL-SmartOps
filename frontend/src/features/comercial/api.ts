@@ -95,17 +95,17 @@ const cotizacionDesde = (c: CotizacionApi): Cotizacion => ({
 });
 
 /**
- * Resuelve el identificador técnico del producto a partir de su SKU, que es lo que captura la interfaz. Se consulta
- * el catálogo de productos (GET /productos con el filtro sku).
+ * Resuelve el identificador técnico del producto a partir de su SKU. El vendedor puede consultar disponibilidad
+ * (CU-04), pero no el catálogo maestro (CU-03).
  */
 async function productoIdDeSku(sku: string): Promise<string> {
-  const pagina = await api.get<{ items: { id: string; sku: string }[] }>('/productos', {
-    sku,
-    pageSize: 1,
-  });
+  const pagina = await api.get<{ items: { productoId: string; sku: string }[] }>(
+    '/inventario/disponibilidad',
+    { sku, pageSize: 1 },
+  );
   const producto = pagina.items.find((p) => p.sku === sku);
   if (!producto) throw new Error(`No se encontró el producto con SKU ${sku} en el catálogo.`);
-  return producto.id;
+  return producto.productoId;
 }
 
 /** Cuerpo de CotizacionDatos. El descuento de la interfaz es una fracción que se convierte en monto. */

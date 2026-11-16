@@ -38,16 +38,26 @@ describe('resumirRecepcion', () => {
   });
 
   it('admite la recepción parcial y los sobrantes', () => {
-    const r = resumirRecepcion([linea({ recibido: 40, pedido: 60 }), linea({ id: 2, recibido: 110 })]);
+    const r = resumirRecepcion([
+      linea({ recibido: 40, pedido: 60 }),
+      linea({ id: 2, recibido: 110 }),
+    ]);
 
     expect(r.puedeConfirmar).toBe(true);
     expect(r.motivoBloqueo).toBeNull();
   });
 
+  it('bloquea la validación si ninguna línea registra cantidad recibida', () => {
+    const r = resumirRecepcion([linea({ recibido: 0 }), linea({ id: 2, recibido: 0 })]);
+
+    expect(r.puedeConfirmar).toBe(false);
+    expect(r.motivoBloqueo).toBe('Registrar una cantidad recibida mayor que cero.');
+  });
+
   it('pluraliza el motivo y rechaza una recepción sin líneas', () => {
-    expect(
-      resumirRecepcion([linea({ sku: '' }), linea({ id: 2, sku: '' })]).motivoBloqueo,
-    ).toBe('Falta asociar 2 líneas a un producto del catálogo.');
+    expect(resumirRecepcion([linea({ sku: '' }), linea({ id: 2, sku: '' })]).motivoBloqueo).toBe(
+      'Falta asociar 2 líneas a un producto del catálogo.',
+    );
     expect(resumirRecepcion([]).motivoBloqueo).toBe('No hay líneas para confirmar.');
   });
 });

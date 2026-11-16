@@ -3,6 +3,8 @@ import type { OrdenCompra } from '@/features/abastecimiento/tipos';
 /** Línea de conteo: lo pendiente de la orden frente a lo efectivamente recibido (CU-13). */
 export interface LineaRecepcion {
   id: number;
+  /** Identificador técnico del producto incluido en la orden, si está disponible. */
+  productoId?: string;
   /** Texto de la línea: el leído por el OCR o el nombre del producto de la orden. */
   texto: string;
   /** SKU del producto; vacío si el OCR no encontró coincidencia. */

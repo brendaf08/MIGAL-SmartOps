@@ -39,12 +39,21 @@ migal:
       username: ${MIGAL_ADMIN_USERNAME:}
       clave: ${MIGAL_ADMIN_CLAVE:}
   ocr:
-    # Proveedor del servicio de OCR: simulado (por defecto, para desarrollo y pruebas) o no-configurado, que responde
-    # SERVICIO_NO_DISPONIBLE. Los umbrales del Fuzzy Matching son de ejemplo y quedan pendientes de definir.
+    # Proveedor del servicio de OCR: simulado (por defecto, para desarrollo y pruebas), no-configurado, que responde
+    # SERVICIO_NO_DISPONIBLE, o http, que envía los documentos al servicio de OCR (ADR-012). Los umbrales del Fuzzy
+    # Matching son de ejemplo y se calibran con el conjunto de evaluación del servicio de OCR.
     proveedor: ${MIGAL_OCR_PROVEEDOR:simulado}
     umbrales:
       alta: ${MIGAL_OCR_UMBRAL_ALTA:0.85}
       baja: ${MIGAL_OCR_UMBRAL_BAJA:0.60}
+    servicio:
+      # Dirección del servicio de OCR. Obligatoria con el proveedor http.
+      url: ${MIGAL_OCR_URL:}
+      # Sin resultado dentro de este plazo, el documento registra SERVICIO_NO_DISPONIBLE y puede reprocesarse.
+      plazo-resultado: ${MIGAL_OCR_PLAZO_RESULTADO:PT60S}
+      intervalo-vigilancia: PT30S
+      tiempo-conexion: PT2S
+      tiempo-lectura: PT5S
   documentos:
     # Carpeta de los archivos cargados, relativa a la carpeta de ejecución. El límite de 10 MB corresponde al contrato.
     directorio: ${MIGAL_DOCUMENTOS_DIRECTORIO:almacen-documentos}

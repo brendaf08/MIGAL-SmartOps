@@ -217,7 +217,9 @@ components:
         codigoError:
           description: >-
             Código del último error de procesamiento. DOCUMENTO_ILEGIBLE indica que el OCR no pudo
-            leer el archivo. Nulo cuando no hay error.
+            leer el archivo. SERVICIO_NO_DISPONIBLE indica que el documento no pudo enviarse al
+            servicio de OCR o que su resultado no llegó dentro del plazo (ADR-012). Nulo cuando no hay
+            error.
           anyOf:
             - $ref: ../componentes/errores.yaml#/CodigoError
             - type: 'null'
@@ -776,7 +778,8 @@ paths:
       summary: Reintentar procesamiento OCR
       description: >-
         Vuelve a encolar el procesamiento de un documento cuyo último intento falló por ilegibilidad
-        (CU-08, flujo alternativo 2). Limpia codigoError y devuelve el documento en estado pendiente.
+        (CU-08, flujo alternativo 2) o porque el servicio de OCR no estuvo disponible
+        (SERVICIO_NO_DISPONIBLE). Limpia codigoError y devuelve el documento en estado pendiente.
         Si el documento no está pendiente o no tiene un error registrado, responde
         TRANSICION_NO_PERMITIDA. Para un archivo distinto, el usuario carga un nuevo documento. Responde
         SERVICIO_NO_DISPONIBLE si el procesamiento no puede encolarse.

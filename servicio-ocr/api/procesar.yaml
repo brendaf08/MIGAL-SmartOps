@@ -1,0 +1,121 @@
+# Contrato OpenAPI del servicio de OCR y Fuzzy Matching (ADR-011 y ADR-012).
+# Define la única operación que el backend invoca en el servicio: el encolado de un documento. El resultado regresa al
+# backend de forma asíncrona mediante PUT /api/v1/documentos/{id}/resultados (backend/api/modulos/documentos-ocr.yaml).
+# El backend y el servicio verifican sus mensajes contra este documento.
+openapi: 3.1.0
+info:
+  title: MIGAL SmartOps - Servicio de OCR
+  version: 1.0.0
+  description: >-
+    Servicio Python que extrae las líneas de un documento con un modelo multimodal y asigna los SKU
+    del catálogo con un Fuzzy Matching determinista. No accede a la base de datos ni al
+    almacenamiento del backend: recibe el archivo y el catálogo activo en la solicitud. No conoce
+    la clave de firma de los JWT: responde con el token de resultados que recibe.
+servers:
+  - url: /
+tags:
+  - name: Procesamiento
+    description: Encolado de documentos para el OCR y el Fuzzy Matching.
+paths:
+  /procesar:
+    post:
+      operationId: procesarDocumento
+      summary: Encolar un documento para el OCR
+      description: >-
+        Recibe el archivo y la solicitud de procesamiento, valida la solicitud y responde 202 sin
+        esperar el resultado. El procesamiento continúa en segundo plano y termina con
+        PUT {backend}/api/v1/documentos/{idDocumento}/resultados, autenticado con tokenResultados.
+        Si el procesamiento falla, el servicio no envía resultado; el backend registra
+        SERVICIO_NO_DISPONIBLE cuando vence el plazo de vigilancia (ADR-012, punto 4).
+      tags: [Procesamiento]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [archivo, solicitud]
+              properties:
+                archivo:
+                  type: string
+                  format: binary
+                  description: Archivo JPG, PNG o PDF de hasta 10 MB, tal como lo cargó el usuario.
+                solicitud:
+                  $ref: '#/components/schemas/SolicitudProcesamiento'
+            encoding:
+              archivo:
+                contentType: image/jpeg, image/png, application/pdf
+              solicitud:
+                contentType: application/json
+      responses:
+        '202':
+          description: Solicitud aceptada. El resultado llegará al backend de forma asíncrona.
+        '422':
+          description: La solicitud no cumple este contrato. El backend la registra como SERVICIO_NO_DISPONIBLE.
+        '503':
+          description: El servicio no puede aceptar solicitudes. El backend la registra como SERVICIO_NO_DISPONIBLE.
+  /salud:
+    get:
+      operationId: consultarSalud
+      summary: Consultar la disponibilidad del servicio
+      tags: [Procesamiento]
+      responses:
+        '200':
+          description: El servicio está disponible.
+components:
+  schemas:
+    SolicitudProcesamiento:
+      type: object
+      description: Datos del documento que el backend encola para el OCR.
+      required: [idDocumento, tipo, nombreArchivo, umbralBaja, tokenResultados, catalogo]
+      additionalProperties: false
+      properties:
+        idDocumento:
+          type: string
+          pattern: '^[1-9][0-9]*$'
+          description: Identificador del documento en el backend. Es el {id} de la ruta de resultados.
+        tipo:
+          type: string
+          enum: [solicitud_cliente, documento_recepcion]
+        nombreArchivo:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: Nombre original del archivo. Solo informativo; no forma parte de ninguna ruta.
+        umbralBaja:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: >-
+            Confianza mínima para incluir una coincidencia. El backend conserva la autoridad sobre
+            los umbrales y vuelve a filtrar las coincidencias recibidas.
+        tokenResultados:
+          type: string
+          minLength: 1
+          description: >-
+            JWT de servicio emitido por el backend para este documento, con el alcance
+            ocr:resultados:escribir. Se envía sin modificar como Authorization: Bearer.
+        catalogo:
+          type: array
+          description: Productos activos del catálogo maestro. No se envían a la API del modelo.
+          items:
+            $ref: '#/components/schemas/ProductoCatalogo'
+    ProductoCatalogo:
+      type: object
+      required: [sku, nombreOficial, marca, presentacion, unidadMedida]
+      additionalProperties: false
+      properties:
+        sku:
+          type: string
+          minLength: 1
+          maxLength: 50
+        nombreOficial:
+          type: string
+          minLength: 1
+        marca:
+          type: [string, 'null']
+        presentacion:
+          type: [string, 'null']
+        unidadMedida:
+          type: string
+          minLength: 1

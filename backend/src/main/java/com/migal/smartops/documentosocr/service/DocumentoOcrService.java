@@ -236,7 +236,7 @@ public class DocumentoOcrService {
 			throw new ErrorDeNegocio(CodigoError.TRANSICION_NO_PERMITIDA,
 					"Solo se reprocesan documentos pendientes con un error registrado.");
 		}
-		documento.reprocesar();
+		documento.reprocesar(reloj.instant());
 		proveedor.encolar(new SolicitudOcr(id, documento.getNombreArchivo(), almacen.resolver(documento.getRutaArchivo()),
 				documento.getTipo()));
 		return inicializar(documento);

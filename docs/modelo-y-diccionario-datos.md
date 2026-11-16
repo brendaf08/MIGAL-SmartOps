@@ -349,6 +349,7 @@ La desactivación de un proveedor impide utilizarlo en nuevas órdenes de compra
 | `nombre_archivo` | Simple | Nombre original del archivo cargado, sin ruta. Obligatorio y no vacío. |
 | `tamano_bytes` | Simple | Tamaño del archivo en bytes. Obligatorio y mayor que cero. |
 | `fecha_subida` | Simple | Fecha y hora de carga del documento. |
+| `fecha_encolado` | Simple | Fecha y hora del último envío al servicio de OCR. Coincide con `fecha_subida` en la carga, se actualiza en cada reprocesamiento y no puede ser anterior a `fecha_subida`. |
 | `estado_procesamiento` | Simple | Estado de procesamiento: Pendiente, Procesado OCR o Validado. |
 | `codigo_error` | Condicional | Código del error de procesamiento: `DOCUMENTO_ILEGIBLE` o `SERVICIO_NO_DISPONIBLE`. Solo se informa mientras el estado es pendiente. |
 | `tipo_documento` | Simple | Clasificación funcional del archivo: `solicitud_cliente` o `documento_recepcion`. |
@@ -610,6 +611,7 @@ Para mantener la consistencia entre las entidades y los procesos del sistema, se
 - Un documento digital se elimina de forma lógica: `fecha_eliminacion` no puede anteceder a `fecha_subida` (V13).
 - Un código de error de procesamiento solo se registra mientras el documento se encuentra pendiente (V13).
 - Un elemento extraído no repite un producto entre sus coincidencias ni una posición dentro de ellas (V13).
+- El último encolado de un documento digital no puede anteceder a su carga: `fecha_encolado` es igual o posterior a `fecha_subida` (V16).
 - Las conversaciones y los mensajes del agente de IA son de solo lectura sobre el negocio: no referencian inventario, ventas ni movimientos de Kardex, y el agente no genera operaciones de escritura (V14).
 - La eliminación de una conversación por su propietario es física y borra sus mensajes en cascada. La de un usuario queda restringida mientras conserve conversaciones (V14).
 - Los movimientos de inventario y las reservas deben ejecutarse mediante operaciones transaccionales consistentes.

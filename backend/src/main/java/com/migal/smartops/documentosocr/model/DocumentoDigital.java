@@ -43,6 +43,10 @@ public class DocumentoDigital {
 	@Column(name = "fecha_subida", nullable = false, updatable = false)
 	private Instant fechaSubida;
 
+	/** Último envío al servicio de OCR. Coincide con la carga y se actualiza al reprocesar (V16). */
+	@Column(name = "fecha_encolado", nullable = false)
+	private Instant fechaEncolado;
+
 	@Column(name = "estado_procesamiento", nullable = false, length = 20)
 	private String estadoProcesamiento;
 
@@ -85,6 +89,7 @@ public class DocumentoDigital {
 		this.rutaArchivo = rutaArchivo;
 		this.tamanoBytes = tamanoBytes;
 		this.fechaSubida = fechaSubida;
+		this.fechaEncolado = fechaSubida;
 		this.estadoProcesamiento = EstadoProcesamiento.PENDIENTE.valor();
 	}
 
@@ -106,6 +111,10 @@ public class DocumentoDigital {
 
 	public Instant getFechaSubida() {
 		return fechaSubida;
+	}
+
+	public Instant getFechaEncolado() {
+		return fechaEncolado;
 	}
 
 	public EstadoProcesamiento getEstado() {
@@ -169,9 +178,10 @@ public class DocumentoDigital {
 		this.codigoError = codigo;
 	}
 
-	/** Prepara el documento para un nuevo intento de procesamiento: quita el error registrado. */
-	public void reprocesar() {
+	/** Prepara el documento para un nuevo intento de procesamiento: quita el error registrado y anota el encolado. */
+	public void reprocesar(Instant ahora) {
 		this.codigoError = null;
+		this.fechaEncolado = ahora;
 	}
 
 	/** Pasa el documento a validado. Las líneas ya están confirmadas por el usuario. */

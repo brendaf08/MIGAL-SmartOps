@@ -127,6 +127,33 @@ class AbastecimientoApiTest {
 	}
 
 	@Test
+	void almaceneroSoloListaOrdenesPendientesParaRecepcionYNoElListadoGeneral() throws Exception {
+		long idProveedor = proveedorActivo();
+		MvcResult creada = alta("/api/v1/ordenes-compra", bearer("abs-reponedor"), null,
+				ordenCuerpo(idProveedor, 100, "26.50"))
+				.andExpect(status().isCreated())
+				.andReturn();
+		String idOrden = JsonPath.read(creada.getResponse().getContentAsString(), "$.id");
+
+		mvc.perform(get("/api/v1/ordenes-compra/recepcionables")
+					.header("Authorization", bearer("abs-almacenero")))
+				.andExpect(status().isOk())
+				.andExpect(cumple(contrato))
+				.andExpect(jsonPath("$.items[?(@.id == '" + idOrden + "')]", hasSize(1)))
+				.andExpect(jsonPath("$.items[0].proveedor", is("ABS Proveedor de prueba")))
+				.andExpect(jsonPath("$.items[0].lineas[0].productoId",
+						is(String.valueOf(productos.findBySku(skuProducto).orElseThrow().getId()))));
+
+		mvc.perform(get("/api/v1/ordenes-compra").header("Authorization", bearer("abs-almacenero")))
+				.andExpect(status().isForbidden())
+				.andExpect(cumple(contratoSoloRespuesta));
+		mvc.perform(get("/api/v1/ordenes-compra/recepcionables")
+					.header("Authorization", bearer("abs-reponedor")))
+				.andExpect(status().isForbidden())
+				.andExpect(cumple(contratoSoloRespuesta));
+	}
+
+	@Test
 	void registraUnProveedorYRechazaSuRucDuplicado() throws Exception {
 		String ruc = ruc();
 		MvcResult creado = alta("/api/v1/proveedores", bearer("abs-reponedor"), null,

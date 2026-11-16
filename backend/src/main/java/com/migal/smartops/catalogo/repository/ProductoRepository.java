@@ -1,6 +1,7 @@
 package com.migal.smartops.catalogo.repository;
 
 import com.migal.smartops.catalogo.model.Producto;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -15,6 +16,9 @@ public interface ProductoRepository extends JpaRepository<Producto, Long>, JpaSp
 
 	/** Búsqueda por clave natural. */
 	Optional<Producto> findBySku(String sku);
+
+	/** Productos activos ordenados por SKU, para el Fuzzy Matching del servicio de OCR (ADR-012). */
+	List<Producto> findByEstadoActivoTrueOrderBySkuAsc();
 
 	boolean existsBySku(String sku);
 

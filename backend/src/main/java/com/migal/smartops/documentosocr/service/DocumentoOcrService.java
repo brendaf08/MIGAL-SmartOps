@@ -22,6 +22,7 @@ import com.migal.smartops.seguridad.service.UsuarioService;
 import jakarta.persistence.criteria.Predicate;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -39,6 +40,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -222,6 +224,49 @@ public class DocumentoOcrService {
 		}
 		documento.registrarLineas(lineas);
 		return inicializar(documento);
+	}
+
+	/**
+	 * Registra SERVICIO_NO_DISPONIBLE en un documento pendiente y vigente que no tiene error (ADR-012, punto 3). Se usa
+	 * cuando el envío al servicio de OCR falla después de confirmar la carga, por lo que se ejecuta en una transacción
+	 * nueva. Devuelve falso si el documento ya no está en ese estado, por ejemplo porque su resultado llegó.
+	 */
+	@Transactional(propagation = Propagation.REQUIRES_NEW)
+	public boolean registrarServicioNoDisponible(long id) {
+		Optional<DocumentoDigital> documento = documentos.bloquearPorId(id)
+				.filter(d -> !d.estaEliminado() && d.getEstado() == EstadoProcesamiento.PENDIENTE && d.getCodigoError() == null);
+		documento.ifPresent(d -> d.registrarError(CodigoError.SERVICIO_NO_DISPONIBLE.name()));
+		return documento.isPresent();
+	}
+
+	/**
+	 * Registra SERVICIO_NO_DISPONIBLE en los documentos pendientes, vigentes y sin error cuyo último encolado es anterior
+	 * al límite (ADR-012, punto 4). Devuelve la cantidad de documentos marcados.
+	 */
+	@Transactional
+	public int vencerPendientes(Instant limite) {
+		return jdbc.sql("""
+				UPDATE documento_digital SET codigo_error = 'SERVICIO_NO_DISPONIBLE'
+				WHERE estado_procesamiento = 'pendiente' AND codigo_error IS NULL AND fecha_eliminacion IS NULL
+				  AND fecha_encolado < :limite
+				""").param("limite", Timestamp.from(limite)).update();
+	}
+
+	/** Producto activo del catálogo maestro, tal como se envía al servicio de OCR. */
+	public record ProductoCatalogoOcr(String sku, String nombreOficial, String marca, String presentacion,
+			String unidadMedida) {
+	}
+
+	/**
+	 * Catálogo activo para el Fuzzy Matching del servicio de OCR (ADR-012, punto 2). Se consulta en una transacción
+	 * propia porque el envío ocurre después de confirmar la carga.
+	 */
+	@Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = true)
+	public List<ProductoCatalogoOcr> catalogoActivo() {
+		return productos.findByEstadoActivoTrueOrderBySkuAsc().stream()
+				.map(p -> new ProductoCatalogoOcr(p.getSku(), p.getNombreOficial(), p.getMarca(), p.getPresentacion(),
+						p.getUnidadMedida()))
+				.toList();
 	}
 
 	/**

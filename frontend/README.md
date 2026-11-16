@@ -6,7 +6,9 @@ Aplicación web de MIGAL SmartOps (SPA en React). La decisión de stack se encue
 
 Incluye la configuración base, el tema claro y oscuro, el layout responsive (teléfono, tablet y escritorio), los primitivos y componentes de dominio del sistema de diseño, la sesión con rutas protegidas por rol y las pantallas de todos los módulos de la navegación: disponibilidad, catálogo, alertas de stock, Kardex con registro de movimientos, despachos con orden imprimible, recepciones y documentos con OCR, cotizaciones, ventas, clientes, proveedores, órdenes de compra, agente de IA y usuarios. Cada módulo cubre sus flujos de punta a punta (listado, formulario, detalle y confirmación) y se documenta en [docs/diseno/pantallas](../docs/diseno/pantallas/README.md).
 
-El backend aún no existe (la carpeta `backend/` solo contiene su README). Los datos provienen de una capa simulada, descrita en [Datos simulados](#datos-simulados-y-usuarios-de-prueba).
+El backend Spring Boot está implementado en `backend/`. En desarrollo, Vite usa la API real por defecto y reenvía `/api` a `http://localhost:8080`, según `vite.config.ts`. Para ejecutar la interfaz conectada, inicia PostgreSQL y el backend antes de Vite.
+
+El Dockerfile del frontend sirve los archivos estáticos mediante nginx. La configuración actual de nginx no reenvía `/api` al backend; para publicar la aplicación conectada con Docker, hay que completar ese proxy. En compilaciones de producción, establece `VITE_API_REAL=true`; de lo contrario se seleccionan los datos simulados.
 
 ## Requisitos
 
@@ -92,18 +94,18 @@ La navegación y las rutas protegidas se definen una sola vez en `src/routes/nav
 
 ## Datos simulados y usuarios de prueba
 
-Cada módulo expone sus consultas en un archivo `api.ts` con firmas tipadas que devuelven datos de prueba mediante `mockRequest` (`src/api/mock.ts`), con latencia simulada. Al disponer de la API REST, cada función se sustituye por una llamada HTTP sin modificar su firma ni las pantallas. Las operaciones que modifican datos (aceptar una cotización, confirmar una salida o una recepción) actualizan los datos en memoria y se reinician al recargar la página.
+Cada módulo expone consultas en un archivo `api.ts`. En desarrollo, `API_REAL` se activa por defecto y las consultas usan el backend; las rutas `/api` se reenvían mediante el proxy de Vite. Se puede forzar el modo con `VITE_API_REAL=true` o `false`. Las pruebas utilizan datos simulados. En modo simulado, las operaciones que modifican datos solo actualizan la memoria y se reinician al recargar.
 
-Usuarios de prueba para desarrollo (contraseña `demo1234` en todos los casos):
+Las credenciales siguientes funcionan únicamente en modo simulado; no son las credenciales del backend:
 
-| Usuario | Rol |
-| --- | --- |
-| `admin` | Administrador |
-| `vendedor` | Vendedor |
-| `rquispe` | Almacenero |
-| `reponedor` | Reponedor |
+| Usuario | Rol | Contraseña |
+| --- | --- | --- |
+| `admin` | Administrador | `demo1234` |
+| `vendedor` | Vendedor | `demo1234` |
+| `rquispe` | Almacenero | `demo1234` |
+| `reponedor` | Reponedor | `demo1234` |
 
-Estos usuarios se eliminan al integrar la autenticación del backend (`src/features/seguridad/fixtures.ts`).
+El administrador inicial del backend se configura localmente mediante `MIGAL_ADMIN_USERNAME` y `MIGAL_ADMIN_CLAVE`. No guardes esos secretos en el repositorio.
 
 ## Tema y modo claro u oscuro
 
@@ -154,3 +156,4 @@ Una historia nueva se agrega junto al componente y la prueba de `src/historias.a
 ## Verificación responsive pendiente
 
 Las composiciones de teléfono, tablet y escritorio se implementan con CSS Modules y los puntos de quiebre del tema, y las pruebas automatizadas no evalúan la maquetación. Antes de integrar, comprobar manualmente cada pantalla en 390, 768 y 1280 px, en tema claro y oscuro y con el zoom al 200 %.
+

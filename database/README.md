@@ -1,6 +1,6 @@
 # Base de datos
 
-Este directorio define la base de datos del proyecto. El motor es PostgreSQL, según el [ADR-005](../docs/adr/adr-005-base-de-datos.md), y la imagen de referencia se fija en el archivo `compose.yaml` de la raíz. No se incluye un esquema SQL validado. Las migraciones se incorporan en `migraciones/` después de resolver y aprobar el modelo de datos.
+Este directorio contiene el esquema PostgreSQL del proyecto MIGAL SmartOps, administrado mediante migraciones Flyway en `migraciones/`. El proyecto Supabase `migal-smartops` tiene aplicadas la línea base 0 y las migraciones V1 a V15; el historial consultado el 15 de noviembre de 2026 muestra todas con ejecución exitosa. El entorno local usa PostgreSQL en Docker Compose y el backend ejecuta Flyway al iniciar.
 
 ## Verificar los requisitos
 
@@ -88,13 +88,15 @@ Para cargarlo en el contenedor local de PostgreSQL, con las variables del archiv
 docker exec -i migal-postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 < database/datos-demostracion/demo.sql
 ```
 
-## Aplicar las migraciones en Supabase
+## Estado de Supabase y migraciones
 
-El proyecto `migal-smartops` de Supabase (PostgreSQL 17) no contiene tablas hasta que se ejecutan las migraciones. El esquema completo se define en `migraciones/V1` a `V15` y es la única fuente, según el ADR-007. No se aplica mediante el editor SQL ni las migraciones propias de Supabase, para conservar un único historial (`flyway_schema_history`).
+La verificación del 15 de noviembre de 2026 encontró en el esquema `public` las tablas del sistema y `flyway_schema_history`, con línea base 0 y migraciones V1 a V15, todas con `success = true`. El esquema del proyecto Supabase actual ya está aplicado.
 
-1. Obtener en el panel de Supabase (Connect) la cadena de conexión del pooler en modo sesión y la contraseña de la base de datos.
-2. Definir en el archivo `.env` de la raíz `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME` y `SPRING_DATASOURCE_PASSWORD`, además de `MIGAL_JWT_SECRETO`, `MIGAL_ADMIN_USERNAME` y `MIGAL_ADMIN_CLAVE`. El backend lee ese archivo al iniciar (`spring.config.import`), por lo que no se exportan variables en cada terminal. Las plantillas figuran en `.env.example`. Para volver a la base local, comentar las variables `SPRING_DATASOURCE_*`.
-3. En la primera ejecución, activar también `spring.flyway.baseline-on-migrate=true` y `spring.flyway.baseline-version=0` en `.env`, porque el esquema `public` de Supabase incluye una función propia y Flyway exige una línea base. Retirarlas después. Iniciar el backend desde `backend/`. Flyway ejecuta las migraciones pendientes al arrancar, también las nuevas que se agreguen en el futuro y la aplicación crea el administrador inicial.
-4. Verificar en Supabase que las tablas del esquema `public` tienen RLS habilitado y que `flyway_schema_history` registra las quince versiones.
+Las migraciones versionadas de `database/migraciones/` son la fuente del esquema. Para cambios futuros, agrega una nueva migración Flyway; no edites migraciones ya ejecutadas ni modifiques el esquema mediante el editor SQL de Supabase o sus migraciones propias.
 
-No cargar `datos-demostracion/demo.sql` en Supabase. La definición de los roles de migración y de aplicación (ADR-007, punto 6) queda pendiente de un cambio posterior.
+La configuración `spring.flyway.baseline-on-migrate=true` y `spring.flyway.baseline-version=0` se usó durante la primera aplicación, porque el esquema `public` contenía una función propia de la plataforma. **No vuelvas a activar estas opciones para el proyecto actual.** Si se aprovisiona otro proyecto Supabase y presenta la misma condición, evalúalas solo para esa primera ejecución y retíralas después.
+
+Para conectarse a Supabase, el responsable debe proporcionar de forma segura la cadena de conexión y las credenciales. Se definen en el `.env` local mediante `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`, `MIGAL_JWT_SECRETO`, `MIGAL_ADMIN_USERNAME` y `MIGAL_ADMIN_CLAVE`. El backend lee el archivo al iniciar. No guardes estos valores en Git ni los compartas en mensajes.
+
+No cargues `datos-demostracion/demo.sql` en Supabase ni en producción. La separación de los roles de migración y aplicación indicada en ADR-007 sigue pendiente de un cambio posterior.
+

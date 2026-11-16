@@ -12,18 +12,28 @@ PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 8
 URL_RESULTADOS = "http://backend.local/api/v1/documentos/812/resultados"
 
 
+class ErrorApi(Exception):
+    """Error de la API con su código HTTP, como ``google.genai.errors.APIError``."""
+
+    def __init__(self, code: int) -> None:
+        super().__init__(f"Error {code}")
+        self.code = code
+
+
 class ModeloGrabado:
     """Respuesta grabada del modelo multimodal; las pruebas no llaman a la API real."""
 
-    def __init__(self, extraccion: Extraccion | None = None, falla: bool = False) -> None:
+    def __init__(
+        self, extraccion: Extraccion | None = None, falla: bool = False, error: Exception | None = None
+    ) -> None:
         self.extraccion = extraccion
-        self.falla = falla
+        self.error = error or (RuntimeError("API no disponible") if falla else None)
         self.llamadas = 0
 
     def extraer(self, contenido: bytes, tipo_mime: str) -> Extraccion:
         self.llamadas += 1
-        if self.falla:
-            raise RuntimeError("API no disponible")
+        if self.error:
+            raise self.error
         return self.extraccion
 
 
@@ -127,3 +137,27 @@ def test_rechaza_formatos_no_admitidos_y_archivos_vacios(cliente: TestClient) ->
 
 def test_salud(cliente: TestClient) -> None:
     assert cliente.get("/salud").json() == {"estado": "disponible"}
+
+
+@respx.mock
+@pytest.mark.parametrize("codigo", [429, 403, 400])
+def test_un_error_4xx_de_la_api_no_se_reintenta(
+    cliente: TestClient, monkeypatch: pytest.MonkeyPatch, codigo: int
+) -> None:
+    modelo = ModeloGrabado(error=ErrorApi(codigo))
+    monkeypatch.setattr(main, "_modelo", modelo)
+    ruta = respx.put(URL_RESULTADOS).mock(return_value=httpx.Response(200))
+
+    assert enviar(cliente, solicitud()).status_code == 202
+    assert modelo.llamadas == 1
+    assert not ruta.called
+
+
+@respx.mock
+def test_un_error_5xx_de_la_api_se_reintenta(cliente: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    modelo = ModeloGrabado(error=ErrorApi(504))
+    monkeypatch.setattr(main, "_modelo", modelo)
+    respx.put(URL_RESULTADOS).mock(return_value=httpx.Response(200))
+
+    assert enviar(cliente, solicitud()).status_code == 202
+    assert modelo.llamadas == 2

@@ -79,10 +79,20 @@ def cantidad_valida(valor: float | None) -> Decimal | None:
     return cantidad.normalize() if cantidad == cantidad.to_integral() else cantidad
 
 
+def es_reintentable(error: Exception) -> bool:
+    """Un error 4xx de la API (cuota agotada 429, clave inválida 403, solicitud rechazada 400) se repite igual al
+    reintentar; solo los fallos de red, los tiempos agotados y los 5xx pueden resolverse con otro intento."""
+    codigo = getattr(error, "code", None)
+    return not (isinstance(codigo, int) and 400 <= codigo < 500)
+
+
 def extraer_con_reintento(modelo: ModeloVision, contenido: bytes, tipo_mime: str) -> Extraccion:
-    """Llama al modelo y reintenta una vez. Si vuelve a fallar, propaga el error (ADR-012, punto 4)."""
+    """Llama al modelo y reintenta una vez ante un fallo transitorio. Si vuelve a fallar, o el error no es
+    reintentable, propaga el error (ADR-012, punto 4)."""
     try:
         return modelo.extraer(contenido, tipo_mime)
-    except Exception:  # noqa: BLE001 - cualquier fallo de la API se reintenta una vez
+    except Exception as error:  # noqa: BLE001 - se decide por el tipo de fallo
+        if not es_reintentable(error):
+            raise
         REGISTRO.warning("Falló la extracción con el modelo; se reintenta una vez", exc_info=True)
         return modelo.extraer(contenido, tipo_mime)

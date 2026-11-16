@@ -97,3 +97,8 @@ def test_el_largo_de_la_pieza_es_medida_pero_no_texto() -> None:
 
 def test_el_formato_se_escribe_igual_con_o_sin_espacios() -> None:
     assert normalizar("Ladrillo de techo 15 x 30 cm").texto == normalizar("ladrillo techo 15x30").texto
+
+
+def test_kk_seguido_del_numero_es_el_ladrillo_de_huecos() -> None:
+    assert normalizar("LADRILLO KK18").texto == normalizar("lad kk 18 huecos").texto
+    assert "18huecos" in normalizar("Ladrillo KK-18").medidas

@@ -88,6 +88,10 @@ Para cargarlo en el contenedor local de PostgreSQL, con las variables del archiv
 docker exec -i migal-postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 < database/datos-demostracion/demo.sql
 ```
 
+Para probar el OCR con notas de venta reales, `datos-demostracion/catalogo-notas-venta.sql` agrega 39 productos de
+fierro, agregados, gasfitería y electricidad con 200 unidades en el Almacén 1. Se ejecuta después de `demo.sql`, con
+el mismo comando, y también es idempotente.
+
 ## Estado de Supabase y migraciones
 
 La verificación del 15 de noviembre de 2026 encontró en el esquema `public` las tablas del sistema y `flyway_schema_history`, con línea base 0 y migraciones V1 a V15, todas con `success = true`. El esquema del proyecto Supabase actual ya está aplicado. La migración V16 (`fecha_encolado` de `documento_digital`, ADR-012) se aplica en Supabase cuando el backend arranque por primera vez con una versión que la incluya; hasta entonces el proyecto permanece en V15.

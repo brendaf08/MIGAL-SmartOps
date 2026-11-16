@@ -1,100 +1,159 @@
 # Frontend
 
-Aplicación web de MIGAL SmartOps (SPA en React). Las decisiones de stack y diseño visual están en [ADR-001](../docs/adr/adr-001-stack-frontend.md) y [ADR-002](../docs/adr/adr-002-sistema-de-diseno.md).
+Aplicación web de MIGAL SmartOps (SPA en React). La decisión de stack se encuentra en [ADR-001](../docs/adr/adr-001-stack-frontend.md) y la del sistema de diseño en [ADR-002](../docs/adr/adr-002-sistema-de-diseno.md).
 
 ## Estado
 
-Incluye el tema claro y oscuro, layout responsive, componentes del sistema de diseño, rutas protegidas por rol y pantallas para disponibilidad, catálogo, alertas, Kardex, despachos, recepciones, OCR, cotizaciones, ventas, clientes, proveedores, compras, agente de IA y usuarios. Las pantallas se documentan en [docs/diseno/pantallas](../docs/diseno/pantallas/README.md).
+Incluye la configuración base, el tema claro y oscuro, el layout responsive (teléfono, tablet y escritorio), los primitivos y componentes de dominio del sistema de diseño, la sesión con rutas protegidas por rol y las pantallas de todos los módulos de la navegación: disponibilidad, catálogo, alertas de stock, Kardex con registro de movimientos, despachos con orden imprimible, recepciones y documentos con OCR, cotizaciones, ventas, clientes, proveedores, órdenes de compra, agente de IA y usuarios. Cada módulo cubre sus flujos de punta a punta (listado, formulario, detalle y confirmación) y se documenta en [docs/diseno/pantallas](../docs/diseno/pantallas/README.md).
 
-El backend Spring Boot está implementado en `backend/`. En desarrollo, Vite usa la API real por defecto y reenvía las rutas `/api` a `http://localhost:8080`, según `vite.config.ts`. Para ejecutar la interfaz conectada, inicia PostgreSQL y el backend antes de Vite.
+El backend Spring Boot está implementado en `backend/`. En desarrollo, Vite usa la API real por defecto y reenvía `/api` a `http://localhost:8080`, según `vite.config.ts`. Para ejecutar la interfaz conectada, inicia PostgreSQL y el backend antes de Vite.
 
-El Dockerfile del frontend sirve los archivos estáticos mediante nginx. La configuración actual de nginx **no** reenvía `/api` al backend; para publicar la aplicación conectada con Docker, hay que completar ese proxy. En compilaciones de producción, establece `VITE_API_REAL=true`; sin ello la aplicación selecciona los datos simulados.
+El Dockerfile del frontend sirve los archivos estáticos mediante nginx. La configuración actual de nginx no reenvía `/api` al backend; para publicar la aplicación conectada con Docker, hay que completar ese proxy. En compilaciones de producción, establece `VITE_API_REAL=true`; de lo contrario se seleccionan los datos simulados.
 
 ## Requisitos
 
-- Node.js 22.22 o posterior.
+- Node.js 22.22 o posterior (se utiliza la versión 24 en la imagen Docker).
 - npm 10 o posterior.
 
-## Instalación y ejecución local
+## Instalación y ejecución
 
-Desde `frontend/`:
+Abrir una terminal en esta carpeta y ejecutar:
 
-```powershell
-npm ci
+```sh
+npm install
 npm run dev
 ```
 
-Vite sirve la aplicación en `http://localhost:5173` y reenvía `/api` al backend local en el puerto 8080.
+La aplicación queda disponible en `http://localhost:5173`.
 
 ## Scripts
 
 | Comando | Función |
 | --- | --- |
-| `npm run dev` | Inicia Vite en desarrollo. |
-| `npm run build` | Comprueba tipos y genera `dist/`. |
-| `npm run preview` | Previsualiza la compilación. |
-| `npm run typecheck` | Comprueba los tipos TypeScript. |
-| `npm run lint` | Ejecuta ESLint. |
-| `npm run format` | Aplica Prettier. |
-| `npm run format:check` | Comprueba el formato. |
-| `npm test` | Ejecuta Vitest y Testing Library. |
-| `npm run test:watch` | Ejecuta pruebas interactivas. |
-| `npm run storybook` | Inicia Storybook en el puerto 6006. |
-| `npm run build-storybook` | Genera Storybook estático. |
+| `npm run dev` | Inicia el servidor de desarrollo. |
+| `npm run build` | Comprueba los tipos y genera los archivos estáticos en `dist/`. |
+| `npm run preview` | Sirve localmente el resultado de `build`. |
+| `npm run typecheck` | Comprueba los tipos de TypeScript. |
+| `npm run lint` | Ejecuta ESLint, incluidas las reglas de accesibilidad de `jsx-a11y`. |
+| `npm run format` | Aplica el formato de Prettier. |
+| `npm run format:check` | Verifica el formato sin modificar archivos. |
+| `npm test` | Ejecuta las pruebas con Vitest y Testing Library. |
+| `npm run test:watch` | Ejecuta las pruebas en modo interactivo. |
+| `npm run storybook` | Inicia el catálogo de componentes en `http://localhost:6006`. |
+| `npm run build-storybook` | Genera el catálogo estático en `storybook-static/`. |
 
-Antes de integrar un cambio, seguir el flujo de revisión y verificación definido en el repositorio.
+Antes de abrir un pull request, ejecutar `npm run lint`, `npm run typecheck`, `npm test` y `npm run build`, y registrar los resultados en la descripción.
 
-## Tecnologías
+## Tecnologías y versiones
 
 | Elemento | Tecnología |
 | --- | --- |
 | Construcción | Vite 8 |
-| Lenguaje | TypeScript 6, modo estricto |
-| Interfaz | React 19, Mantine 9 |
+| Lenguaje | TypeScript 6 en modo estricto |
+| Interfaz | React 19 y Mantine 9 (formularios, modales, notificaciones y carga de archivos) |
 | Navegación | React Router 8 |
 | Estado del servidor | TanStack Query 5 |
 | Validación | Zod 4 |
 | Pruebas | Vitest 5, Testing Library y jsdom |
-| Calidad | ESLint 9 y jsx-a11y |
+| Calidad | ESLint 9 con `eslint-plugin-jsx-a11y` y Prettier |
+
+TypeScript se mantiene en la serie 6 y ESLint en la serie 9 porque `typescript-eslint` y `eslint-plugin-jsx-a11y` aún no admiten TypeScript 7 ni ESLint 10. Actualizar ambas series cuando los paquetes mencionados las admitan.
 
 ## Estructura
 
 ```text
 frontend/
+├── index.html
+├── vite.config.ts
+├── postcss.config.js         Mixins de Mantine y puntos de quiebre para CSS Modules.
+├── vitest.setup.ts
 ├── Dockerfile
 ├── nginx.conf
-├── vite.config.ts
 └── src/
-    ├── app/
+    ├── main.tsx              Punto de entrada, estilos globales y enrutador.
+    ├── App.tsx
+    ├── app/                  Proveedores globales y cliente de consultas.
+    ├── theme/                Tokens, tema de Mantine, fuentes y modo claro u oscuro.
     ├── components/
-    ├── features/
-    ├── routes/
-    ├── api/
-    ├── lib/
-    └── assets/
+    │   ├── ui/               Primitivos genéricos (DataTable, Modal, Tabs, Stepper, Dropzone, ...).
+    │   ├── domain/           StatusBadge, StockSummary, StockBar, MatchConfidence y chat.
+    │   └── layout/           AppShell y PageHeader.
+    ├── features/             Un directorio por módulo funcional (pantallas, consultas y tipos).
+    ├── routes/               Rutas, navegación por rol y marco de las pantallas internas.
+    ├── api/                  Utilidades de la capa de datos simulada.
+    ├── lib/                  Formatos es-PE y utilidades.
+    ├── test/                 Utilidades de prueba.
+    └── assets/               Logo y recursos estáticos.
 ```
 
-El alias `@/` equivale a `src/`. Las pantallas y consultas por módulo están en `src/features/`; el cliente HTTP está en `src/api/`.
+El alias `@/` equivale a `src/`. Las dependencias fluyen en una sola dirección: `features` usa `components`, `components/domain` usa `components/ui`, y `components/ui` no conoce el negocio. Los componentes visuales no llaman a la API: reciben datos por propiedades o mediante hooks de `features`.
 
 ## Rutas y roles
 
-La navegación y las rutas protegidas se definen en `src/routes/navigation.ts` y `src/routes/AppRoutes.tsx`. Ocultar una opción según el rol no sustituye la autorización del backend, que es responsable de validar el acceso a cada operación.
+La navegación y las rutas protegidas se definen una sola vez en `src/routes/navigation.ts`. Un módulo oculto para un rol equivale a una ruta no accesible; la autorización real corresponde al backend (RNF-09). La clave de cada ítem es su ruta (`/disponibilidad`, `/ventas`, `/despachos`, etc.) y las pantallas secundarias se registran en `src/routes/AppRoutes.tsx` (`/ventas/:id`, `/despachos/:id`, `/recepciones/nueva`).
 
-## API real y datos simulados
+## Datos simulados y usuarios de prueba
 
-`API_REAL` se activa en el servidor de desarrollo por defecto. Se puede forzar con `VITE_API_REAL=true` o `false`. Las pruebas usan datos simulados. En modo simulado, las operaciones modificadoras solo cambian datos en memoria y se pierden al recargar.
+Cada módulo expone consultas en un archivo `api.ts`. En desarrollo, `API_REAL` se activa por defecto y las consultas usan el backend; las rutas `/api` se reenvían mediante el proxy de Vite. Se puede forzar el modo con `VITE_API_REAL=true` o `false`. Las pruebas utilizan datos simulados. En modo simulado, las operaciones que modifican datos solo actualizan la memoria y se reinician al recargar.
 
-Las credenciales `admin`, `vendedor`, `rquispe` y `reponedor` con clave `demo1234` corresponden únicamente al modo simulado definido en `src/features/seguridad/fixtures.ts`. No son las credenciales del backend. El administrador inicial del backend se define localmente mediante `MIGAL_ADMIN_USERNAME` y `MIGAL_ADMIN_CLAVE`; no guardes esos secretos en el repositorio.
+Las credenciales siguientes funcionan únicamente en modo simulado; no son las credenciales del backend:
+
+| Usuario | Rol | Contraseña |
+| --- | --- | --- |
+| `admin` | Administrador | `demo1234` |
+| `vendedor` | Vendedor | `demo1234` |
+| `rquispe` | Almacenero | `demo1234` |
+| `reponedor` | Reponedor | `demo1234` |
+
+El administrador inicial del backend se configura localmente mediante `MIGAL_ADMIN_USERNAME` y `MIGAL_ADMIN_CLAVE`. No guardes esos secretos en el repositorio.
+
+## Tema y modo claro u oscuro
+
+| Archivo | Contenido |
+| --- | --- |
+| `src/theme/tokens.css` | Variables CSS de los temas claro y oscuro, derivadas de [tokens.json](../docs/diseno/tokens.json). Archivo generado: no se edita a mano. |
+| `src/theme/theme.ts` | Tema de Mantine con las paletas, la tipografía, los radios, el espaciado y los valores predeterminados de los componentes. |
+| `src/theme/cssVariablesResolver.ts` | Enlace de las variables de color y de fuente de Mantine con los tokens. |
+| `src/theme/global.css` | Estilos globales que consumen únicamente tokens. |
+| `src/theme/fonts.ts` | Fuentes autoalojadas mediante paquetes `@fontsource`. |
+| `src/theme/ThemeSync.tsx` | Sincronización del atributo `data-theme` con el esquema de color de Mantine. |
+| `src/theme/useThemeMode.ts` | Hook para consultar y alternar el modo. |
+
+El modo inicial proviene de `prefers-color-scheme` y la elección del usuario se conserva en `localStorage` con la clave `migal-color-scheme`. Un script en línea de `index.html` aplica el modo antes de renderizar para evitar un destello de tema.
+
+Los paquetes `@fontsource-variable` registran las familias "Bricolage Grotesque Variable" e "Instrument Sans Variable". `global.css` las antepone a los nombres definidos en `tokens.css`, que se conserva sin cambios.
 
 ## Docker
 
-El Dockerfile construye la SPA con Node y la sirve con nginx. La configuración actual permite las rutas de la SPA, pero no proxifica `/api`. La publicación conectada al backend requiere agregar dicho proxy y definir `VITE_API_REAL=true` durante la compilación.
+La imagen se construye en dos etapas: compilación con Node y servicio de los archivos estáticos con nginx, que redirige las rutas de la SPA a `index.html`.
 
-## Diseño y accesibilidad
+```sh
+docker build -t migal-frontend .
+docker run --rm -p 8080:80 migal-frontend
+```
 
-- Sistema de diseño: [docs/diseno/sistema-de-diseno.md](../docs/diseno/sistema-de-diseno.md).
-- Componentes y pantallas: [docs/diseno/componentes/README.md](../docs/diseno/componentes/README.md).
-- Prototipo: [docs/diseno/prototipo/README.md](../docs/diseno/prototipo/README.md).
+La aplicación queda disponible en `http://localhost:8080`.
 
-La accesibilidad se apoya en ESLint, pruebas de Testing Library y axe, y revisión interactiva en Storybook. Las pruebas automatizadas no validan por completo la composición responsive; revisar manualmente en anchos de 390, 768 y 1280 px, ambos temas y zoom de 200 % antes de integrar cambios visuales.
+## Documentación de diseño
+
+- [Sistema de diseño](../docs/diseno/sistema-de-diseno.md).
+- [Componentes y pantallas de referencia](../docs/diseno/componentes/README.md).
+- [Prototipo de referencia](../docs/diseno/prototipo/README.md).
+
+## Catálogo de componentes y accesibilidad
+
+El catálogo vive en Storybook (`.storybook/`) y contiene una historia por componente de `components/ui/`, `components/domain/` y `components/layout/`, en archivos `*.stories.tsx` junto a cada componente. La barra de herramientas permite alternar entre el tema claro y el oscuro tenue, y el complemento de accesibilidad de Storybook ejecuta `axe` sobre cada historia. La telemetría de Storybook está desactivada.
+
+La accesibilidad se verifica en cuatro niveles:
+
+- `eslint-plugin-jsx-a11y` durante `npm run lint`.
+- Pruebas de Testing Library con roles, nombres accesibles y teclado.
+- `vitest-axe` por pantalla (`src/a11y.test.tsx`) y por historia (`src/historias.a11y.test.tsx`), sin la regla de contraste, que depende de los tokens y no de jsdom, ni la de regiones, que corresponde a páginas completas.
+- El complemento de accesibilidad de Storybook, de forma interactiva.
+
+Una historia nueva se agrega junto al componente y la prueba de `src/historias.a11y.test.tsx` la recoge sin cambios adicionales.
+
+## Verificación responsive pendiente
+
+Las composiciones de teléfono, tablet y escritorio se implementan con CSS Modules y los puntos de quiebre del tema, y las pruebas automatizadas no evalúan la maquetación. Antes de integrar, comprobar manualmente cada pantalla en 390, 768 y 1280 px, en tema claro y oscuro y con el zoom al 200 %.
 

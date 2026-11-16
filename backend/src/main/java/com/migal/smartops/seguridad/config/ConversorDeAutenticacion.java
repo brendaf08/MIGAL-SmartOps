@@ -10,6 +10,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Component;
 
 /**
@@ -59,7 +60,9 @@ public class ConversorDeAutenticacion implements Converter<Jwt, AbstractAuthenti
 				? List.of()
 				: jwt.getClaimAsStringList(RECLAMACION_ALCANCES).stream()
 						.map(alcance -> new SimpleGrantedAuthority("SCOPE_" + alcance)).toList();
-		return new UsernamePasswordAuthenticationToken(jwt.getSubject(), jwt, autoridades);
+		// JwtAuthenticationToken conserva el token tras la autenticación; las operaciones de servicio leen sus
+		// reclamaciones, por ejemplo idDocumento (ADR-012).
+		return new JwtAuthenticationToken(jwt, autoridades, jwt.getSubject());
 	}
 
 	private static java.util.Optional<Long> idDelToken(Jwt jwt) {

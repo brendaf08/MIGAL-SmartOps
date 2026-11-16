@@ -48,3 +48,5 @@ backend/almacen-documentos/
 .interface-design/
 .impeccable/
 frontend/CLAUDE.md
+# Metadatos de instalación del servicio de OCR (pip install -e).
+*.egg-info/

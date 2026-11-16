@@ -55,6 +55,8 @@ def test_tipo_de_medida() -> None:
     [
         ("ϕ 5/8", "fierro 5/8in"),
         ("Ø 8MM", "fierro 8mm"),
+        ("∅ 1/2", "fierro 1/2in"),
+        ("⌀ 3/4", "fierro 3/4in"),
         ("ϕ cor 1/2", "fierro corrugado 1/2in"),
     ],
 )

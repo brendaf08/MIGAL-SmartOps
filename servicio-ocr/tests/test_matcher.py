@@ -83,3 +83,44 @@ def test_medidas_incompatibles_solo_compara_el_mismo_tipo() -> None:
     assert not medidas_incompatibles(frozenset({"1/2in"}), frozenset({"1/2in", "9m"}))
     assert not medidas_incompatibles(frozenset({"42.5kg"}), frozenset({"1/2in"}))
     assert not medidas_incompatibles(frozenset({"1/2in"}), frozenset())
+
+
+NOTAS = preparar_catalogo(
+    [
+        ProductoCatalogo(sku=sku, nombreOficial=nombre, marca=None, presentacion=None, unidadMedida="unidad")
+        for sku, nombre in [
+            ("FIE-002", "Fierro corrugado 1/2 pulgada x 9 m"),
+            ("SAN-009", "Tubo PVC agua 1/2 pulgada x 5 m"),
+            ("SAN-019", "Tubo CPVC agua caliente 1/2 pulgada x 5 m"),
+            ("SAN-021", "Tee CPVC 1/2 pulgada"),
+            ("SAN-023", "Unión CPVC 1/2 pulgada"),
+            ("AGR-001", "Arena gruesa"),
+        ]
+    ]
+)
+
+
+def test_lineas_de_notas_de_venta_reales() -> None:
+    for texto, sku in [
+        ("ϕ 1/2", "FIE-002"),
+        ('20 varillas F° 1/2"', "FIE-002"),
+        ("tubo CPVC 1/2", "SAN-019"),
+        ('tubo agua 1/2"', "SAN-009"),
+        ("uniones CPVC", "SAN-023"),
+        ("mtrs arena gruesa", "AGR-001"),
+    ]:
+        resultado = coincidencias(texto, NOTAS, 0.6)
+        assert resultado, texto
+        assert resultado[0].sku == sku, texto
+
+
+def test_el_tipo_de_producto_pesa_mas_que_los_atributos() -> None:
+    linea = normalizar("tubo cpvc 1/2")
+
+    assert puntaje(linea, NOTAS[2].normalizado) > puntaje(linea, NOTAS[4].normalizado)
+
+
+def test_un_material_distinto_penaliza_el_puntaje() -> None:
+    linea = normalizar("tubo cpvc 1/2")
+
+    assert puntaje(linea, NOTAS[1].normalizado) < 0.4

@@ -90,6 +90,9 @@ services:
     profiles: [completo]
     build:
       context: frontend
+      args:
+        # Sin este valor, la compilación de producción usa los datos simulados del frontend.
+        VITE_API_REAL: "true"
     container_name: migal-frontend
     restart: unless-stopped
     depends_on:

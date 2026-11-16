@@ -62,6 +62,9 @@ _PULGADA = re.compile(rf'(?<![\d/])(\d+\s*/\s*\d+|{_NUMERO})\s*(?:"|\'\'|”|pul
 _FRACCION_SUELTA = re.compile(r"(?<![\d/])(\d+)\s*/\s*(\d+)(?![\d/a-z])")
 _KILOS = re.compile(rf"(?<![\d.,])({_NUMERO})\s*(?:kgs?|kilos?|kilogramos?)\b")
 _HUECOS = re.compile(r"(?<!\d)(\d+)\s*huecos?\b")
+# "KK18" es el ladrillo King Kong de 18 huecos, como lo nombran los catálogos. Solo pegado o con guion: en "KK 2 bls"
+# el número es la cantidad.
+_KING_KONG = re.compile(r"\bkk-?(\d+)\b(?!\s*huecos?)")
 _AWG = re.compile(r"(?<!\d)(?:n[°o]\s*)?(\d+)\s*awg\b|\bawg\s*(\d+)\b")
 _MILIMETROS = re.compile(rf"(?<![\d.,])({_NUMERO})\s*mm\b")
 _LARGO = re.compile(rf"\bx\s*({_NUMERO})\s*m\b")
@@ -132,6 +135,7 @@ def normalizar(texto: str) -> TextoNormalizado:
         medidas.add(f"{_numero(valor)}m")
         return " "
 
+    actual = _KING_KONG.sub(lambda m: f" kk {m.group(1)} huecos ", actual)
     actual = _LARGO.sub(lambda m: largo(m.group(1)), actual)
     actual = _FORMATO.sub(lambda m: f" {m.group(1)}x{m.group(2)} ", actual)
     actual = _PULGADA.sub(lambda m: pulgadas(m.group(1)), actual)

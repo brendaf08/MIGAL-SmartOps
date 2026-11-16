@@ -45,6 +45,26 @@ async function cerrarSesion(page: Page) {
   await expect(page.getByLabel('Usuario')).toBeVisible();
 }
 
+/** Existencias físicas de un SKU (tienda + almacenes) según la pantalla de disponibilidad. */
+async function existenciasFisicas(page: Page, sku: string): Promise<number> {
+  await page.goto('/disponibilidad');
+  await expect(page.getByRole('heading', { name: 'Disponibilidad' })).toBeVisible();
+  await page.getByLabel('Buscar producto').fill(sku);
+  const tabla = page.getByRole('table', { name: 'Disponibilidad por producto' });
+  const fila = tabla.getByRole('row').filter({ hasText: sku });
+  await expect(fila).toHaveCount(1);
+  const encabezados = (await tabla.getByRole('columnheader').allTextContents()).map((t) =>
+    t.trim(),
+  );
+  const celdas = (await fila.locator('td, th').allTextContents()).map((t) => t.trim());
+  const ubicaciones = ['Tienda', 'Almacén 1', 'Almacén 2'];
+  return ubicaciones.reduce((total, ubicacion) => {
+    const indice = encabezados.indexOf(ubicacion);
+    expect(indice, `columna ${ubicacion}`).toBeGreaterThanOrEqual(0);
+    return total + Number(celdas[indice].replace(/,/g, ''));
+  }, 0);
+}
+
 async function evidenciaSegura(page: Page, info: TestInfo, nombre: string) {
   const encabezado = page.locator('h1').first();
   await expect(encabezado).toBeVisible();
@@ -74,7 +94,7 @@ test('login real y consultas principales de catálogo, inventario y abastecimien
   await evidenciaSegura(page, info, 'consulta-abastecimiento');
 });
 
-test('SIMULADO PARCIAL: cotización → venta/reserva → despacho (el selector usa fixtures del frontend)', async ({
+test('SIMULADO PARCIAL: cotización → venta/reserva → despacho (selectores de producto con fixtures del frontend)', async ({
   page,
 }, info) => {
   await iniciarSesion(page, usuario('v'));
@@ -100,11 +120,17 @@ test('SIMULADO PARCIAL: cotización → venta/reserva → despacho (el selector 
   await page.getByRole('button', { name: 'Validar viabilidad' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Validar' }).click();
   await expect(page.getByRole('link', { name: 'Convertir en venta' })).toBeVisible();
+
+  // CU-09: el Administrador valida la viabilidad y el Vendedor registra la venta (registrarVentaDesdeCotizacion).
+  await cerrarSesion(page);
+  await iniciarSesion(page, usuario('v'));
+  await page.goto(`/cotizaciones/${cotizacion}`);
   await page.getByRole('link', { name: 'Convertir en venta' }).click();
   await expect(page.getByRole('heading', { name: 'Registrar venta' })).toBeVisible();
-  const selectorCotizacion = page.getByRole('combobox', { name: 'Cotización aceptada' });
-  await selectorCotizacion.click();
-  await page.getByRole('option', { name: new RegExp(cotizacion!) }).click();
+  // El enlace de conversión abre el formulario con ?cotizacion=<id>; la pantalla debe precargarla desde la API.
+  await expect(page.getByRole('combobox', { name: 'Cotización aceptada' })).toHaveValue(
+    new RegExp(`^${cotizacion},`),
+  );
   await page.getByRole('button', { name: 'Confirmar venta' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Confirmar venta' }).click();
   await expect(page.getByRole('heading', { name: /Venta .* registrada/ })).toBeVisible();
@@ -114,6 +140,7 @@ test('SIMULADO PARCIAL: cotización → venta/reserva → despacho (el selector 
   const ventaId = page.url().match(/ventas\/(\d+)/)?.[1];
   expect(ventaId).toBeTruthy();
 
+  await cerrarSesion(page);
   await iniciarSesion(page, usuario('a'));
   await page.goto('/despachos');
   await expect(page.getByRole('heading', { name: 'Despachos' })).toBeVisible();
@@ -129,7 +156,7 @@ test('SIMULADO PARCIAL: cotización → venta/reserva → despacho (el selector 
   await evidenciaSegura(page, info, 'despacho-confirmado');
 });
 
-test('SIMULADO PARCIAL: compra → recepción → inventario (el selector usa fixtures del frontend)', async ({
+test('SIMULADO PARCIAL: compra → recepción → inventario (selector de producto con fixtures del frontend)', async ({
   page,
 }, info) => {
   await iniciarSesion(page, usuario('r'));
@@ -150,6 +177,7 @@ test('SIMULADO PARCIAL: compra → recepción → inventario (el selector usa fi
 
   await cerrarSesion(page);
   await iniciarSesion(page, usuario('a'));
+  const existenciasAntes = await existenciasFisicas(page, 'CEM-001');
   const recepcionables = page.waitForResponse((response) => {
     const url = new URL(response.url());
     return (
@@ -163,14 +191,17 @@ test('SIMULADO PARCIAL: compra → recepción → inventario (el selector usa fi
   await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByRole('button', { name: 'Registrar sin documento' }).click();
   await expect(page.getByRole('heading', { name: 'Nueva recepción' })).toBeVisible();
-  await page.getByRole('button', { name: 'Confirmar recepción' }).click();
+  // CU-13: el Almacenero registra el conteo físico; sin cantidades la confirmación queda bloqueada.
+  const confirmar = page.getByRole('button', { name: 'Confirmar recepción' });
+  await expect(confirmar).toBeDisabled();
+  await page.getByRole('textbox', { name: /^Cantidad recibida de / }).fill('2');
+  await expect(confirmar).toBeEnabled();
+  await confirmar.click();
   await page.getByRole('dialog').getByRole('button', { name: 'Confirmar recepción' }).click();
   await expect(page.getByRole('heading', { name: /Recepción .* registrada/ })).toBeVisible();
   await evidenciaSegura(page, info, 'recepcion-validada');
 
-  await page.goto('/disponibilidad');
-  await expect(page.getByRole('heading', { name: 'Disponibilidad' })).toBeVisible();
-  await expect(page.getByText('CEM-001')).toBeVisible();
+  expect(await existenciasFisicas(page, 'CEM-001')).toBe(existenciasAntes + 2);
   await evidenciaSegura(page, info, 'inventario-actualizado');
 });
 

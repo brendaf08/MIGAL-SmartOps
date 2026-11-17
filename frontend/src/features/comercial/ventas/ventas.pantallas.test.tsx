@@ -55,8 +55,11 @@ describe('Lista de ventas', () => {
 
     await userEvent.type(screen.getByRole('searchbox'), 'Rivera');
 
-    await waitFor(() => expect(within(tabla).queryByText('V-0040')).not.toBeInTheDocument());
-    expect(within(tabla).getByText('V-0041')).toBeInTheDocument();
+    // Mientras la tabla carga, V-0040 también desaparece: se espera el resultado final del filtro en un solo paso.
+    await waitFor(() => {
+      expect(within(tabla).getByText('V-0041')).toBeInTheDocument();
+      expect(within(tabla).queryByText('V-0040')).not.toBeInTheDocument();
+    });
   });
 
   it('abre el detalle al hacer clic en una fila', async () => {
@@ -207,7 +210,9 @@ describe('Lógica de atención', () => {
   });
 
   it('no permite cancelar una venta ya despachada', async () => {
-    await expect(cancelarVenta('V-0035', 'Motivo de prueba', 'clave-cancelar-prueba')).rejects.toThrow();
+    await expect(
+      cancelarVenta('V-0035', 'Motivo de prueba', 'clave-cancelar-prueba'),
+    ).rejects.toThrow();
   });
 });
 

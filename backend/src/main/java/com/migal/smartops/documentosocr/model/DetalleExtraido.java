@@ -133,7 +133,12 @@ public class DetalleExtraido {
 		return coincidencias;
 	}
 
-	/** Reemplaza las coincidencias propuestas y recalcula la sugerencia y la necesidad de revisión. */
+	/**
+	 * Reemplaza las coincidencias propuestas, ordenadas de mayor a menor confianza, y recalcula la sugerencia y la
+	 * necesidad de revisión. Si la línea no tiene producto y solo la mejor coincidencia alcanza el umbral alto, ese
+	 * producto queda asociado sin advertencia (contrato, DocumentoUmbrales); el usuario puede cambiarlo antes de
+	 * validar. Si dos o más alcanzan el umbral alto, la línea es ambigua y sigue requiriendo revisión.
+	 */
 	public void proponerCoincidencias(List<CoincidenciaDetalle> propuestas, BigDecimal umbralAlta) {
 		coincidencias.clear();
 		propuestas.forEach(c -> c.asignarDetalle(this));
@@ -141,6 +146,11 @@ public class DetalleExtraido {
 		CoincidenciaDetalle mejor = propuestas.isEmpty() ? null : propuestas.get(0);
 		this.skuSugerido = mejor == null ? null : mejor.getProducto().getSku();
 		this.confianza = mejor == null ? null : mejor.getSimilitud();
+		boolean unicaConConfianzaAlta = mejor != null && mejor.getSimilitud().compareTo(umbralAlta) >= 0
+				&& (propuestas.size() == 1 || propuestas.get(1).getSimilitud().compareTo(umbralAlta) < 0);
+		if (producto == null && unicaConConfianzaAlta) {
+			this.producto = mejor.getProducto();
+		}
 		recalcularRevision(umbralAlta);
 	}
 

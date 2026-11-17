@@ -1,6 +1,7 @@
 package com.migal.smartops.documentosocr;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -98,7 +99,9 @@ class DocumentoOcrFlujoTest {
 		assertEquals(skuAlto, linea.getCoincidencias().get(0).getProducto().getSku());
 		assertEquals(1, linea.getCoincidencias().get(0).getPosicion());
 		assertEquals(skuMedio, linea.getCoincidencias().get(1).getProducto().getSku());
-		assertTrue(linea.isRequiereRevision());
+		// La inactiva no cuenta: la única coincidencia vigente sobre el umbral alto queda asociada sin revisión.
+		assertEquals(skuAlto, linea.getProducto().getSku());
+		assertFalse(linea.isRequiereRevision());
 	}
 
 	@Test

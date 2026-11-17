@@ -84,11 +84,13 @@ components:
     DocumentoUmbrales:
       type: object
       description: >-
-        Umbrales del Fuzzy Matching, de 0 a 1, con alta mayor que baja. Una coincidencia con
-        confianza igual o superior a alta se propone sin advertencia. Una coincidencia con confianza
-        entre baja y alta se propone con requiereRevision verdadero. Una coincidencia con confianza
-        inferior a baja no se propone. Los valores son de ejemplo y quedan pendientes de definir en
-        el servicio de OCR.
+        Umbrales del Fuzzy Matching, de 0 a 1, con alta mayor que baja. Si solo la mejor
+        coincidencia de una línea alcanza alta, su producto queda asociado sin advertencia
+        (idProducto definido y requiereRevision falso); el usuario puede cambiarlo antes de validar.
+        Si dos o más coincidencias alcanzan alta, la línea es ambigua y se propone con
+        requiereRevision verdadero, igual que una coincidencia con confianza entre baja y alta. Una
+        coincidencia con confianza inferior a baja no se propone. El backend define los valores
+        (migal.ocr.umbrales); los de ejemplo son los vigentes por defecto.
       required: [alta, baja]
       additionalProperties: false
       properties:
@@ -123,7 +125,8 @@ components:
       description: >-
         Línea extraída por el OCR. El texto crudo es la lectura original. El texto corregido, la
         cantidad y el producto los define el usuario. El producto asociado es nulo mientras no se
-        confirme. Una línea descartada se conserva con descartado verdadero y no se utiliza en la
+        confirme, salvo cuando una única coincidencia alcanza umbrales.alta (DocumentoUmbrales). Una
+        línea descartada se conserva con descartado verdadero y no se utiliza en la
         validación.
       required:
         - id
@@ -153,7 +156,9 @@ components:
             - $ref: ../componentes/esquemas-comunes.yaml#/CantidadNoNegativa
             - type: 'null'
         idProducto:
-          description: Producto del catálogo confirmado para la línea. Nulo mientras no se confirme.
+          description: >-
+            Producto del catálogo asociado a la línea: el confirmado por el usuario o la única
+            coincidencia con confianza igual o superior a umbrales.alta. Nulo mientras no haya uno.
           anyOf:
             - $ref: ../componentes/esquemas-comunes.yaml#/Identificador
             - type: 'null'
@@ -170,7 +175,7 @@ components:
         requiereRevision:
           type: boolean
           description: >-
-            Verdadero cuando no hay producto confirmado o cuando la mejor coincidencia tiene una
+            Verdadero cuando no hay producto asociado o cuando la mejor coincidencia tiene una
             confianza inferior a umbrales.alta. Una línea con este valor requiere confirmación manual.
         descartado:
           type: boolean
@@ -264,14 +269,14 @@ components:
             textoCrudo: CEMENTO SOL TIPO 1 42.5KG
             textoCorregido: null
             cantidadLeida: 100
-            idProducto: null
-            sku: null
+            idProducto: '101'
+            sku: CEM-049
             coincidencias:
               - idProducto: '101'
                 sku: CEM-049
                 nombreOficial: Cemento Sol tipo I 42.5 kg
                 confianza: 0.94
-            requiereRevision: true
+            requiereRevision: false
             descartado: false
         umbrales:
           alta: 0.85

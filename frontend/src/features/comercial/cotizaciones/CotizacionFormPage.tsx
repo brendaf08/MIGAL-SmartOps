@@ -34,6 +34,7 @@ import {
 } from './esquema';
 import { usePrecargaDocumento } from '@/features/documentos-ocr/usePrecargaDocumento';
 import classes from './CotizacionForm.module.css';
+import { useCatalogoVigente } from '@/features/catalogo/catalogoVigente';
 
 /** Valores iniciales: un formulario vacío para una cotización nueva, o los datos de la cotización a modificar. */
 function valoresIniciales(cotizacion?: Cotizacion): ValoresCotizacion {
@@ -85,6 +86,8 @@ interface CotizacionFormProps {
 function CotizacionForm({ cotizacion }: CotizacionFormProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  // Copia local del catálogo vigente para los selectores y las búsquedas por SKU (API real).
+  useCatalogoVigente();
   const editando = cotizacion !== undefined;
   const soloLectura = cotizacion !== undefined && cotizacion.estado !== 'Emitida';
   const hoy = hoyIso();

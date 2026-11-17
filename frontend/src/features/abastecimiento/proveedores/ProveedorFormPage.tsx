@@ -23,6 +23,7 @@ import {
 } from './api';
 import classes from './ProveedorFormPage.module.css';
 import { esquemaProveedor, type ValoresProveedor } from './esquema';
+import { useCatalogoVigente } from '@/features/catalogo/catalogoVigente';
 
 /** Ruta `proveedores/nueva` (sin identificador) y `proveedores/:id` (edición). */
 export function ProveedorFormPage() {
@@ -72,6 +73,8 @@ type Dialogo = 'activar' | 'desactivar' | null;
 function FormularioProveedor({ proveedor }: { proveedor?: Proveedor }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  // Copia local del catálogo vigente para los selectores y las búsquedas por SKU (API real).
+  useCatalogoVigente();
   const inactivo = proveedor?.estado === 'Inactivo';
   const [busqueda, setBusqueda] = useState('');
   const [rucExistente, setRucExistente] = useState<string | null>(null);

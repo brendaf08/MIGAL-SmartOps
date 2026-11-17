@@ -21,6 +21,7 @@ import {
   precioReferencia,
 } from './api';
 import { esquemaOrden, hoyISO, type ValoresOrden } from './esquema';
+import { useCatalogoVigente } from '@/features/catalogo/catalogoVigente';
 
 /** Línea precargada desde una alerta de stock crítico (`?sku=`): cantidad para superar el mínimo. */
 function lineaInicial(sku: string | null) {
@@ -32,6 +33,8 @@ function lineaInicial(sku: string | null) {
 export function OrdenCompraFormPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  // Copia local del catálogo vigente para los selectores y las búsquedas por SKU (API real).
+  useCatalogoVigente();
   const [params] = useSearchParams();
   const [confirmando, setConfirmando] = useState(false);
   const proveedores = useQuery({

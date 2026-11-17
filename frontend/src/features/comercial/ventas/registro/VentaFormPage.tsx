@@ -37,6 +37,7 @@ import { calcularAtencion, MODALIDADES, type ModalidadAtencion } from './atencio
 import { crearEsquemaVenta } from './esquema';
 import { usePrecargaDocumento } from '@/features/documentos-ocr/usePrecargaDocumento';
 import classes from './VentaForm.module.css';
+import { useCatalogoVigente } from '@/features/catalogo/catalogoVigente';
 
 type Origen = 'manual' | 'cotizacion' | 'documento';
 
@@ -64,6 +65,8 @@ export function VentaFormPage() {
 
 function RegistroVenta({ onOtra }: { onOtra: () => void }) {
   const queryClient = useQueryClient();
+  // Copia local del catálogo vigente para los selectores y las búsquedas por SKU (API real).
+  useCatalogoVigente();
   const [params] = useSearchParams();
   const cotizacionParam = params.get('cotizacion');
   const inicial = cotizacionParam ? cotizacionUtilizable(cotizacionParam) : undefined;

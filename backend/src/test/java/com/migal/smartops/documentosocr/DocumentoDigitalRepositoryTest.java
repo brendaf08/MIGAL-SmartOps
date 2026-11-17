@@ -80,7 +80,9 @@ class DocumentoDigitalRepositoryTest {
 		assertEquals(0, new BigDecimal("100.000").compareTo(detalle.getCantidadLeida()));
 		assertEquals(producto.getSku(), detalle.getSkuSugerido());
 		assertEquals(1, detalle.getCoincidencias().size());
-		assertTrue(detalle.isRequiereRevision());
+		// Única coincidencia sobre el umbral alto: queda asociada sin advertencia.
+		assertEquals(producto.getId(), detalle.getProducto().getId());
+		assertFalse(detalle.isRequiereRevision());
 		assertFalse(detalle.isDescartado());
 	}
 

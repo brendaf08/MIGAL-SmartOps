@@ -1,9 +1,8 @@
 import { Select } from '@mantine/core';
 import { MatchConfidence } from '@/components/domain/MatchConfidence/MatchConfidence';
 import { DataTable, type Column } from '@/components/ui/DataTable/DataTable';
+import { useCatalogoVigente } from '@/features/catalogo/catalogoVigente';
 import { PRODUCTOS } from '@/features/inventario/fixtures';
-
-const OPCIONES = PRODUCTOS.map((p) => ({ value: p.sku, label: `${p.sku}, ${p.nombre}` }));
 
 /** Campos comunes de una línea extraída por el OCR y asociada, o no, a un producto. */
 export interface LineaOcrFila {
@@ -33,6 +32,9 @@ export function LineasOcrTabla<T extends LineaOcrFila>({
   onSkuChange,
   columnas,
 }: LineasOcrTablaProps<T>) {
+  // Se arma en cada render: con la API real, el catálogo vigente llega después del primer render.
+  useCatalogoVigente();
+  const opciones = PRODUCTOS.map((p) => ({ value: p.sku, label: `${p.sku}, ${p.nombre}` }));
   const columns: Column<T>[] = [
     { key: 'texto', header: 'Texto extraído', primary: true, mono: true },
     {
@@ -46,7 +48,8 @@ export function LineasOcrTabla<T extends LineaOcrFila>({
           searchable
           miw={150}
           comboboxProps={{ width: 360, position: 'bottom-start' }}
-          data={OPCIONES}
+          data={opciones}
+          limit={50}
           value={l.sku || null}
           onChange={(sku) => onSkuChange(l.id, sku ?? '')}
           error={l.sku ? undefined : 'Asociar un producto.'}

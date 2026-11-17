@@ -1,7 +1,15 @@
-# Entorno de desarrollo de la base de datos del proyecto MIGAL SmartOps.
+# Entornos locales del proyecto MIGAL SmartOps (RNF-04).
 # Versión de PostgreSQL fijada según el ADR-005 y alineada con la versión de Supabase (ADR-007). No se utilizan etiquetas flotantes.
 # Las variables se leen del archivo .env de la raíz (plantilla: .env.example).
-# Ejecución: docker compose up -d --wait
+#
+# Solo la base de datos, para desarrollar el backend o el frontend fuera de contenedores:
+#   docker compose up -d --wait
+# Sistema completo (base de datos, backend, servicio de OCR y frontend en http://localhost:8081):
+#   docker compose --profile completo up -d --build --wait
+#
+# Los servicios del perfil completo exigen MIGAL_JWT_SECRETO; el backend no arranca sin él. El servicio de OCR solo
+# procesa documentos reales con MIGAL_OCR_PROVEEDOR=http y GEMINI_API_KEY; por defecto el backend usa el proveedor
+# simulado. Detener sin borrar datos: docker compose --profile completo down (no usar -v).
 
 services:
   postgres:
@@ -26,6 +34,84 @@ services:
       retries: 10
       start_period: 10s
 
+  backend:
+    profiles: [completo]
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: migal-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      MIGAL_JWT_SECRETO: ${MIGAL_JWT_SECRETO:-}
+      MIGAL_ADMIN_USERNAME: ${MIGAL_ADMIN_USERNAME:-}
+      MIGAL_ADMIN_CLAVE: ${MIGAL_ADMIN_CLAVE:-}
+      MIGAL_OCR_PROVEEDOR: ${MIGAL_OCR_PROVEEDOR:-simulado}
+      MIGAL_OCR_URL: http://servicio-ocr:8000
+      MIGAL_AGENTE_PROVEEDOR: ${MIGAL_AGENTE_PROVEEDOR:-simulado}
+      # gemini-3.8-flash, el valor por defecto del código, respondía con sobrecarga en las pruebas del 16-11-2026.
+      MIGAL_AGENTE_GEMINI_MODELO: ${MIGAL_AGENTE_GEMINI_MODELO:-gemini-3.6-flash}
+      MIGAL_AGENTE_GEMINI_TIEMPOLECTURA: ${MIGAL_AGENTE_GEMINI_TIEMPOLECTURA:-PT30S}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      MIGAL_CORS_ORIGENES: ${MIGAL_CORS_ORIGENES:-}
+    ports:
+      - "127.0.0.1:${BACKEND_PUERTO:-8080}:8080"
+    volumes:
+      - migal-documentos:/app/almacen-documentos
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+
+  servicio-ocr:
+    profiles: [completo]
+    build:
+      context: servicio-ocr
+    container_name: migal-servicio-ocr
+    restart: unless-stopped
+    environment:
+      BACKEND_URL: http://backend:8080
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      MIGAL_OCR_GEMINI_MODELO: ${MIGAL_OCR_GEMINI_MODELO:-gemini-3.6-flash}
+      # Dos intentos de 25 s caben en el plazo de 60 s de la vigilancia del backend (ADR-012, punto 4).
+      TIEMPO_MODELO_SEGUNDOS: ${TIEMPO_MODELO_SEGUNDOS:-25}
+    # Sin puerto publicado: solo el backend lo invoca dentro de la red de Compose.
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/salud')"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+
+  frontend:
+    profiles: [completo]
+    build:
+      context: frontend
+      args:
+        # Sin este valor, la compilación de producción usa los datos simulados del frontend.
+        VITE_API_REAL: "true"
+    container_name: migal-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${FRONTEND_PUERTO:-8081}:80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
 volumes:
   migal-postgres-datos:
     name: migal-postgres-datos
+  migal-documentos:
+    name: migal-documentos

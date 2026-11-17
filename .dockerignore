@@ -1,0 +1,8 @@
+# Contexto de la imagen del backend (docker build -f backend/Dockerfile .). Solo se necesitan backend/ y las
+# migraciones; el resto del repositorio no se envía al daemon de Docker.
+*
+!backend/.mvn
+!backend/mvnw
+!backend/pom.xml
+!backend/src/main
+!database/migraciones

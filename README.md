@@ -73,7 +73,7 @@ MIGAL-SmartOps/
 │   └── generar-secuencias.py
 ├── backend/
 ├── frontend/
-├── servicio-python/
+├── servicio-ocr/
 ├── database/
 │   └── migraciones/
 ├── entregas/
@@ -96,7 +96,7 @@ MIGAL-SmartOps/
 | `requirements.txt` | Dependencias de Python para las herramientas generales del repositorio. |
 | `backend/` | Backend principal. |
 | `frontend/` | Aplicación web en React + TypeScript. Instalación, scripts y estructura en [frontend/README.md](frontend/README.md). |
-| `servicio-python/` | Servicio especializado de OCR e IA. |
+| `servicio-ocr/` | Servicio de OCR y Fuzzy Matching en Python. |
 | `database/` | Archivos y migraciones de la base de datos. |
 | `entregas/` | Informes y archivos correspondientes a cada hito. |
 | `.github/` | Plantillas y configuración de colaboración en GitHub. |
@@ -114,6 +114,26 @@ La carpeta `.venv/` se crea localmente durante la preparación del entorno. No s
 | Despliegue | Docker |
 
 Las instrucciones de instalación, configuración y ejecución de la aplicación se mantienen en el README de cada componente.
+
+Para levantar el sistema completo en contenedores (base de datos, backend, servicio de OCR y frontend), con las variables de `.env` definidas, ejecutar desde la raíz:
+
+```text
+docker compose --profile completo up -d --build --wait
+```
+
+El frontend queda en `http://localhost:8081` y llama a la API mediante el proxy de nginx. Sin el perfil, `docker compose up -d` inicia solo la base de datos, como se describe en el [README de la base de datos](database/README.md). Para detener el sistema sin borrar los datos, usar `docker compose --profile completo down`, sin `-v`.
+
+### Demostración local en un solo paso
+
+Con Docker Desktop iniciado, el siguiente comando prepara `.env` si no existe (con claves aleatorias y el usuario `admin`, cuya clave muestra en pantalla y guarda en `.env`), levanta el sistema completo y carga los datos de demostración. Usa solo la base de datos local, nunca Supabase.
+
+```text
+powershell -ExecutionPolicy Bypass -File scripts/levantar-demo.ps1
+```
+
+- **Catálogo real:** el archivo `database/datos-demostracion/local/catalogo-real.sql` se recibe aparte, por un canal privado, porque contiene los precios del negocio y no se versiona. Si está en esa carpeta, el script lo carga (818 productos con existencias); si no, carga un catálogo de ejemplo. Quien tenga `Catalogo_Migal.xlsx` puede generarlo con `-Excel RUTA/Catalogo_Migal.xlsx`.
+- **Gemini real:** sin clave, el OCR y el agente usan los proveedores simulados. Para probarlos con Gemini, definir en `.env` `GEMINI_API_KEY`, `MIGAL_OCR_PROVEEDOR=http` y `MIGAL_AGENTE_PROVEEDOR=gemini`, y ejecutar el script de nuevo. Cada integrante usa su propia clave; la capa gratuita admite pocas solicitudes por día y Google puede usar su contenido para mejorar sus modelos, por lo que no se deben subir documentos con datos reales de clientes sin facturación habilitada.
+- El script puede ejecutarse varias veces: los datos no se duplican.
 
 El entorno descrito a continuación corresponde a las herramientas de documentación y no inicia la aplicación MIGAL SmartOps.
 

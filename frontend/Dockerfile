@@ -4,6 +4,10 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
+# true: los adaptadores consultan la API real (/api/v1); sin valor, una compilación de producción usa los datos
+# simulados del frontend. Compose lo fija en true porque nginx publica la API en el mismo origen.
+ARG VITE_API_REAL
+ENV VITE_API_REAL=${VITE_API_REAL}
 RUN npm run build
 
 # Etapa de ejecución: sirve los archivos estáticos con nginx.

@@ -2,10 +2,13 @@ package com.migal.smartops.seguridad.config;
 
 import com.migal.smartops.comun.errores.CodigoError;
 import com.migal.smartops.comun.web.RespuestaProblema;
+import java.util.List;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -13,6 +16,9 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import tools.jackson.databind.ObjectMapper;
 
 /**
@@ -36,6 +42,7 @@ public class SeguridadWeb {
 				solicitud.getRequestURI());
 
 		http.csrf(csrf -> csrf.disable())
+				.cors(Customizer.withDefaults())
 				.sessionManagement(sesion -> sesion.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.authorizeHttpRequests(acceso -> acceso
 						.requestMatchers(HttpMethod.POST, "/api/v1/sesiones").permitAll()
@@ -47,5 +54,23 @@ public class SeguridadWeb {
 						.accessDeniedHandler(denegado))
 				.exceptionHandling(e -> e.authenticationEntryPoint(noAutenticado).accessDeniedHandler(denegado));
 		return http.build();
+	}
+
+	/**
+	 * Orígenes del navegador autorizados a llamar a la API desde otro dominio, definidos con MIGAL_CORS_ORIGENES
+	 * separados por coma. Sin valor no se admite ningún origen externo: el frontend servido por nginx usa el mismo
+	 * origen y no necesita CORS.
+	 */
+	@Bean
+	CorsConfigurationSource corsConfigurationSource(@Value("${migal.cors.origenes:}") List<String> origenes) {
+		CorsConfiguration configuracion = new CorsConfiguration();
+		configuracion.setAllowedOrigins(origenes.stream().map(String::trim).filter(o -> !o.isEmpty()).toList());
+		configuracion.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+		configuracion.setAllowedHeaders(List.of("Authorization", "Content-Type", "Idempotency-Key"));
+		configuracion.setExposedHeaders(List.of("Location"));
+		configuracion.setMaxAge(3600L);
+		UrlBasedCorsConfigurationSource fuente = new UrlBasedCorsConfigurationSource();
+		fuente.registerCorsConfiguration("/api/**", configuracion);
+		return fuente;
 	}
 }

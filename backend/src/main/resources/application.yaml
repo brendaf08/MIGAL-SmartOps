@@ -62,6 +62,8 @@ migal:
       intervalo-vigilancia: PT30S
       tiempo-conexion: PT2S
       tiempo-lectura: PT5S
+      # Secreto compartido con el servicio de OCR, que lo exige en la cabecera X-Token-Interno si está definido.
+      token-interno: ${MIGAL_OCR_TOKEN_INTERNO:}
   documentos:
     # Carpeta de los archivos cargados, relativa a la carpeta de ejecución. El límite de 10 MB corresponde al contrato.
     directorio: ${MIGAL_DOCUMENTOS_DIRECTORIO:almacen-documentos}

@@ -53,6 +53,8 @@ services:
       MIGAL_ADMIN_CLAVE: ${MIGAL_ADMIN_CLAVE:-}
       MIGAL_OCR_PROVEEDOR: ${MIGAL_OCR_PROVEEDOR:-simulado}
       MIGAL_OCR_URL: http://servicio-ocr:8000
+      # Secreto compartido con el servicio de OCR; levantar-demo.ps1 lo genera en .env.
+      MIGAL_OCR_TOKEN_INTERNO: ${MIGAL_OCR_TOKEN_INTERNO:-}
       MIGAL_AGENTE_PROVEEDOR: ${MIGAL_AGENTE_PROVEEDOR:-simulado}
       # gemini-3.8-flash, el valor por defecto del código, respondía con sobrecarga en las pruebas del 16-11-2026.
       MIGAL_AGENTE_GEMINI_MODELO: ${MIGAL_AGENTE_GEMINI_MODELO:-gemini-3.6-flash}
@@ -78,6 +80,7 @@ services:
     restart: unless-stopped
     environment:
       BACKEND_URL: http://backend:8080
+      MIGAL_OCR_TOKEN_INTERNO: ${MIGAL_OCR_TOKEN_INTERNO:-}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       MIGAL_OCR_GEMINI_MODELO: ${MIGAL_OCR_GEMINI_MODELO:-gemini-3.6-flash}
       # Dos intentos de 25 s caben en el plazo de 60 s de la vigilancia del backend (ADR-012, punto 4).

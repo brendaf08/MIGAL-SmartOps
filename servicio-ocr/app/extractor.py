@@ -83,10 +83,16 @@ def cantidad_valida(valor: float | None) -> Decimal | None:
 
 
 def es_reintentable(error: Exception) -> bool:
-    """Un error 4xx de la API (cuota agotada 429, clave inválida 403, solicitud rechazada 400) se repite igual al
-    reintentar; solo los fallos de red, los tiempos agotados y los 5xx pueden resolverse con otro intento."""
+    """Solo los fallos transitorios se reintentan: 5xx de la API, tiempos agotados y errores de red. Un 4xx (cuota
+    agotada 429, clave inválida 403, solicitud rechazada 400) o una respuesta que no cumple el esquema
+    (``pydantic.ValidationError``) se repetiría igual y solo gastaría otra solicitud de la cuota."""
     codigo = getattr(error, "code", None)
-    return not (isinstance(codigo, int) and 400 <= codigo < 500)
+    if isinstance(codigo, int):
+        return codigo >= 500
+    if isinstance(error, TimeoutError | ConnectionError):
+        return True
+    nombre = type(error).__name__
+    return "Timeout" in nombre or "Connect" in nombre or "Network" in nombre
 
 
 def extraer_con_reintento(modelo: ModeloVision, contenido: bytes, tipo_mime: str) -> Extraccion:

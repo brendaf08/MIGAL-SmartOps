@@ -34,11 +34,14 @@ public class EnvioOcrHttp {
 	private static final Logger REGISTRO = LoggerFactory.getLogger(EnvioOcrHttp.class);
 	/** Margen de vigencia del token de resultados sobre el plazo de vigilancia. */
 	static final Duration MARGEN_TOKEN = Duration.ofMinutes(5);
+	/** Cabecera con el secreto compartido que el servicio de OCR exige si lo tiene configurado. */
+	static final String CABECERA_TOKEN_INTERNO = "X-Token-Interno";
 
 	private final RestClient cliente;
 	private final PropiedadesOcr propiedades;
 	private final TokenService tokens;
 	private final DocumentoOcrService documentos;
+	private final String tokenInterno;
 
 	public EnvioOcrHttp(RestClient cliente, PropiedadesOcr propiedades, TokenService tokens,
 			DocumentoOcrService documentos) {
@@ -46,6 +49,7 @@ public class EnvioOcrHttp {
 		this.propiedades = propiedades;
 		this.tokens = tokens;
 		this.documentos = documentos;
+		this.tokenInterno = propiedades.servicio().tokenInterno();
 	}
 
 	/** Cliente HTTP del servicio de OCR con los tiempos de espera configurados. */
@@ -65,8 +69,11 @@ public class EnvioOcrHttp {
 	@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
 	public void enviar(SolicitudOcr solicitud) {
 		try {
-			cliente.post().uri("/procesar").contentType(MediaType.MULTIPART_FORM_DATA)
-					.body(cuerpo(solicitud)).retrieve().toBodilessEntity();
+			var peticion = cliente.post().uri("/procesar").contentType(MediaType.MULTIPART_FORM_DATA);
+			if (!tokenInterno.isEmpty()) {
+				peticion = peticion.header(CABECERA_TOKEN_INTERNO, tokenInterno);
+			}
+			peticion.body(cuerpo(solicitud)).retrieve().toBodilessEntity();
 		} catch (RuntimeException e) {
 			REGISTRO.warn("No fue posible enviar el documento {} al servicio de OCR: {}", solicitud.idDocumento(),
 					e.getMessage());

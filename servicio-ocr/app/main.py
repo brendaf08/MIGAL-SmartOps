@@ -1,8 +1,10 @@
 """API del servicio de OCR (contrato ``api/procesar.yaml``)."""
 
+import hmac
 import logging
+import threading
 
-from fastapi import BackgroundTasks, FastAPI, File, Form, HTTPException, Response, UploadFile
+from fastapi import BackgroundTasks, FastAPI, File, Form, Header, HTTPException, Response, UploadFile
 from pydantic import ValidationError
 
 from app import resultados
@@ -19,17 +21,30 @@ TIPOS_ADMITIDOS = {"image/jpeg", "image/png", "application/pdf"}
 
 app = FastAPI(title="MIGAL SmartOps - Servicio de OCR", version="1.0.0")
 _modelo: ModeloVision | None = None
+_bloqueo_modelo = threading.Lock()
 
 
 def modelo() -> ModeloVision:
-    """Modelo multimodal del proceso; se crea al primer uso para no exigir la clave en las pruebas."""
+    """Modelo multimodal del proceso; se crea al primer uso para no exigir la clave en las pruebas. Las tareas en
+    segundo plano corren en hilos, por lo que la creación se protege con un bloqueo."""
     global _modelo
     if _modelo is None:
-        ajustes = configuracion()
-        if not ajustes.gemini_api_key:
-            raise RuntimeError("Falta la variable de entorno GEMINI_API_KEY")
-        _modelo = ModeloGemini(ajustes.gemini_api_key, ajustes.migal_ocr_gemini_modelo, ajustes.tiempo_modelo_segundos)
+        with _bloqueo_modelo:
+            if _modelo is None:
+                ajustes = configuracion()
+                if not ajustes.gemini_api_key:
+                    raise RuntimeError("Falta la variable de entorno GEMINI_API_KEY")
+                _modelo = ModeloGemini(
+                    ajustes.gemini_api_key, ajustes.migal_ocr_gemini_modelo, ajustes.tiempo_modelo_segundos
+                )
     return _modelo
+
+
+def _exigir_token_interno(recibido: str | None) -> None:
+    """Rechaza la solicitud si el servicio tiene un token interno configurado y la cabecera no coincide."""
+    esperado = configuracion().migal_ocr_token_interno
+    if esperado and not hmac.compare_digest(recibido or "", esperado):
+        raise HTTPException(status_code=401, detail="Token interno ausente o no válido.")
 
 
 def procesar_documento(solicitud: SolicitudProcesamiento, contenido: bytes, tipo_mime: str) -> None:
@@ -70,8 +85,14 @@ def procesar_documento(solicitud: SolicitudProcesamiento, contenido: bytes, tipo
 
 
 @app.post("/procesar", status_code=202)
-async def procesar(tareas: BackgroundTasks, archivo: UploadFile = File(...), solicitud: str = Form(...)) -> Response:
+async def procesar(
+    tareas: BackgroundTasks,
+    archivo: UploadFile = File(...),
+    solicitud: str = Form(...),
+    x_token_interno: str | None = Header(default=None),
+) -> Response:
     """Valida la solicitud, responde 202 y procesa en segundo plano."""
+    _exigir_token_interno(x_token_interno)
     try:
         datos = SolicitudProcesamiento.model_validate_json(solicitud)
     except ValidationError as error:
@@ -87,6 +108,6 @@ async def procesar(tareas: BackgroundTasks, archivo: UploadFile = File(...), sol
 
 
 @app.get("/salud")
-def salud() -> dict[str, str]:
+async def salud() -> dict[str, str]:
     """Disponibilidad del servicio."""
     return {"estado": "disponible"}

@@ -62,6 +62,7 @@ if (Test-Path $envArchivo) {
     $contenido += ''
     $contenido += '# Generado por scripts/levantar-demo.ps1'
     $contenido += "MIGAL_JWT_SECRETO=$(Texto-Aleatorio 48)"
+    $contenido += "MIGAL_OCR_TOKEN_INTERNO=$(Texto-Aleatorio 32)"
     $contenido += 'MIGAL_ADMIN_USERNAME=admin'
     $contenido += "MIGAL_ADMIN_CLAVE=$claveAdmin"
     $contenido += '# Para usar Gemini real: definir la clave y cambiar ambos proveedores (ver .env.example).'

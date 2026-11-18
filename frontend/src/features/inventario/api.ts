@@ -153,6 +153,44 @@ const listarMovimientosFiltradosReal = async (filtros: FiltrosKardex): Promise<M
   return movimientos.map((m) => aMovimiento(m, nombres));
 };
 
+/** Página del Kardex con el total de movimientos que cumplen los filtros. */
+export interface PaginaKardex {
+  items: Movimiento[];
+  total: number;
+}
+
+/**
+ * P14 paginado en el servidor: con la API real pide solo la página indicada (GET /inventario/movimientos con page y
+ * pageSize), en lugar de descargar todo el historial para paginarlo en el navegador.
+ */
+export const consultarKardex = async (
+  filtros: FiltrosKardex,
+  page: number,
+  pageSize: number,
+): Promise<PaginaKardex> => {
+  if (!API_REAL) {
+    const todos = await listarMovimientosFiltrados(filtros);
+    return { items: todos.slice((page - 1) * pageSize, page * pageSize), total: todos.length };
+  }
+  const almacenes = await listarAlmacenes();
+  const ubicacionId = filtros.ubicacion
+    ? almacenes.find((a) => a.nombre === filtros.ubicacion)?.id
+    : undefined;
+  if (filtros.ubicacion && !ubicacionId) return { items: [], total: 0 };
+  const nombres = new Map(almacenes.map((a) => [a.id, a.nombre]));
+  const pagina = await api.get<PaginaApi<MovimientoKardexDto>>('/inventario/movimientos', {
+    q: filtros.q.trim(),
+    ubicacionId,
+    tipoOperacion: filtros.tipo ? filtros.tipo.toLowerCase() : undefined,
+    origen: filtros.origen ? filtros.origen.toLowerCase() : undefined,
+    desde: filtros.desde,
+    hasta: filtros.hasta,
+    page,
+    pageSize,
+  });
+  return { items: pagina.items.map((m) => aMovimiento(m, nombres)), total: pagina.total };
+};
+
 /** Existencias de un producto por SKU para el formulario de movimientos, o `null` si no existe. */
 export const obtenerDisponibilidadProducto = (
   sku: string,

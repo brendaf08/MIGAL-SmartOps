@@ -23,7 +23,7 @@ import { QueryTable } from '@/components/ui/QueryTable/QueryTable';
 import { SearchInput } from '@/components/ui/SearchInput/SearchInput';
 import { formatDate } from '@/lib/format';
 import { UBICACIONES } from './movimientos/esquema';
-import { listarMovimientosFiltrados, SIN_FILTROS_KARDEX, type FiltrosKardex } from './api';
+import { consultarKardex, SIN_FILTROS_KARDEX, type FiltrosKardex } from './api';
 import type { Movimiento } from './types';
 import { usePermisos } from '@/features/seguridad/permisos';
 
@@ -112,8 +112,8 @@ export function KardexPage() {
   const consulta = { ...filtros, q: debouncedQ };
 
   const query = useQuery({
-    queryKey: ['kardex', consulta],
-    queryFn: () => listarMovimientosFiltrados(consulta),
+    queryKey: ['kardex', consulta, page],
+    queryFn: () => consultarKardex(consulta, page, PAGE_SIZE),
     placeholderData: keepPreviousData,
   });
 
@@ -125,8 +125,9 @@ export function KardexPage() {
     return () => window.clearTimeout(timer);
   }, [location.state]);
 
-  const movimientos = query.data ?? [];
-  const pagina = movimientos.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  // El servidor devuelve solo la página en pantalla y el total que cumple los filtros.
+  const pagina = query.data?.items ?? [];
+  const total = query.data?.total ?? 0;
   const etiquetas = etiquetasDe(filtros);
 
   /** Cambiar un filtro vuelve a la primera página. */
@@ -242,7 +243,7 @@ export function KardexPage() {
         query={{ data: pagina, isLoading: query.isLoading, isError: query.isError }}
         errorTitle="No se pudo cargar el Kardex"
         caption="Movimientos de Kardex"
-        columns={columnas(movimientos)}
+        columns={columnas(pagina)}
         rowKey="id"
         changedKey={resaltado}
         empty={
@@ -261,12 +262,7 @@ export function KardexPage() {
       />
       {!query.isError && (
         <div>
-          <Pagination
-            page={page}
-            total={movimientos.length}
-            pageSize={PAGE_SIZE}
-            onChange={setPage}
-          />
+          <Pagination page={page} total={total} pageSize={PAGE_SIZE} onChange={setPage} />
         </div>
       )}
       <Modal
@@ -285,7 +281,7 @@ export function KardexPage() {
         <Stack gap="md">
           {campos}
           <Text size="sm" c="dimmed">
-            {movimientos.length} movimientos con los filtros aplicados.
+            {total} movimientos con los filtros aplicados.
           </Text>
         </Stack>
       </Modal>

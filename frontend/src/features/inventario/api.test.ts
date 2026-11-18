@@ -240,6 +240,26 @@ describe('inventario, alertas (rama de la API real)', () => {
 });
 
 describe('inventario, Kardex (rama de la API real)', () => {
+  it('pide al servidor solo la página en pantalla y devuelve el total', async () => {
+    const llamadas = simularServidor({
+      'GET /api/v1/almacenes': () => json(ALMACENES),
+      'GET /api/v1/inventario/movimientos': () =>
+        json({ items: [MOVIMIENTO_AJUSTE], total: 4321, page: 3, pageSize: 20 }),
+    });
+    const { consultarKardex, SIN_FILTROS_KARDEX: sinFiltros } = await cargarModulo(
+      () => import('./api'),
+    );
+
+    const pagina = await consultarKardex(sinFiltros, 3, 20);
+
+    const kardex = llamadas.filter((l) => l.ruta === '/api/v1/inventario/movimientos');
+    expect(kardex).toHaveLength(1);
+    expect(kardex[0]!.consulta.get('page')).toBe('3');
+    expect(kardex[0]!.consulta.get('pageSize')).toBe('20');
+    expect(pagina.total).toBe(4321);
+    expect(pagina.items).toHaveLength(1);
+  });
+
   it('traduce los filtros de la interfaz a los parámetros del contrato y mapea los movimientos', async () => {
     const llamadas = simularServidor({
       'GET /api/v1/almacenes': () => json(ALMACENES),

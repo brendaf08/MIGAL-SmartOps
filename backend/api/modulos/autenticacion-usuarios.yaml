@@ -329,6 +329,15 @@ components:
       description: >-
         Nivel de acceso del usuario. Los valores son los de la columna rol de la tabla usuario (ADR-008),
         en minúsculas y sin acentos. Corresponden a los roles Administrador, Vendedor, Almacenero y Reponedor.
+        El valor demostracion (ADR-013) solo aparece en respuestas: reúne los permisos de los cuatro roles, existe
+        solo si el despliegue lo habilita y no se asigna por esta API (ver RolAsignable).
+      enum: [administrador, vendedor, almacenero, reponedor, demostracion]
+      example: almacenero
+    RolAsignable:
+      type: string
+      description: >-
+        Rol que el Administrador puede asignar al registrar o modificar un usuario (CU-02). Excluye demostracion,
+        que solo se crea al arrancar el despliegue (ADR-013).
       enum: [administrador, vendedor, almacenero, reponedor]
       example: almacenero
     UsuarioRegistrado:
@@ -437,7 +446,7 @@ components:
           pattern: '^(?=.*[A-Za-z])(?=.*[0-9]).{8,}$'
           description: Clave temporal de al menos 8 caracteres, con al menos una letra y un número.
         rol:
-          $ref: '#/components/schemas/RolAcceso'
+          $ref: '#/components/schemas/RolAsignable'
       example:
         nombres: Rosa
         apellidos: Quispe Huamán
@@ -459,7 +468,7 @@ components:
           minLength: 1
           maxLength: 100
         rol:
-          $ref: '#/components/schemas/RolAcceso'
+          $ref: '#/components/schemas/RolAsignable'
       example:
         nombres: Rosa
         apellidos: Quispe Huamán

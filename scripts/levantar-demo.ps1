@@ -60,6 +60,7 @@ if (Test-Path $envArchivo) {
     Write-Host 'Se usa el archivo .env existente.'
 } else {
     $claveAdmin = 'Migal' + (Texto-Aleatorio 8) + '7'
+    $claveDemo = 'Demo' + (Texto-Aleatorio 8) + '7'
     $contenido = Get-Content (Join-Path $repo '.env.example') -Encoding UTF8
     $contenido = $contenido -replace '^POSTGRES_PASSWORD=.*', "POSTGRES_PASSWORD=$(Texto-Aleatorio 24)"
     $contenido += ''
@@ -68,13 +69,18 @@ if (Test-Path $envArchivo) {
     $contenido += "MIGAL_OCR_TOKEN_INTERNO=$(Texto-Aleatorio 32)"
     $contenido += 'MIGAL_ADMIN_USERNAME=admin'
     $contenido += "MIGAL_ADMIN_CLAVE=$claveAdmin"
+    $contenido += '# Cuenta de demostración con los permisos de los cuatro roles (ADR-013).'
+    $contenido += 'MIGAL_ROL_DEMOSTRACION=true'
+    $contenido += 'MIGAL_DEMO_USERNAME=demo'
+    $contenido += "MIGAL_DEMO_CLAVE=$claveDemo"
     $contenido += '# Para usar Gemini real: definir la clave y cambiar ambos proveedores (ver .env.example).'
     $contenido += '# GEMINI_API_KEY=<clave-de-la-api>'
     $contenido += '# MIGAL_OCR_PROVEEDOR=http'
     $contenido += '# MIGAL_AGENTE_PROVEEDOR=gemini'
     [System.IO.File]::WriteAllLines($envArchivo, $contenido, (New-Object System.Text.UTF8Encoding $false))
     Write-Host "Se creó .env. Usuario: admin  Clave: $claveAdmin" -ForegroundColor Yellow
-    Write-Host 'La clave queda guardada en .env (MIGAL_ADMIN_CLAVE).'
+    Write-Host "Cuenta de demostración (todos los módulos): demo  Clave: $claveDemo" -ForegroundColor Yellow
+    Write-Host 'Las claves quedan guardadas en .env (MIGAL_ADMIN_CLAVE y MIGAL_DEMO_CLAVE).'
 }
 $variables = @{}
 Get-Content $envArchivo -Encoding UTF8 | Where-Object { $_ -match '^[A-Za-z_][A-Za-z0-9_.]*=' } | ForEach-Object {
@@ -113,4 +119,7 @@ if (Test-Path $catalogoReal) {
 
 $puerto = if ($variables['FRONTEND_PUERTO']) { $variables['FRONTEND_PUERTO'] } else { '8081' }
 Paso "Listo: abrir http://localhost:$puerto e ingresar con el usuario $($variables['MIGAL_ADMIN_USERNAME'])"
+if ($variables['MIGAL_ROL_DEMOSTRACION'] -eq 'true' -and $variables['MIGAL_DEMO_USERNAME']) {
+    Write-Host "Para recorrer todos los módulos con una sola cuenta: usuario $($variables['MIGAL_DEMO_USERNAME']) (clave en .env, MIGAL_DEMO_CLAVE)."
+}
 Write-Host 'Detener sin borrar datos: docker compose --profile completo down'

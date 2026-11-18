@@ -218,7 +218,7 @@ public class CotizacionService {
 		if (origen == OrigenRechazoCotizacion.CLIENTE) {
 			exigirEmitida(cotizacion);
 		} else {
-			if (rol != RolUsuario.ADMINISTRADOR) {
+			if (!rol.incluye(RolUsuario.ADMINISTRADOR)) {
 				throw new ErrorDeNegocio(CodigoError.PERMISO_INSUFICIENTE,
 						"Solo el Administrador registra el rechazo de MIGAL.");
 			}

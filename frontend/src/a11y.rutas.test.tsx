@@ -2,7 +2,7 @@ import { screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { axe } from 'vitest-axe';
 import * as matchers from 'vitest-axe/matchers';
-import type { Role } from '@/features/seguridad/roles';
+import { tieneRol, type Role } from '@/features/seguridad/roles';
 import { NAV } from '@/routes/navigation';
 import { renderApp } from '@/test/renderApp';
 
@@ -86,6 +86,7 @@ describe('Cobertura de la navegación', () => {
   it('cada rol ve en la navegación sus módulos y el administrador los ve todos', async () => {
     const esperados: Record<Role, string[]> = {
       Administrador: NAV.flatMap((g) => g.items).map((i) => i.label),
+      Demostración: NAV.flatMap((g) => g.items).map((i) => i.label),
       Vendedor: [
         'Disponibilidad',
         'Documentos OCR',
@@ -118,7 +119,7 @@ describe('Cobertura de la navegación', () => {
     };
     for (const [rol, etiquetas] of Object.entries(esperados) as [Role, string[]][]) {
       const visibles = NAV.flatMap((g) => g.items)
-        .filter((i) => !i.roles || i.roles.includes(rol))
+        .filter((i) => !i.roles || tieneRol(rol, i.roles))
         .map((i) => i.label);
       expect(visibles.sort(), `módulos del rol ${rol}`).toEqual([...etiquetas].sort());
     }

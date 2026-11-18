@@ -13,6 +13,7 @@ import { ConfirmDialog } from '@/components/ui/Modal/ConfirmDialog';
 import { QueryTable } from '@/components/ui/QueryTable/QueryTable';
 import { SearchInput } from '@/components/ui/SearchInput/SearchInput';
 import { Tabs } from '@/components/ui/Tabs/Tabs';
+import { ROL_DEMOSTRACION } from './roles';
 import { useSession } from './session';
 import { listarUsuarios, reactivarAcceso, revocarAcceso } from './usuarios/api';
 import type { UsuarioRegistro } from './usuarios-tipos';
@@ -44,15 +45,18 @@ function columnas(
       block: true,
       render: (u) => (
         <Group gap="xs">
-          <Button
-            variant="default"
-            size="compact-md"
-            component={Link}
-            to={`/usuarios/${u.id}`}
-            aria-label={`Modificar rol de ${u.nombre}`}
-          >
-            Modificar rol
-          </Button>
+          {/* La cuenta de demostración se define en el despliegue (ADR-013); su rol no se modifica aquí. */}
+          {u.rol !== ROL_DEMOSTRACION && (
+            <Button
+              variant="default"
+              size="compact-md"
+              component={Link}
+              to={`/usuarios/${u.id}`}
+              aria-label={`Modificar rol de ${u.nombre}`}
+            >
+              Modificar rol
+            </Button>
+          )}
           {u.estado === 'Activo' &&
             (propia(u) ? (
               <>

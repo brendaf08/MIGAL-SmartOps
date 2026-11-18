@@ -14,7 +14,7 @@ import { ConfirmDialog } from '@/components/ui/Modal/ConfirmDialog';
 import { Stepper } from '@/components/ui/Stepper/Stepper';
 import { formatCurrency, formatDate, formatNumber } from '@/lib/format';
 import { API_REAL } from '@/api/cliente';
-import type { Role } from '@/features/seguridad/roles';
+import { tieneRol, type Role } from '@/features/seguridad/roles';
 import { useSession } from '@/features/seguridad/session';
 import {
   obtenerCotizacion,
@@ -54,7 +54,7 @@ const ROLES_ACCION = {
 export function CotizacionPage() {
   const { id = '' } = useParams();
   const { user } = useSession();
-  const puede = (roles: Role[]) => user !== null && user !== undefined && roles.includes(user.role);
+  const puede = (roles: Role[]) => tieneRol(user?.role, roles);
   const queryClient = useQueryClient();
   const { data: cotizacion, isError } = useQuery({
     queryKey: ['cotizacion', id],

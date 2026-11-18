@@ -2,9 +2,11 @@ package com.migal.smartops.seguridad.service;
 
 import com.migal.smartops.comun.errores.CodigoError;
 import com.migal.smartops.comun.errores.ErrorDeNegocio;
+import com.migal.smartops.seguridad.model.RolUsuario;
 import com.migal.smartops.seguridad.model.Usuario;
 import com.migal.smartops.seguridad.repository.UsuarioRepository;
 import java.time.Clock;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,10 +23,13 @@ public class SesionService {
 	private final TokenService tokens;
 	private final LimitadorIntentosSesion limitador;
 	private final Clock reloj;
+	private final boolean demostracionHabilitada;
 	private final String hashFicticio;
 
 	public SesionService(UsuarioRepository usuarios, PasswordEncoder codificador, TokenService tokens,
-			LimitadorIntentosSesion limitador, Clock reloj) {
+			LimitadorIntentosSesion limitador, Clock reloj,
+			@Value("${migal.seguridad.demostracion.habilitada:false}") boolean demostracionHabilitada) {
+		this.demostracionHabilitada = demostracionHabilitada;
 		this.usuarios = usuarios;
 		this.codificador = codificador;
 		this.tokens = tokens;
@@ -55,6 +60,10 @@ public class SesionService {
 		if (!usuario.isEstadoActivo()) {
 			throw new ErrorDeNegocio(CodigoError.CUENTA_INACTIVA,
 					"La cuenta está desactivada. Contacte al Administrador.");
+		}
+		if (usuario.getRol() == RolUsuario.DEMOSTRACION && !demostracionHabilitada) {
+			throw new ErrorDeNegocio(CodigoError.CUENTA_INACTIVA,
+					"El rol de demostración está deshabilitado en este entorno (MIGAL_ROL_DEMOSTRACION).");
 		}
 		return new SesionIniciada(tokens.emitir(usuario), usuario);
 	}

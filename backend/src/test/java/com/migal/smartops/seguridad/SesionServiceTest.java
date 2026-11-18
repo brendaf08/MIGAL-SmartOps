@@ -31,7 +31,7 @@ class SesionServiceTest {
 	private final TokenService tokens = mock(TokenService.class);
 	private final Clock reloj = Clock.fixed(Instant.parse("2026-11-18T15:00:00Z"), ZoneOffset.UTC);
 	private final SesionService servicio = new SesionService(usuarios, codificador, tokens,
-			new LimitadorIntentosSesion(reloj), reloj);
+			new LimitadorIntentosSesion(reloj), reloj, false);
 	private static final String ORIGEN = "10.0.0.5";
 
 	private Usuario usuario(boolean activo) {
@@ -125,5 +125,19 @@ class SesionServiceTest {
 		assertEquals("claveActual", incorrecta.campo());
 		assertEquals("claveNueva", igual.campo());
 		assertTrue(codificador.matches("Nueva2026", usuario.getPasswordHash()));
+	}
+
+	@Test
+	void rechazaLaCuentaDeDemostracionSiElRolEstaDeshabilitado() {
+		Usuario demo = new Usuario("Usuario", "Demostración", "demo", codificador.encode("Clave12345"),
+				RolUsuario.DEMOSTRACION);
+		when(usuarios.findByUsername("demo")).thenReturn(Optional.of(demo));
+		when(tokens.emitir(any())).thenReturn(new TokenService.Token("jwt", 28800));
+
+		assertEquals(CodigoError.CUENTA_INACTIVA, intentar("demo", "Clave12345").codigo());
+
+		SesionService habilitado = new SesionService(usuarios, codificador, tokens, new LimitadorIntentosSesion(reloj),
+				reloj, true);
+		assertEquals("jwt", habilitado.iniciarSesion("demo", "Clave12345", ORIGEN).token().valor());
 	}
 }

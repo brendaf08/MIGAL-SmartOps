@@ -1,4 +1,4 @@
-import type { Role } from './roles';
+import { tieneRol, type Role } from './roles';
 import { useSession } from './session';
 
 /**
@@ -29,7 +29,7 @@ export type Accion = keyof typeof PERMISOS;
 
 /** Indica si el rol puede ejecutar la acción. */
 export const permite = (rol: Role | undefined, accion: Accion): boolean =>
-  rol !== undefined && (PERMISOS[accion] as readonly Role[]).includes(rol);
+  tieneRol(rol, PERMISOS[accion]);
 
 /** Función `puede(accion)` para el usuario de la sesión. */
 export function usePermisos() {

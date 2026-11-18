@@ -11,6 +11,7 @@ nueva.
 | V14 y V15 | Conversaciones del agente de IA e idempotencia. |
 | V16 | Fecha de encolado de los documentos OCR (vigilancia de 60 s, ADR-012). |
 | V17 | Índices de los listados ordenados y unicidad del documento que apoya una recepción. |
+| V18 | Rol `demostracion` en la restricción de roles de usuario (ADR-013). |
 
 Para verificar una migración nueva, ejecutar las pruebas del backend: cada prueba de integración aplica todas las
 migraciones sobre un PostgreSQL de Testcontainers.

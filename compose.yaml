@@ -51,6 +51,10 @@ services:
       MIGAL_JWT_SECRETO: ${MIGAL_JWT_SECRETO:-}
       MIGAL_ADMIN_USERNAME: ${MIGAL_ADMIN_USERNAME:-}
       MIGAL_ADMIN_CLAVE: ${MIGAL_ADMIN_CLAVE:-}
+      # Rol de demostración (ADR-013), desactivado salvo que .env lo habilite.
+      MIGAL_ROL_DEMOSTRACION: ${MIGAL_ROL_DEMOSTRACION:-false}
+      MIGAL_DEMO_USERNAME: ${MIGAL_DEMO_USERNAME:-}
+      MIGAL_DEMO_CLAVE: ${MIGAL_DEMO_CLAVE:-}
       MIGAL_OCR_PROVEEDOR: ${MIGAL_OCR_PROVEEDOR:-simulado}
       MIGAL_OCR_URL: http://servicio-ocr:8000
       # Secreto compartido con el servicio de OCR; levantar-demo.ps1 lo genera en .env.

@@ -114,7 +114,7 @@ public class DocumentoOcrService {
 		return switch (rol) {
 			case VENDEDOR -> EnumSet.of(TipoDocumento.SOLICITUD_CLIENTE);
 			case ALMACENERO -> EnumSet.of(TipoDocumento.DOCUMENTO_RECEPCION);
-			case ADMINISTRADOR -> EnumSet.allOf(TipoDocumento.class);
+			case ADMINISTRADOR, DEMOSTRACION -> EnumSet.allOf(TipoDocumento.class);
 			case REPONEDOR -> EnumSet.noneOf(TipoDocumento.class);
 		};
 	}

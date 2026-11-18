@@ -121,7 +121,7 @@ riesgosa conviene descargar un respaldo manual desde el panel del proyecto.
 
 ## Estado de Supabase y migraciones
 
-La verificación del 15 de noviembre de 2026 encontró en el esquema `public` las tablas del sistema y `flyway_schema_history`, con línea base 0 y migraciones V1 a V15, todas con `success = true`. El esquema del proyecto Supabase actual ya está aplicado. Las migraciones V16 (`fecha_encolado` de `documento_digital`, ADR-012) y V17 (índices de los listados y unicidad del documento de una recepción) se aplican en Supabase cuando el backend arranque por primera vez con una versión que las incluya; hasta entonces el proyecto permanece en V15.
+La verificación del 15 de noviembre de 2026 encontró en el esquema `public` las tablas del sistema y `flyway_schema_history`, con línea base 0 y migraciones V1 a V15, todas con `success = true`. El esquema del proyecto Supabase actual ya está aplicado. Las migraciones V16 (`fecha_encolado` de `documento_digital`, ADR-012) V17 (índices de los listados y unicidad del documento de una recepción) y V18 (rol `demostracion`, ADR-013) se aplican en Supabase cuando el backend arranque por primera vez con una versión que las incluya; hasta entonces el proyecto permanece en V15.
 
 Las migraciones versionadas de `database/migraciones/` son la fuente del esquema. Para cambios futuros, agrega una nueva migración Flyway; no edites migraciones ya ejecutadas ni modifiques el esquema mediante el editor SQL de Supabase o sus migraciones propias.
 

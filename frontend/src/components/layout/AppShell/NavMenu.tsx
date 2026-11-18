@@ -1,5 +1,6 @@
 import { Badge, NavLink, Text } from '@mantine/core';
 import type { ReactNode } from 'react';
+import { tieneRol } from '@/features/seguridad/roles';
 import { Icon, type IconProps } from '../../ui/Icon/Icon';
 import classes from './AppShell.module.css';
 
@@ -29,9 +30,7 @@ export function NavMenu({ nav, role, current, onNavigate }: NavMenuProps) {
   return (
     <nav aria-label="Navegación principal">
       {nav.map((group) => {
-        const items = group.items.filter(
-          (item) => !item.roles || (role && item.roles.includes(role)),
-        );
+        const items = group.items.filter((item) => !item.roles || tieneRol(role, item.roles));
         if (items.length === 0) return null;
         return (
           <div key={group.label} className={classes.group}>

@@ -1,4 +1,5 @@
 import { Navigate, Outlet, useLocation } from 'react-router';
+import { tieneRol } from './roles';
 import { useSession } from './session';
 
 /** Rutas internas: exigen sesión y conservan el destino para volver tras iniciar sesión. */
@@ -11,5 +12,5 @@ export function RequireAuth() {
 /** Una ruta oculta en la navegación equivale a una ruta no accesible. */
 export function RequireRole({ roles }: { roles?: readonly string[] }) {
   const { user } = useSession();
-  return !roles || (user && roles.includes(user.role)) ? <Outlet /> : <Navigate to="/" replace />;
+  return !roles || tieneRol(user?.role, roles) ? <Outlet /> : <Navigate to="/" replace />;
 }

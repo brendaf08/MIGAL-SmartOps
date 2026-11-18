@@ -201,7 +201,7 @@ public class VentaService {
 			throw validacion("La fecha de vencimiento no puede ser anterior a la fecha de la operación.");
 		}
 		boolean aprobacionAutomatica = productosVenta.stream().allMatch(p -> p.getCategoria().isAprobacionAutomatica());
-		if (!aprobacionAutomatica && rol != RolUsuario.ADMINISTRADOR) {
+		if (!aprobacionAutomatica && !rol.incluye(RolUsuario.ADMINISTRADOR)) {
 			throw new ErrorDeNegocio(CodigoError.VIABILIDAD_NO_CONFIRMADA,
 					"La viabilidad de abastecimiento requiere la confirmación del Administrador.");
 		}

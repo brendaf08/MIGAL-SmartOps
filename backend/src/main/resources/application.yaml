@@ -46,6 +46,12 @@ migal:
     administrador-inicial:
       username: ${MIGAL_ADMIN_USERNAME:}
       clave: ${MIGAL_ADMIN_CLAVE:}
+    # Rol de demostración (ADR-013): reúne los permisos de los cuatro roles para presentar el sistema con una sola
+    # cuenta. Desactivado por defecto; con él desactivado, la cuenta de demostración no puede iniciar sesión.
+    demostracion:
+      habilitada: ${MIGAL_ROL_DEMOSTRACION:false}
+      username: ${MIGAL_DEMO_USERNAME:}
+      clave: ${MIGAL_DEMO_CLAVE:}
   ocr:
     # Proveedor del servicio de OCR: simulado (por defecto, para desarrollo y pruebas), no-configurado, que responde
     # SERVICIO_NO_DISPONIBLE, o http, que envía los documentos al servicio de OCR (ADR-012). Los umbrales del Fuzzy

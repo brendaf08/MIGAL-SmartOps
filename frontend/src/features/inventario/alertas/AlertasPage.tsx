@@ -12,6 +12,7 @@ import { QueryTable } from '@/components/ui/QueryTable/QueryTable';
 import { SearchInput } from '@/components/ui/SearchInput/SearchInput';
 import { Stat } from '@/components/ui/Stat/Stat';
 import { Tabs } from '@/components/ui/Tabs/Tabs';
+import { tieneRol } from '@/features/seguridad/roles';
 import { useSession } from '@/features/seguridad/session';
 import { formatNumber } from '@/lib/format';
 import { listarAlertas, type Alerta } from '../api';
@@ -28,7 +29,7 @@ const NIVELES = {
 export function AlertasPage() {
   const navigate = useNavigate();
   const { user } = useSession();
-  const reponedor = user?.role === 'Reponedor';
+  const reponedor = tieneRol(user?.role, ['Reponedor']);
   const [tab, setTab] = useState<keyof typeof NIVELES>('todas');
   const [q, setQ] = useState('');
   const [debouncedQ] = useDebouncedValue(q, 300);

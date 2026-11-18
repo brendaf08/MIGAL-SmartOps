@@ -84,9 +84,20 @@ const llenarDatosValidos = async (
 };
 
 describe('Proveedores: formulario', () => {
+  it('abre el formulario de registro desde el botón de la lista', async () => {
+    const user = userEvent.setup();
+    renderApp('/proveedores', 'Reponedor');
+    await user.click(await screen.findByRole('button', { name: 'Registrar proveedor' }));
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Registrar proveedor' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Proveedor no encontrado')).not.toBeInTheDocument();
+  });
+
   it('registra un proveedor válido con productos asociados y vuelve a la lista', async () => {
     const user = userEvent.setup();
-    renderApp('/proveedores/nueva', 'Reponedor');
+    renderApp('/proveedores/nuevo', 'Reponedor');
     await screen.findByRole('heading', { level: 1, name: 'Registrar proveedor' });
 
     await llenarDatosValidos(user);
@@ -103,7 +114,7 @@ describe('Proveedores: formulario', () => {
 
   it('muestra el error de RUC duplicado con el enlace al proveedor existente', async () => {
     const user = userEvent.setup();
-    renderApp('/proveedores/nueva', 'Reponedor');
+    renderApp('/proveedores/nuevo', 'Reponedor');
     await screen.findByRole('heading', { level: 1, name: 'Registrar proveedor' });
 
     await llenarDatosValidos(user, '20123456789');
@@ -118,7 +129,7 @@ describe('Proveedores: formulario', () => {
 
   it('valida el RUC, el teléfono, el correo y los campos obligatorios', async () => {
     const user = userEvent.setup();
-    renderApp('/proveedores/nueva', 'Reponedor');
+    renderApp('/proveedores/nuevo', 'Reponedor');
     await screen.findByRole('heading', { level: 1, name: 'Registrar proveedor' });
 
     await user.click(screen.getByRole('button', { name: 'Registrar proveedor' }));
@@ -139,7 +150,7 @@ describe('Proveedores: formulario', () => {
 
   it('avisa cuando el SKU buscado no está en el catálogo y permite continuar sin asociar', async () => {
     const user = userEvent.setup();
-    renderApp('/proveedores/nueva', 'Reponedor');
+    renderApp('/proveedores/nuevo', 'Reponedor');
     await screen.findByRole('heading', { level: 1, name: 'Registrar proveedor' });
 
     await user.type(screen.getByRole('combobox', { name: /Productos del catálogo/ }), 'XYZ-999');
@@ -198,7 +209,7 @@ describe('Proveedores: formulario', () => {
   });
 
   it('impide el acceso a un rol que no es Reponedor', async () => {
-    renderApp('/proveedores/nueva', 'Vendedor');
+    renderApp('/proveedores/nuevo', 'Vendedor');
 
     await waitFor(() =>
       expect(
@@ -208,7 +219,7 @@ describe('Proveedores: formulario', () => {
   });
 
   it('no tiene violaciones de accesibilidad en el formulario', async () => {
-    const { container } = renderApp('/proveedores/nueva', 'Reponedor');
+    const { container } = renderApp('/proveedores/nuevo', 'Reponedor');
     await screen.findByRole('heading', { level: 1, name: 'Registrar proveedor' });
 
     expect(

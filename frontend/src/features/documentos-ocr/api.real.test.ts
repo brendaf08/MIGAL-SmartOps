@@ -138,9 +138,9 @@ describe('documentos OCR con la API real', () => {
     const llamadas: PeticionSimulada[] = [];
     simularServidor((peticion) => {
       llamadas.push(peticion);
-      if (peticion.url.pathname === '/api/v1/productos') {
+      if (peticion.url.pathname === '/api/v1/inventario/disponibilidad') {
         return {
-          cuerpo: { items: [{ id: '101', sku: 'CEM-049' }], total: 1, page: 1, pageSize: 100 },
+          cuerpo: { items: [{ productoId: '101', sku: 'CEM-049' }], total: 1, page: 1, pageSize: 100 },
         };
       }
       if (peticion.metodo === 'GET') {
@@ -165,9 +165,9 @@ describe('documentos OCR con la API real', () => {
     const llamadas: PeticionSimulada[] = [];
     simularServidor((peticion) => {
       llamadas.push(peticion);
-      if (peticion.url.pathname === '/api/v1/productos') {
+      if (peticion.url.pathname === '/api/v1/inventario/disponibilidad') {
         return {
-          cuerpo: { items: [{ id: '101', sku: 'CEM-049' }], total: 1, page: 1, pageSize: 100 },
+          cuerpo: { items: [{ productoId: '101', sku: 'CEM-049' }], total: 1, page: 1, pageSize: 100 },
         };
       }
       if (peticion.metodo === 'GET') {

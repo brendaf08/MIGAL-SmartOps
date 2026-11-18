@@ -45,8 +45,8 @@ afterEach(restablecerApiReal);
 describe('movimientos manuales (rama de la API real)', () => {
   it('registra una salida con Idempotency-Key, traduce la ubicación y mapea la constancia', async () => {
     const llamadas = simularServidor({
-      'GET /api/v1/productos': () =>
-        json({ items: [{ id: '42', sku: 'CEM-001' }], total: 1, page: 1, pageSize: 1 }),
+      'GET /api/v1/inventario/disponibilidad': () =>
+        json({ items: [{ productoId: '42', sku: 'CEM-001' }], total: 1, page: 1, pageSize: 1 }),
       'GET /api/v1/almacenes': () => json(ALMACENES),
       'POST /api/v1/inventario/movimientos': () =>
         json(
@@ -92,8 +92,8 @@ describe('movimientos manuales (rama de la API real)', () => {
 
   it('registra un traslado en /inventario/traslados con origen y destino por identificador', async () => {
     const llamadas = simularServidor({
-      'GET /api/v1/productos': () =>
-        json({ items: [{ id: '42', sku: 'CEM-001' }], total: 1, page: 1, pageSize: 1 }),
+      'GET /api/v1/inventario/disponibilidad': () =>
+        json({ items: [{ productoId: '42', sku: 'CEM-001' }], total: 1, page: 1, pageSize: 1 }),
       'GET /api/v1/almacenes': () => json(ALMACENES),
       'POST /api/v1/inventario/traslados': () =>
         json(
@@ -143,8 +143,8 @@ describe('movimientos manuales (rama de la API real)', () => {
 
   it('reutiliza la misma clave en un reintento de la misma intención', async () => {
     const llamadas = simularServidor({
-      'GET /api/v1/productos': () =>
-        json({ items: [{ id: '42', sku: 'CEM-001' }], total: 1, page: 1, pageSize: 1 }),
+      'GET /api/v1/inventario/disponibilidad': () =>
+        json({ items: [{ productoId: '42', sku: 'CEM-001' }], total: 1, page: 1, pageSize: 1 }),
       'GET /api/v1/almacenes': () => json(ALMACENES),
       'POST /api/v1/inventario/movimientos': () =>
         json({ movimientos: [MOVIMIENTO('1208', '102', 'salida', 'ajuste')], cambios: [] }, 201),
@@ -161,8 +161,8 @@ describe('movimientos manuales (rama de la API real)', () => {
 
   it('propaga STOCK_INSUFICIENTE con su código para que la interfaz lo muestre', async () => {
     simularServidor({
-      'GET /api/v1/productos': () =>
-        json({ items: [{ id: '42', sku: 'CEM-001' }], total: 1, page: 1, pageSize: 1 }),
+      'GET /api/v1/inventario/disponibilidad': () =>
+        json({ items: [{ productoId: '42', sku: 'CEM-001' }], total: 1, page: 1, pageSize: 1 }),
       'GET /api/v1/almacenes': () => json(ALMACENES),
       'POST /api/v1/inventario/movimientos': () =>
         problema(422, 'STOCK_INSUFICIENTE', 'Stock insuficiente: hay 3 y se solicitan 5'),
@@ -176,12 +176,12 @@ describe('movimientos manuales (rama de la API real)', () => {
 
   it('rechaza sin enviar nada cuando el producto no existe', async () => {
     const llamadas = simularServidor({
-      'GET /api/v1/productos': () => json({ items: [], total: 0, page: 1, pageSize: 1 }),
+      'GET /api/v1/inventario/disponibilidad': () => json({ items: [], total: 0, page: 1, pageSize: 1 }),
       'GET /api/v1/almacenes': () => json(ALMACENES),
     });
     const { registrarMovimiento } = await cargarModulo(() => import('./api'));
 
-    await expect(registrarMovimiento(SOLICITUD)).rejects.toThrow('El producto no existe en el catálogo.');
+    await expect(registrarMovimiento(SOLICITUD)).rejects.toThrow('No se encontró el producto con SKU CEM-001 en el catálogo.');
     expect(llamadas.some((l) => l.metodo === 'POST')).toBe(false);
   });
 });

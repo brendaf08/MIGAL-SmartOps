@@ -159,16 +159,7 @@ export async function paginas<T>(
   }
 }
 
-/** Resuelve el identificador técnico del producto a partir de su SKU (GET /productos con el filtro sku). */
-export async function productoIdDeSku(sku: string): Promise<string> {
-  const pagina = await api.get<{ items: { id: string; sku: string }[] }>('/productos', {
-    sku,
-    pageSize: 1,
-  });
-  const producto = pagina.items.find((p) => p.sku === sku);
-  if (!producto) throw new Error(`No se encontró el producto con SKU ${sku} en el catálogo.`);
-  return producto.id;
-}
+export { productoIdDeSku } from '@/api/productos';
 
 /** Consulta una venta con su detalle. */
 const obtenerVentaApi = (id: string) =>

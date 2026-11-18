@@ -1,6 +1,7 @@
 import { API_REAL, api } from '@/api/cliente';
 import { mockRequest } from '@/api/mock';
 import { todosLosElementos, type PaginaApi } from '@/api/paginas';
+import { buscarIdProducto } from '@/api/productos';
 import {
   aDisponibilidad,
   aMovimiento,
@@ -40,18 +41,7 @@ interface AlertaStockDto {
 /** Ubicaciones (tienda principal y almacenes) del contrato de catálogo. */
 export const listarAlmacenes = () => api.get<AlmacenDto[]>('/almacenes');
 
-/** Identificador técnico del producto con el SKU indicado, o `null` si no existe. */
-export const buscarIdProducto = async (sku: string): Promise<string | null> => {
-  const pagina = await api.get<PaginaApi<{ id: string; sku: string }>>('/productos', { sku, pageSize: 1 });
-  return pagina.items.find((p) => p.sku === sku)?.id ?? null;
-};
-
-/** Identificador técnico del producto con el SKU indicado. Lanza un error si el producto no existe. */
-export const productoIdDeSku = async (sku: string): Promise<string> => {
-  const id = await buscarIdProducto(sku);
-  if (!id) throw new Error('El producto no existe en el catálogo.');
-  return id;
-};
+export { buscarIdProducto, productoIdDeSku } from '@/api/productos';
 
 const consultarDisponibilidadReal = async ({
   q,

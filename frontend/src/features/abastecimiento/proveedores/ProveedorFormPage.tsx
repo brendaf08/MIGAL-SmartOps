@@ -25,7 +25,7 @@ import classes from './ProveedorFormPage.module.css';
 import { esquemaProveedor, type ValoresProveedor } from './esquema';
 import { useCatalogoVigente } from '@/features/catalogo/catalogoVigente';
 
-/** Ruta `proveedores/nueva` (sin identificador) y `proveedores/:id` (edición). */
+/** Ruta `proveedores/nuevo` (sin identificador) y `proveedores/:id` (edición). */
 export function ProveedorFormPage() {
   const { id } = useParams();
   if (!id) return <FormularioProveedor />;

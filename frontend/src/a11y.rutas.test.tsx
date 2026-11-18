@@ -36,7 +36,7 @@ const RUTAS: [ruta: string, rol: Role][] = [
   ['/ventas/V-0040', 'Vendedor'],
   ['/clientes', 'Vendedor'],
   ['/proveedores', 'Reponedor'],
-  ['/proveedores/nueva', 'Reponedor'],
+  ['/proveedores/nuevo', 'Reponedor'],
   ['/proveedores/P-001', 'Reponedor'],
   ['/compras', 'Reponedor'],
   ['/compras/nueva', 'Reponedor'],

@@ -1,4 +1,4 @@
-import { Badge, Button, NumberInput, Stack, Text, Textarea } from '@mantine/core';
+import { Badge, Button, NumberInput, Select, Stack, Text, Textarea } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -21,6 +21,7 @@ import { formatNumber } from '@/lib/format';
 import {
   ALMACEN,
   confirmarRecepcion,
+  listarAlmacenesRecepcion,
   listarOrdenesRecepcionables,
   type ResultadoRecepcion,
 } from './api';
@@ -109,8 +110,14 @@ export function OrdenRecepcionPage() {
     onSuccess: (documento) => setLineasOcr(documento.lineas),
   });
 
+  const [almacen, setAlmacen] = useState(ALMACEN);
+  const almacenes = useQuery({
+    queryKey: ['almacenes-recepcion'],
+    queryFn: listarAlmacenesRecepcion,
+  });
+
   const confirmar = useMutation({
-    mutationFn: () => confirmarRecepcion(orden!, lineas, nota),
+    mutationFn: () => confirmarRecepcion(orden!, lineas, nota, almacen),
     onSuccess: (resultado) => {
       void queryClient.invalidateQueries({ queryKey: ['recepciones'] });
       void queryClient.invalidateQueries({ queryKey: ['ordenes-recepcion'] });
@@ -279,11 +286,23 @@ export function OrdenRecepcionPage() {
         description={
           paso === 0 || !orden
             ? 'Elegir la orden de compra que se recibe.'
-            : `Orden de compra ${orden.id}, ${orden.proveedor}, ${ALMACEN}`
+            : `Orden de compra ${orden.id}, ${orden.proveedor}, ${almacen}`
         }
       />
       <Stack gap="lg">
         <Stepper aria-label="Pasos de la recepción" steps={PASOS} current={paso} />
+
+        {paso > 0 && (
+          <Select
+            label="Ubicación que recibe"
+            description="La mercadería ingresa al Kardex de esta ubicación."
+            data={almacenes.data ?? [ALMACEN]}
+            value={almacen}
+            onChange={(valor) => setAlmacen(valor ?? ALMACEN)}
+            allowDeselect={false}
+            maw={320}
+          />
+        )}
 
         {paso === 0 && (
           <SeleccionOrdenCompra
@@ -477,7 +496,7 @@ export function OrdenRecepcionPage() {
         title={`Confirmar recepción ${orden?.id ?? ''}`}
         description="Se ingresará al inventario la mercadería efectivamente recibida."
         consequences={[
-          `Se registrarán ${plural(conEntrada, 'movimiento', 'movimientos')} de entrada en el Kardex del ${ALMACEN}.`,
+          `Se registrarán ${plural(conEntrada, 'movimiento', 'movimientos')} de entrada en el Kardex de ${almacen}.`,
           ...(resumen.parciales
             ? ['Las líneas con menos cantidad que el pedido quedan como recepción parcial.']
             : []),

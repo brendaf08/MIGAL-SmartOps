@@ -240,9 +240,17 @@ const productosPorSku = async (lineas: LineaRecepcion[]): Promise<Map<string, st
   return productos;
 };
 
-const ubicacionDeRecepcion = async (): Promise<string> => {
+/** Ubicaciones que pueden recibir mercadería: las activas de GET /almacenes. */
+export const listarAlmacenesRecepcion = (): Promise<string[]> =>
+  API_REAL
+    ? api
+        .get<{ nombre: string; estadoActivo?: boolean }[]>('/almacenes')
+        .then((almacenes) => almacenes.filter((a) => a.estadoActivo !== false).map((a) => a.nombre))
+    : mockRequest(() => ['Tienda', 'Almacén 1', 'Almacén 2']);
+
+const ubicacionDeRecepcion = async (nombre: string): Promise<string> => {
   const almacenes = await api.get<{ id: string; nombre: string }[]>('/almacenes');
-  const almacen = almacenes.find((a) => a.nombre === ALMACEN);
+  const almacen = almacenes.find((a) => a.nombre === nombre);
   if (!almacen) throw new Error('ALMACEN_NO_ENCONTRADO');
   return almacen.id;
 };
@@ -271,15 +279,21 @@ const confirmarRecepcionReal = async (
   orden: Pick<OrdenRecepcionable, 'id' | 'ordenCompraId'>,
   lineas: LineaRecepcion[],
   nota: string,
+  almacen: string,
 ): Promise<ResultadoRecepcion> => {
   const observaciones = nota.trim();
-  const huella = JSON.stringify([orden.id, lineas.map((l) => [l.sku, l.recibido]), observaciones]);
+  const huella = JSON.stringify([
+    orden.id,
+    lineas.map((l) => [l.sku, l.recibido]),
+    observaciones,
+    almacen,
+  ]);
   const clave = clavesPorIntencion.get(huella) ?? crypto.randomUUID();
   clavesPorIntencion.set(huella, clave);
 
   const [productos, ubicacionId] = await Promise.all([
     productosPorSku(lineas),
-    ubicacionDeRecepcion(),
+    ubicacionDeRecepcion(almacen),
   ]);
   const solicitud = {
     fechaRecepcion: hoy(),
@@ -347,9 +361,10 @@ export const confirmarRecepcion = (
   orden: OrdenRecepcionable,
   lineas: LineaRecepcion[],
   nota: string,
+  almacen: string = ALMACEN,
 ): Promise<ResultadoRecepcion> =>
   API_REAL
-    ? confirmarRecepcionReal(orden, lineas, nota)
+    ? confirmarRecepcionReal(orden, lineas, nota, almacen)
     : mockRequest<ResultadoRecepcion>(() => {
         const ordenCompra = ORDENES_COMPRA.find((o) => o.id === orden.id);
         if (!ordenCompra || ordenCompra.estado === 'Completada') {
@@ -373,7 +388,7 @@ export const confirmarRecepcion = (
           id: siguienteId(),
           orden: ordenCompra.id,
           proveedor: nombreProveedor(ordenCompra),
-          almacen: ALMACEN,
+          almacen,
           fecha: new Date().toISOString().slice(0, 10),
           estado: 'Validada',
           ...(nota.trim() ? { nota: nota.trim() } : {}),

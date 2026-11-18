@@ -13,7 +13,7 @@ import { DataTable, type Column } from '@/components/ui/DataTable/DataTable';
 import { Icon } from '@/components/ui/Icon/Icon';
 import { ConfirmDialog } from '@/components/ui/Modal/ConfirmDialog';
 import { formatNumber } from '@/lib/format';
-import { confirmarSalida, obtenerOrden, reservaCompleta } from './api';
+import { confirmarSalida, obtenerOrden, registrarEntrega, reservaCompleta } from './api';
 import type { LineaDespacho } from './types';
 import { usePermisos } from '@/features/seguridad/permisos';
 
@@ -68,6 +68,21 @@ export function DespachoPage() {
     },
   });
 
+  const entregar = useMutation({
+    mutationFn: () => registrarEntrega(id),
+    onSuccess: () => {
+      notifications.show({ color: 'success', message: `Entrega de la orden ${id} registrada.` });
+      void queryClient.invalidateQueries({ queryKey: ['orden', id] });
+      void queryClient.invalidateQueries({ queryKey: ['ordenes'] });
+    },
+    onError: (e) =>
+      notifications.show({
+        color: 'danger',
+        title: 'No se pudo registrar la entrega',
+        message: e.message,
+      }),
+  });
+
   if (isError) {
     return (
       <>
@@ -95,14 +110,25 @@ export function DespachoPage() {
         status={<StatusBadge entity="guia" value={orden.estado} />}
         description={`Venta ${orden.venta}, ${orden.cliente}, Entrega ${orden.entrega.toLowerCase()}`}
         actions={
-          <Button
-            component={Link}
-            to={`/despachos/${orden.id}/imprimir`}
-            variant="default"
-            leftSection={<Icon name="print" />}
-          >
-            Imprimir orden
-          </Button>
+          <>
+            <Button
+              component={Link}
+              to={`/despachos/${orden.id}/imprimir`}
+              variant="default"
+              leftSection={<Icon name="print" />}
+            >
+              Imprimir orden
+            </Button>
+            {orden.estado === 'SalidaConfirmada' && puede('operarDespacho') && (
+              <Button
+                leftSection={<Icon name="check" />}
+                loading={entregar.isPending}
+                onClick={() => entregar.mutate()}
+              >
+                Registrar entrega
+              </Button>
+            )}
+          </>
         }
       />
       {cambios && (

@@ -3,6 +3,7 @@ import { useForm } from '@mantine/form';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { zod4Resolver } from 'mantine-form-zod-resolver';
 import { useState } from 'react';
+import { API_REAL } from '@/api/cliente';
 import { Alert } from '@/components/ui/Alert/Alert';
 import { ConfirmDialog } from '@/components/ui/Modal/ConfirmDialog';
 import { Modal } from '@/components/ui/Modal/Modal';
@@ -184,12 +185,15 @@ function ClienteFormulario({
           maxLength={9}
           {...form.getInputProps('telefono')}
         />
-        <TextInput
-          label="Correo (opcional)"
-          type="email"
-          autoComplete="email"
-          {...form.getInputProps('correo')}
-        />
+        {/* El contrato de clientes no almacena correo: con la API real el campo se perdería al guardar. */}
+        {!API_REAL && (
+          <TextInput
+            label="Correo (opcional)"
+            type="email"
+            autoComplete="email"
+            {...form.getInputProps('correo')}
+          />
+        )}
         <div className={classes.acciones}>
           {cliente?.estado === 'Activo' ? (
             <Button

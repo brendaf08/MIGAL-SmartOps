@@ -170,3 +170,18 @@ export const confirmarSalida = (id: string, claveIdempotencia: string): Promise<
         found.estado = 'SalidaConfirmada';
         return { orden: found, cambios: cambiosDeSalida(found.lineas) };
       });
+
+/**
+ * Registra la entrega al cliente de una guía con salida confirmada (POST /guias-despacho/{id}/entrega). No mueve
+ * inventario ni genera movimientos de Kardex.
+ */
+export const registrarEntrega = (id: string): Promise<OrdenDespacho> =>
+  API_REAL
+    ? api.post<GuiaApi>(ruta(id, '/entrega')).then(ordenDesde)
+    : mockRequest<OrdenDespacho>(() => {
+        const found = ORDENES.find((o) => o.id === id);
+        if (!found || found.estado !== 'SalidaConfirmada')
+          throw new Error('La orden no tiene la salida confirmada.');
+        found.estado = 'Entregada';
+        return found;
+      });

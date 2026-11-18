@@ -221,4 +221,15 @@ describe('despacho (API real)', () => {
     expect(documento.fecha).toBe('2026-11-06');
     expect(documento.lineas[0]).toMatchObject({ sku: 'CEM-001', unidad: 'bolsa', cantidad: 200 });
   });
+
+  it('registra la entrega con POST /guias-despacho/{id}/entrega', async () => {
+    const api = await cargarApiReal();
+    fetchMock.mockResolvedValueOnce(respuesta(guiaApi({ estado: 'entregada' })));
+
+    const orden = await api.registrarEntrega('31');
+
+    expect(llamada(0)[0]).toBe('/api/v1/guias-despacho/31/entrega');
+    expect(llamada(0)[1]?.method).toBe('POST');
+    expect(orden.estado).toBe('Entregada');
+  });
 });

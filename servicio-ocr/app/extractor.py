@@ -10,6 +10,8 @@ from typing import Protocol
 
 from pydantic import BaseModel, Field
 
+from app.esquemas import CANTIDAD_MAXIMA
+
 REGISTRO = logging.getLogger(__name__)
 
 INSTRUCCIONES = """\
@@ -67,16 +69,17 @@ class ModeloGemini:
 
 
 def cantidad_valida(valor: float | None) -> Decimal | None:
-    """Cantidad no negativa con hasta tres decimales, como exige CantidadNoNegativa; otra lectura se descarta."""
+    """Cantidad no negativa, menor a 10^11 y con hasta tres decimales (CantidadNoNegativa y numeric(14,3)); otra
+    lectura, como un RUC tomado por cantidad, se descarta."""
     if valor is None:
         return None
     try:
         cantidad = Decimal(str(valor)).quantize(Decimal("0.001"))
     except (InvalidOperation, ValueError):
         return None
-    if cantidad < 0:
+    if cantidad < 0 or cantidad >= CANTIDAD_MAXIMA:
         return None
-    return cantidad.normalize() if cantidad == cantidad.to_integral() else cantidad
+    return cantidad
 
 
 def es_reintentable(error: Exception) -> bool:

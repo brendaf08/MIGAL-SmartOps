@@ -7,9 +7,11 @@
 from decimal import Decimal
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_serializer
 
 TEXTO_MAXIMO = 500
+# numeric(14,3) admite hasta 11 dígitos enteros; una lectura mayor (un RUC o un teléfono) se descarta.
+CANTIDAD_MAXIMA = Decimal("100000000000")
 
 
 class ProductoCatalogo(BaseModel):
@@ -48,8 +50,16 @@ class Linea(BaseModel):
     """Línea extraída con sus coincidencias, como DocumentoResultadoLinea."""
 
     textoCrudo: str = Field(min_length=1, max_length=TEXTO_MAXIMO)
-    cantidadLeida: Decimal | None = Field(default=None, ge=0, decimal_places=3)
+    cantidadLeida: Decimal | None = Field(default=None, ge=0, lt=CANTIDAD_MAXIMA, decimal_places=3)
     coincidencias: list[Coincidencia]
+
+    @field_serializer("cantidadLeida")
+    def _cantidad_como_numero(self, valor: Decimal | None) -> int | float | None:
+        """El contrato (CantidadNoNegativa) define un número JSON: pydantic serializa Decimal como texto, incluso en
+        notación científica (``"1E+2"``)."""
+        if valor is None:
+            return None
+        return int(valor) if valor == valor.to_integral_value() else float(valor)
 
 
 class ResultadoDocumento(BaseModel):

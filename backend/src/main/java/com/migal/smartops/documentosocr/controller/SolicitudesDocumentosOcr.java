@@ -9,6 +9,7 @@ import com.migal.smartops.documentosocr.service.DocumentoOcrService.ResultadoOcr
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -37,7 +38,9 @@ public final class SolicitudesDocumentosOcr {
 	}
 
 	/** {@code DocumentoResultadoLinea}: línea leída por el OCR. */
-	public record LineaSolicitud(@NotBlank @Size(max = 500) String textoCrudo, @DecimalMin("0") BigDecimal cantidadLeida,
+	public record LineaSolicitud(@NotBlank @Size(max = 500) String textoCrudo,
+			// numeric(14,3): una cantidad de 10^11 o más respondería 500 al guardarla; se rechaza con 422.
+			@DecimalMin("0") @Digits(integer = 11, fraction = 3) BigDecimal cantidadLeida,
 			@NotNull @Valid List<CoincidenciaSolicitud> coincidencias) {
 	}
 

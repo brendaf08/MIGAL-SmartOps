@@ -94,7 +94,7 @@ def test_procesa_y_registra_el_resultado_con_el_token_recibido(
     assert peticion.headers["Authorization"] == "Bearer token-812"
     cuerpo = json.loads(peticion.content)
     assert cuerpo["resultado"] == "procesado"
-    assert cuerpo["detalles"][0]["cantidadLeida"] == "2"
+    assert cuerpo["detalles"][0]["cantidadLeida"] == 2
     assert cuerpo["detalles"][0]["coincidencias"][0]["sku"] == "CEM-001"
     assert cuerpo["detalles"][1] == {"textoCrudo": "pintura azul", "cantidadLeida": None, "coincidencias": []}
 

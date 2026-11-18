@@ -44,7 +44,10 @@ function Ejecutar-Sql([string]$archivo) {
     # 5.1 altera las tildes y la ñ.
     docker cp $archivo migal-postgres:/tmp/carga.sql | Out-Null
     docker exec migal-postgres sh -c 'psql -q -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 -f /tmp/carga.sql'
-    if ($LASTEXITCODE -ne 0) { throw "Falló la carga de $archivo." }
+    $resultado = $LASTEXITCODE
+    # El catálogo real contiene precios del negocio: no se deja una copia dentro del contenedor.
+    docker exec migal-postgres rm -f /tmp/carga.sql | Out-Null
+    if ($resultado -ne 0) { throw "Falló la carga de $archivo." }
 }
 
 if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {

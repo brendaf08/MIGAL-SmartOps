@@ -106,9 +106,9 @@ services:
       backend:
         condition: service_healthy
     ports:
-      - "127.0.0.1:${FRONTEND_PUERTO:-8081}:80"
+      - "127.0.0.1:${FRONTEND_PUERTO:-8081}:8080"
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/ || exit 1"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/ || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 6

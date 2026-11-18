@@ -10,6 +10,21 @@ on:
       - 'servicio-ocr/**'
       - 'backend/api/**'
       - '.github/workflows/verificar-servicio-ocr.yml'
+  # También al integrar en main, para detectar a tiempo una rotura por la combinación de PR.
+  push:
+    branches: [main]
+    paths:
+      - 'servicio-ocr/**'
+      - 'backend/api/**'
+      - '.github/workflows/verificar-servicio-ocr.yml'
+
+permissions:
+  contents: read
+
+# Un push nuevo a la misma rama cancela la verificación anterior.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   verificar:

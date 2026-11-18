@@ -14,7 +14,7 @@ import { QueryTable } from '@/components/ui/QueryTable/QueryTable';
 import { SearchInput } from '@/components/ui/SearchInput/SearchInput';
 import { Tabs } from '@/components/ui/Tabs/Tabs';
 import { useSession } from './session';
-import { listarUsuarios, revocarAcceso } from './usuarios/api';
+import { listarUsuarios, reactivarAcceso, revocarAcceso } from './usuarios/api';
 import type { UsuarioRegistro } from './usuarios-tipos';
 
 type Filtro = 'Todos' | 'Activos' | 'Inactivos';
@@ -27,6 +27,7 @@ const MENSAJE_PROPIA_CUENTA = 'No se puede revocar la propia cuenta';
 function columnas(
   propia: (u: UsuarioRegistro) => boolean,
   onRevocar: (u: UsuarioRegistro) => void,
+  onReactivar: (u: UsuarioRegistro) => void,
 ): Column<UsuarioRegistro>[] {
   return [
     { key: 'nombre', header: 'Nombre', primary: true },
@@ -80,6 +81,16 @@ function columnas(
                 Revocar acceso
               </Button>
             ))}
+          {u.estado === 'Inactivo' && (
+            <Button
+              variant="default"
+              size="compact-md"
+              onClick={() => onReactivar(u)}
+              aria-label={`Reactivar acceso de ${u.nombre}`}
+            >
+              Reactivar acceso
+            </Button>
+          )}
         </Group>
       ),
     },
@@ -103,6 +114,20 @@ export function UsuariosPage() {
       notifications.show({ color: 'success', message: `Acceso revocado a ${usuario.usuario}.` });
       setRevocando(null);
     },
+  });
+
+  const reactivar = useMutation({
+    mutationFn: (id: string) => reactivarAcceso(id),
+    onSuccess: async (usuario) => {
+      await queryClient.invalidateQueries({ queryKey: ['usuarios'] });
+      notifications.show({ color: 'success', message: `Acceso reactivado a ${usuario.usuario}.` });
+    },
+    onError: (error) =>
+      notifications.show({
+        color: 'danger',
+        title: 'No se pudo reactivar el acceso',
+        message: error.message,
+      }),
   });
 
   const propia = (u: UsuarioRegistro) => u.nombre === user?.name;
@@ -147,7 +172,7 @@ export function UsuariosPage() {
           query={{ data: filas, isLoading: query.isLoading, isError: query.isError }}
           errorTitle="No se pudieron cargar los usuarios"
           caption="Usuarios"
-          columns={columnas(propia, setRevocando)}
+          columns={columnas(propia, setRevocando, (u) => reactivar.mutate(u.id))}
           rowKey="id"
           empty={
             <EmptyState

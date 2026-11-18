@@ -58,9 +58,7 @@ describe('Catálogo, lista', () => {
     expect(
       await screen.findByRole('table', { name: 'Disponibilidad por producto' }),
     ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('table', { name: 'Catálogo de productos' }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('table', { name: 'Catálogo de productos' })).not.toBeInTheDocument();
   });
 });
 
@@ -81,7 +79,10 @@ async function llenarFormulario(valores: { sku?: string; nombre?: string; minimo
   );
   await elegir('Categoría', 'Otras');
   await elegir('Unidad de medida', 'kg');
-  await userEvent.type(screen.getByRole('textbox', { name: 'Stock mínimo' }), valores.minimo ?? '5');
+  await userEvent.type(
+    screen.getByRole('textbox', { name: 'Stock mínimo' }),
+    valores.minimo ?? '5',
+  );
 }
 
 describe('Catálogo, formulario', () => {
@@ -106,7 +107,9 @@ describe('Catálogo, formulario', () => {
     expect(
       await screen.findByText('El SKU ya existe. Ingresar un código distinto.'),
     ).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 1, name: 'Registrar producto' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Registrar producto' }),
+    ).toBeInTheDocument();
   });
 
   it('valida el formato del SKU, el nombre y que el stock mínimo no sea negativo', async () => {
@@ -115,7 +118,9 @@ describe('Catálogo, formulario', () => {
     await llenarFormulario({ sku: 'ab1', nombre: 'AB', minimo: '-1' });
     await userEvent.click(screen.getByRole('button', { name: 'Registrar producto' }));
 
-    expect(await screen.findByText('Usar el formato AAA-000, por ejemplo CEM-049.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Usar el formato AAA-000, por ejemplo CEM-049.'),
+    ).toBeInTheDocument();
     expect(screen.getByText('Ingresar al menos 3 caracteres.')).toBeInTheDocument();
     expect(screen.getByText('El stock mínimo no puede ser negativo.')).toBeInTheDocument();
   });
@@ -124,7 +129,10 @@ describe('Catálogo, formulario', () => {
     renderApp('/catalogo/nuevo', 'Almacenero');
 
     await userEvent.type(await screen.findByRole('textbox', { name: 'SKU' }), 'TST-002');
-    await userEvent.type(screen.getByRole('textbox', { name: 'Nombre oficial' }), 'Producto sin unidad');
+    await userEvent.type(
+      screen.getByRole('textbox', { name: 'Nombre oficial' }),
+      'Producto sin unidad',
+    );
     await userEvent.click(screen.getByRole('button', { name: 'Registrar producto' }));
 
     expect(await screen.findByText('Ingresar el stock mínimo.')).toBeInTheDocument();
@@ -136,7 +144,9 @@ describe('Catálogo, formulario', () => {
 
     await userEvent.type(await screen.findByRole('textbox', { name: 'Stock mínimo' }), '200');
 
-    expect(await screen.findByText('Alerta cuando el stock libre sea 200 o menos.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Alerta cuando el stock libre sea 200 o menos.'),
+    ).toBeInTheDocument();
   });
 
   it('modifica la unidad y el stock mínimo sin permitir cambiar el SKU', async () => {

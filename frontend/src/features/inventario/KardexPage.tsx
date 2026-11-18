@@ -24,7 +24,6 @@ import { SearchInput } from '@/components/ui/SearchInput/SearchInput';
 import { formatDate } from '@/lib/format';
 import { UBICACIONES } from './movimientos/esquema';
 import { listarMovimientosFiltrados, SIN_FILTROS_KARDEX, type FiltrosKardex } from './api';
-import { MOVIMIENTOS } from './fixtures';
 import type { Movimiento } from './types';
 
 const PAGE_SIZE = 20;
@@ -38,10 +37,13 @@ const ORIGEN_TEXTO: Record<Movimiento['origen'], string> = {
 
 const ORIGENES = Object.entries(ORIGEN_TEXTO).map(([value, label]) => ({ value, label }));
 
-/** Par de un movimiento de traslado: la salida y la entrada se registran juntas, con igual fecha, producto y cantidad. */
-const parDe = (m: Movimiento) =>
+/**
+ * Par de un movimiento de traslado: la salida y la entrada se registran juntas, con igual fecha, producto y cantidad.
+ * Se busca entre los movimientos consultados, no en los datos de prueba.
+ */
+const parDe = (m: Movimiento, movimientos: readonly Movimiento[]) =>
   m.origen === 'Traslado'
-    ? MOVIMIENTOS.find(
+    ? movimientos.find(
         (o) =>
           o.id !== m.id &&
           o.origen === 'Traslado' &&
@@ -52,7 +54,7 @@ const parDe = (m: Movimiento) =>
       )
     : undefined;
 
-const columns: Column<Movimiento>[] = [
+const columnas = (movimientos: readonly Movimiento[]): Column<Movimiento>[] => [
   { key: 'fecha', header: 'Fecha', render: (m) => formatDate(m.fecha) },
   { key: 'sku', header: 'SKU', mono: true, primary: true },
   { key: 'producto', header: 'Producto', phone: false },
@@ -65,7 +67,7 @@ const columns: Column<Movimiento>[] = [
     key: 'origen',
     header: 'Origen',
     render: (m) => {
-      const par = parDe(m);
+      const par = parDe(m, movimientos);
       return (
         <Stack gap={0}>
           <span>{ORIGEN_TEXTO[m.origen]}</span>
@@ -233,7 +235,7 @@ export function KardexPage() {
         query={{ data: pagina, isLoading: query.isLoading, isError: query.isError }}
         errorTitle="No se pudo cargar el Kardex"
         caption="Movimientos de Kardex"
-        columns={columns}
+        columns={columnas(movimientos)}
         rowKey="id"
         changedKey={resaltado}
         empty={

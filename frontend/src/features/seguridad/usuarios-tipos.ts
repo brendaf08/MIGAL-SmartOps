@@ -3,7 +3,10 @@ import type { Role } from './roles';
 /** Usuario del directorio administrado en CU-02. Las credenciales de prueba viven en `fixtures.ts`. */
 export interface UsuarioRegistro {
   id: string;
+  /** Nombre completo para mostrar: nombres y apellidos. */
   nombre: string;
+  nombres?: string;
+  apellidos?: string;
   usuario: string;
   rol: Role;
   estado: 'Activo' | 'Inactivo';

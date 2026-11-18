@@ -22,6 +22,8 @@ export const rolDeApi = (rol: string): Role => {
 export const aUsuarioRegistro = (dto: UsuarioRegistradoDto): UsuarioRegistro => ({
   id: dto.id,
   nombre: `${dto.nombres} ${dto.apellidos}`.trim(),
+  nombres: dto.nombres,
+  apellidos: dto.apellidos,
   usuario: dto.username,
   rol: rolDeApi(dto.rol),
   estado: dto.estadoActivo ? 'Activo' : 'Inactivo',

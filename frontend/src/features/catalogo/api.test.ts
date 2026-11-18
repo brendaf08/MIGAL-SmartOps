@@ -2,7 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 /** Respuesta JSON simulada del servidor. */
 const json = (cuerpo: unknown, estado = 200) =>
-  new Response(JSON.stringify(cuerpo), { status: estado, headers: { 'Content-Type': 'application/json' } });
+  new Response(JSON.stringify(cuerpo), {
+    status: estado,
+    headers: { 'Content-Type': 'application/json' },
+  });
 
 const CATEGORIAS = [
   { id: '5', nombre: 'Ladrillos', idCategoriaPadre: null, aprobacionAutomatica: true },
@@ -25,7 +28,7 @@ const PRODUCTO = {
   fechaActualizacion: null,
 };
 
-const pagina = <T,>(items: T[]) => ({ items, total: items.length, page: 1, pageSize: 20 });
+const pagina = <T>(items: T[]) => ({ items, total: items.length, page: 1, pageSize: 20 });
 
 /** Llamada registrada por el `fetch` simulado. */
 interface Llamada {
@@ -87,7 +90,13 @@ describe('catálogo, rama de la API real', () => {
     });
     const { buscarCatalogo } = await cargarApi();
 
-    const resultado = await buscarCatalogo({ q: ' cem ', categoria: 'Cemento', estado: 'Activo', page: 2, pageSize: 20 });
+    const resultado = await buscarCatalogo({
+      q: ' cem ',
+      categoria: 'Cemento',
+      estado: 'Activo',
+      page: 2,
+      pageSize: 20,
+    });
 
     const busqueda = llamadas.find((l) => l.ruta === '/api/v1/productos')!;
     expect(busqueda.metodo).toBe('GET');
@@ -115,11 +124,18 @@ describe('catálogo, rama de la API real', () => {
   it('omite los filtros vacíos y consulta los inactivos con estadoActivo=false', async () => {
     simularServidor({
       'GET /api/v1/categorias': () => json(CATEGORIAS),
-      'GET /api/v1/productos': () => json({ ...pagina([{ ...PRODUCTO, estadoActivo: false }]), page: 1, pageSize: 20 }),
+      'GET /api/v1/productos': () =>
+        json({ ...pagina([{ ...PRODUCTO, estadoActivo: false }]), page: 1, pageSize: 20 }),
     });
     const { buscarCatalogo } = await cargarApi();
 
-    const resultado = await buscarCatalogo({ q: '', categoria: '', estado: 'Inactivo', page: 1, pageSize: 20 });
+    const resultado = await buscarCatalogo({
+      q: '',
+      categoria: '',
+      estado: 'Inactivo',
+      page: 1,
+      pageSize: 20,
+    });
 
     const busqueda = llamadas.find((l) => l.ruta === '/api/v1/productos')!;
     expect([...busqueda.consulta.keys()].sort()).toEqual(['estadoActivo', 'page', 'pageSize']);
@@ -131,7 +147,13 @@ describe('catálogo, rama de la API real', () => {
     simularServidor({ 'GET /api/v1/categorias': () => json(CATEGORIAS) });
     const { buscarCatalogo } = await cargarApi();
 
-    const resultado = await buscarCatalogo({ q: '', categoria: 'Inexistente', estado: '', page: 1, pageSize: 20 });
+    const resultado = await buscarCatalogo({
+      q: '',
+      categoria: 'Inexistente',
+      estado: '',
+      page: 1,
+      pageSize: 20,
+    });
 
     expect(resultado).toEqual({ items: [], total: 0 });
     expect(llamadas.some((l) => l.ruta === '/api/v1/productos')).toBe(false);
@@ -145,7 +167,9 @@ describe('catálogo, rama de la API real', () => {
     const { obtenerProducto } = await cargarApi();
 
     expect(await obtenerProducto('XXX-999')).toBeNull();
-    expect(llamadas.find((l) => l.ruta === '/api/v1/productos')!.consulta.get('sku')).toBe('XXX-999');
+    expect(llamadas.find((l) => l.ruta === '/api/v1/productos')!.consulta.get('sku')).toBe(
+      'XXX-999',
+    );
   });
 
   it('lista las categorías por nombre en orden alfabético', async () => {
@@ -195,7 +219,17 @@ describe('catálogo, rama de la API real', () => {
     simularServidor({
       'GET /api/v1/categorias': () => json(CATEGORIAS),
       'POST /api/v1/productos': () =>
-        json({ type: 'about:blank', title: 'Conflicto', status: 409, detail: 'Duplicado', instance: '/api/v1/productos', code: 'SKU_DUPLICADO' }, 409),
+        json(
+          {
+            type: 'about:blank',
+            title: 'Conflicto',
+            status: 409,
+            detail: 'Duplicado',
+            instance: '/api/v1/productos',
+            code: 'SKU_DUPLICADO',
+          },
+          409,
+        ),
     });
     const { registrarProducto, SkuDuplicadoError } = await cargarApi();
 
@@ -232,7 +266,9 @@ describe('catálogo, rama de la API real', () => {
       estado: 'Activo',
     });
 
-    const modificacion = llamadas.find((l) => l.metodo === 'PUT' && l.ruta === '/api/v1/productos/101')!;
+    const modificacion = llamadas.find(
+      (l) => l.metodo === 'PUT' && l.ruta === '/api/v1/productos/101',
+    )!;
     expect(modificacion.cuerpo).toEqual({
       nombreOficial: 'Cemento Sol tipo I 42.5 kg',
       descripcion: 'Uso general',
@@ -314,7 +350,17 @@ describe('catálogo, rama de la API real', () => {
       'GET /api/v1/categorias': () => json(CATEGORIAS),
       'GET /api/v1/productos': () => json(pagina([PRODUCTO])),
       'PUT /api/v1/productos/101': () =>
-        json({ type: 'about:blank', title: 'Permiso', status: 403, detail: 'Sin permiso.', instance: '/api/v1/productos/101', code: 'PERMISO_INSUFICIENTE' }, 403),
+        json(
+          {
+            type: 'about:blank',
+            title: 'Permiso',
+            status: 403,
+            detail: 'Sin permiso.',
+            instance: '/api/v1/productos/101',
+            code: 'PERMISO_INSUFICIENTE',
+          },
+          403,
+        ),
     });
     const { actualizarProducto } = await cargarApi();
 

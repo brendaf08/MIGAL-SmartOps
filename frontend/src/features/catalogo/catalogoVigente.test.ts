@@ -46,7 +46,9 @@ describe('catálogo vigente con la API real', () => {
     const { sincronizarCatalogoVigente } = await import('./catalogoVigente');
 
     expect(PRODUCTOS).toHaveLength(0);
-    await expect(sincronizarCatalogoVigente()).resolves.toBe(2);
+    const productos = await sincronizarCatalogoVigente();
+    expect(productos).toHaveLength(2);
+    expect(productos).not.toBe(PRODUCTOS);
 
     expect(llamada.mock.calls[0]![0]).toContain('/inventario/disponibilidad');
     expect(PRODUCTOS.map((p) => p.sku)).toEqual(['00754', '00761']);

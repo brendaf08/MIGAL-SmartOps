@@ -1,5 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { activarApiReal, cargarModulo, json, problema, restablecerApiReal, simularServidor } from '@/test/servidorApi';
+import {
+  activarApiReal,
+  cargarModulo,
+  json,
+  problema,
+  restablecerApiReal,
+  simularServidor,
+} from '@/test/servidorApi';
 
 const USUARIO_API = (id: string, rol: string, activo = true) => ({
   id,
@@ -22,7 +29,12 @@ describe('usuarios, listado (rama de la API real)', () => {
       'GET /api/v1/usuarios': (llamada) =>
         llamada.consulta.get('page') === '1'
           ? json({ items: primera, total: 101, page: 1, pageSize: 100 })
-          : json({ items: [USUARIO_API('101', 'almacenero', false)], total: 101, page: 2, pageSize: 100 }),
+          : json({
+              items: [USUARIO_API('101', 'almacenero', false)],
+              total: 101,
+              page: 2,
+              pageSize: 100,
+            }),
     });
     const { listarUsuarios } = await cargarModulo(() => import('./api'));
 
@@ -34,6 +46,8 @@ describe('usuarios, listado (rama de la API real)', () => {
     expect(usuarios[0]).toEqual({
       id: '0',
       nombre: 'Rosa Quispe Huamán',
+      nombres: 'Rosa',
+      apellidos: 'Quispe Huamán',
       usuario: 'rquispe',
       rol: 'Vendedor',
       estado: 'Activo',
@@ -41,6 +55,8 @@ describe('usuarios, listado (rama de la API real)', () => {
     expect(usuarios.at(-1)).toEqual({
       id: '101',
       nombre: 'Rosa Quispe Huamán',
+      nombres: 'Rosa',
+      apellidos: 'Quispe Huamán',
       usuario: 'rquispe',
       rol: 'Almacenero',
       estado: 'Inactivo',
@@ -49,13 +65,16 @@ describe('usuarios, listado (rama de la API real)', () => {
 
   it('muestra el rol de la API con inicial mayúscula en el resumen de sesión', async () => {
     simularServidor({
-      'GET /api/v1/usuarios': () => json({ items: [USUARIO_API('7', 'reponedor')], total: 1, page: 1, pageSize: 100 }),
+      'GET /api/v1/usuarios': () =>
+        json({ items: [USUARIO_API('7', 'reponedor')], total: 1, page: 1, pageSize: 100 }),
     });
     const { listarUsuarios } = await cargarModulo(() => import('@/features/seguridad/api'));
 
     const resumen = await listarUsuarios();
 
-    expect(resumen).toEqual([{ usuario: 'rquispe', name: 'Rosa Quispe Huamán', role: 'Reponedor' }]);
+    expect(resumen).toEqual([
+      { usuario: 'rquispe', name: 'Rosa Quispe Huamán', role: 'Reponedor' },
+    ]);
   });
 
   it('propaga el error de permiso del listado', async () => {
@@ -64,7 +83,10 @@ describe('usuarios, listado (rama de la API real)', () => {
     });
     const { listarUsuarios } = await cargarModulo(() => import('./api'));
 
-    await expect(listarUsuarios()).rejects.toMatchObject({ codigo: 'PERMISO_INSUFICIENTE', estado: 403 });
+    await expect(listarUsuarios()).rejects.toMatchObject({
+      codigo: 'PERMISO_INSUFICIENTE',
+      estado: 403,
+    });
   });
 });
 
@@ -81,6 +103,8 @@ describe('usuarios, revocación de acceso (rama de la API real)', () => {
     expect(usuario).toEqual({
       id: '7',
       nombre: 'Rosa Quispe Huamán',
+      nombres: 'Rosa',
+      apellidos: 'Quispe Huamán',
       usuario: 'rquispe',
       rol: 'Almacenero',
       estado: 'Inactivo',
@@ -93,6 +117,84 @@ describe('usuarios, revocación de acceso (rama de la API real)', () => {
     });
     const { revocarAcceso } = await cargarModulo(() => import('./api'));
 
-    await expect(revocarAcceso('999')).rejects.toMatchObject({ codigo: 'RECURSO_NO_ENCONTRADO', estado: 404 });
+    await expect(revocarAcceso('999')).rejects.toMatchObject({
+      codigo: 'RECURSO_NO_ENCONTRADO',
+      estado: 404,
+    });
+  });
+});
+
+describe('usuarios, registro y edición (rama de la API real)', () => {
+  it('registra con nombres, apellidos, clave temporal y el rol en minúsculas', async () => {
+    const llamadas = simularServidor({
+      'POST /api/v1/usuarios': () => json(USUARIO_API('9', 'vendedor'), 201),
+    });
+    const { registrarUsuario } = await cargarModulo(() => import('./api'));
+
+    const usuario = await registrarUsuario({
+      nombres: ' Rosa ',
+      apellidos: 'Quispe Huamán',
+      usuario: 'rquispe',
+      clave: 'Temporal2026',
+      rol: 'Vendedor',
+    });
+
+    expect(llamadas[0]!.cuerpo).toEqual({
+      nombres: 'Rosa',
+      apellidos: 'Quispe Huamán',
+      username: 'rquispe',
+      claveTemporal: 'Temporal2026',
+      rol: 'vendedor',
+    });
+    expect(usuario.rol).toBe('Vendedor');
+  });
+
+  it('traduce USUARIO_DUPLICADO para mostrarlo en el campo del formulario', async () => {
+    simularServidor({
+      'POST /api/v1/usuarios': () => problema(409, 'USUARIO_DUPLICADO', 'Ya existe.'),
+    });
+    const { registrarUsuario } = await cargarModulo(() => import('./api'));
+
+    await expect(
+      registrarUsuario({
+        nombres: 'A',
+        apellidos: 'B',
+        usuario: 'admin',
+        clave: 'clave1234',
+        rol: 'Vendedor',
+      }),
+    ).rejects.toThrow('USUARIO_DUPLICADO');
+  });
+
+  it('consulta y modifica con GET y PUT /usuarios/{id}', async () => {
+    const llamadas = simularServidor({
+      'GET /api/v1/usuarios/7': () => json(USUARIO_API('7', 'almacenero')),
+      'PUT /api/v1/usuarios/7': () => json(USUARIO_API('7', 'reponedor')),
+    });
+    const { actualizarUsuario, obtenerUsuario } = await cargarModulo(() => import('./api'));
+
+    expect((await obtenerUsuario('7')).apellidos).toBe('Quispe Huamán');
+    const usuario = await actualizarUsuario('7', {
+      nombres: 'Rosa',
+      apellidos: 'Quispe Huamán',
+      rol: 'Reponedor',
+    });
+
+    expect(llamadas[1]!.cuerpo).toEqual({
+      nombres: 'Rosa',
+      apellidos: 'Quispe Huamán',
+      rol: 'reponedor',
+    });
+    expect(usuario.rol).toBe('Reponedor');
+  });
+
+  it('reactiva el acceso con estadoActivo verdadero', async () => {
+    const llamadas = simularServidor({
+      'PUT /api/v1/usuarios/7/estado': () => json(USUARIO_API('7', 'almacenero', true)),
+    });
+    const { reactivarAcceso } = await cargarModulo(() => import('./api'));
+
+    expect((await reactivarAcceso('7')).estado).toBe('Activo');
+    expect(llamadas[0]!.cuerpo).toEqual({ estadoActivo: true });
   });
 });

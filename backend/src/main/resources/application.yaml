@@ -13,6 +13,11 @@ spring:
     open-in-view: false
     hibernate:
       ddl-auto: validate
+    properties:
+      hibernate:
+        # Las asociaciones de los listados (líneas, cotización, cliente, producto) se cargan por lotes de hasta 100
+        # identificadores en lugar de una consulta por fila (N+1). Las pruebas de listado lo verifican.
+        default_batch_fetch_size: 100
   servlet:
     multipart:
       # Límite de 10 MB por archivo del contrato; la solicitud admite además el resto del cuerpo multipart.

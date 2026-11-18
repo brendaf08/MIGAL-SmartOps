@@ -105,7 +105,16 @@ public class OrdenCompraService {
 			}
 			return cb.and(condiciones.toArray(Predicate[]::new));
 		};
-		return ordenes.findAll(filtros, paginacion).map(this::detalle);
+		Page<OrdenCompra> pagina = ordenes.findAll(filtros, paginacion);
+		// Una sola consulta de cantidades recibidas para toda la página, en lugar de una por orden (N+1).
+		Map<Long, Map<Long, BigDecimal>> recibido = new HashMap<>();
+		List<Long> ids = pagina.getContent().stream().map(OrdenCompra::getId).toList();
+		if (!ids.isEmpty()) {
+			for (Object[] fila : ordenes.recibidoPorProductoDeOrdenes(ids)) {
+				recibido.computeIfAbsent((Long) fila[0], clave -> new HashMap<>()).put((Long) fila[1], (BigDecimal) fila[2]);
+			}
+		}
+		return pagina.map(orden -> detalle(orden, recibido.getOrDefault(orden.getId(), Map.of())));
 	}
 
 	/** Consulta una orden con sus líneas y la cantidad recibida de cada producto. Operación de solo lectura. */
@@ -228,10 +237,14 @@ public class OrdenCompraService {
 	 * capa web necesita, porque la sesión de persistencia no permanece abierta fuera de los servicios.
 	 */
 	private OrdenDetalle detalle(OrdenCompra orden) {
+		return detalle(orden, recibidoPorProducto(orden.getId()));
+	}
+
+	private OrdenDetalle detalle(OrdenCompra orden, Map<Long, BigDecimal> recibido) {
 		orden.getLineas().size();
 		orden.getProveedor().getRazonSocial();
 		orden.getUsuarioResponsable().getId();
-		return new OrdenDetalle(orden, recibidoPorProducto(orden.getId()));
+		return new OrdenDetalle(orden, recibido);
 	}
 
 	/**

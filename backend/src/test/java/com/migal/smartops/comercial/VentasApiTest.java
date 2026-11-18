@@ -3,6 +3,7 @@ package com.migal.smartops.comercial;
 import static com.migal.smartops.contrato.ValidadorContrato.cumple;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -24,6 +25,9 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import jakarta.persistence.EntityManagerFactory;
+import org.hibernate.SessionFactory;
+import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -68,6 +72,8 @@ class VentasApiTest {
 	private CategoriaRepository categorias;
 	@Autowired
 	private JdbcClient jdbc;
+	@Autowired
+	private EntityManagerFactory fabrica;
 
 	private final List<Usuario> usuariosDePrueba = new ArrayList<>();
 	private String idProducto;
@@ -164,6 +170,35 @@ class VentasApiTest {
 				.andExpect(cumple(contrato))
 				.andReturn();
 		return JsonPath.read(creada.getResponse().getContentAsString(), "$.id");
+	}
+
+	/**
+	 * El listado de ventas no debe ejecutar una consulta por venta (N+1): con la carga por lotes de Hibernate, pasar de 3 a
+	 * 9 ventas en la página casi no cambia la cantidad de sentencias SQL.
+	 */
+	@Test
+	void listarVentasNoEjecutaUnaConsultaPorVenta() throws Exception {
+		String token = bearer("apc-vendedor");
+		for (int i = 0; i < 3; i++) {
+			registrarVentaDesdeCotizacion(token, cotizacion("validada"));
+		}
+		long conTres = sentenciasDelListado(token);
+		for (int i = 0; i < 6; i++) {
+			registrarVentaDesdeCotizacion(token, cotizacion("validada"));
+		}
+		long conNueve = sentenciasDelListado(token);
+
+		System.out.println("SENTENCIAS_LISTADO_VENTAS 3=" + conTres + " 9=" + conNueve);
+		assertTrue(conNueve - conTres <= 2,
+				"El listado pasó de " + conTres + " a " + conNueve + " sentencias al agregar 6 ventas");
+	}
+
+	private long sentenciasDelListado(String token) throws Exception {
+		Statistics estadisticas = fabrica.unwrap(SessionFactory.class).getStatistics();
+		estadisticas.clear();
+		mvc.perform(get("/api/v1/ventas").param("pageSize", "100").header("Authorization", token))
+				.andExpect(status().isOk());
+		return estadisticas.getPrepareStatementCount();
 	}
 
 	@Test

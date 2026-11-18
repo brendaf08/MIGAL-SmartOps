@@ -88,4 +88,5 @@ export const NAV: NavGroup[] = [
     label: 'Administración',
     items: [{ key: 'usuarios', label: 'Usuarios y roles', icon: 'rol', roles: ['Administrador'] }],
   },
+  { label: 'Mi cuenta', items: [{ key: 'cuenta', label: 'Cambiar contraseña', icon: 'user' }] },
 ];

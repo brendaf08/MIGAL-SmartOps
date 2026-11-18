@@ -13,6 +13,7 @@ afterEach(() => window.sessionStorage.clear());
 const RUTAS: [ruta: string, rol: Role][] = [
   ['/usuarios', 'Administrador'],
   ['/usuarios/nuevo', 'Administrador'],
+  ['/cuenta', 'Vendedor'],
   ['/catalogo', 'Administrador'],
   ['/catalogo/nuevo', 'Administrador'],
   ['/catalogo/CEM-001', 'Administrador'],
@@ -92,6 +93,7 @@ describe('Cobertura de la navegación', () => {
         'Ventas',
         'Clientes',
         'Agente de IA',
+        'Cambiar contraseña',
       ],
       Almacenero: [
         'Disponibilidad',
@@ -103,6 +105,7 @@ describe('Cobertura de la navegación', () => {
         'Documentos OCR',
         'Ventas',
         'Agente de IA',
+        'Cambiar contraseña',
       ],
       Reponedor: [
         'Disponibilidad',
@@ -110,6 +113,7 @@ describe('Cobertura de la navegación', () => {
         'Proveedores',
         'Órdenes de compra',
         'Agente de IA',
+        'Cambiar contraseña',
       ],
     };
     for (const [rol, etiquetas] of Object.entries(esperados) as [Role, string[]][]) {

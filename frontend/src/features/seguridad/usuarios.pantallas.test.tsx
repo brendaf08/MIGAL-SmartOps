@@ -219,3 +219,23 @@ describe('Usuarios: revocación de acceso', () => {
     ).toHaveNoViolations();
   }, 20000);
 });
+
+describe('Cuenta: cambio de contraseña', () => {
+  it('valida la confirmación y luego cambia la contraseña', async () => {
+    renderApp('/cuenta', 'Vendedor');
+
+    await userEvent.type(await screen.findByLabelText(/^Contraseña actual/), 'Clave1234');
+    await userEvent.type(screen.getByLabelText(/^Nueva contraseña/), 'Nueva2026');
+    await userEvent.type(screen.getByLabelText(/^Confirmar la nueva contraseña/), 'Otra2026');
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar contraseña' }));
+    expect(
+      await screen.findByText('La confirmación no coincide con la nueva contraseña.'),
+    ).toBeInTheDocument();
+
+    await userEvent.clear(screen.getByLabelText(/^Confirmar la nueva contraseña/));
+    await userEvent.type(screen.getByLabelText(/^Confirmar la nueva contraseña/), 'Nueva2026');
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar contraseña' }));
+
+    expect(await screen.findByText('Contraseña actualizada.')).toBeInTheDocument();
+  }, 20000);
+});

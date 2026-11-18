@@ -17,6 +17,7 @@ import com.migal.smartops.contrato.ValidadorContrato;
 import com.migal.smartops.seguridad.model.RolUsuario;
 import com.migal.smartops.seguridad.model.Usuario;
 import com.migal.smartops.seguridad.repository.UsuarioRepository;
+import com.migal.smartops.seguridad.service.LimitadorIntentosSesion;
 import java.time.Instant;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -58,8 +59,12 @@ class SeguridadApiTest {
 	@Autowired
 	private JdbcTemplate jdbc;
 
+	@Autowired
+	private LimitadorIntentosSesion limitador;
+
 	@BeforeEach
 	void prepararDatos() {
+		limitador.limpiar();
 		jdbc.update("DELETE FROM usuario");
 		crear("admin01", RolUsuario.ADMINISTRADOR, true);
 		crear("vende01", RolUsuario.VENDEDOR, true);
@@ -95,6 +100,37 @@ class SeguridadApiTest {
 				.andExpect(jsonPath("$.expiraEn", is(28800)))
 				.andExpect(jsonPath("$.usuario.rol", is("administrador")))
 				.andExpect(jsonPath("$.usuario.passwordHash").doesNotExist());
+	}
+
+	@Test
+	void tras5IntentosFallidosRespondeDemasiadosIntentos() throws Exception {
+		for (int i = 0; i < 5; i++) {
+			mvc.perform(post("/api/v1/sesiones").contentType(JSON).content("{\"username\":\"vende01\",\"clave\":\"otra\"}"))
+					.andExpect(status().isUnauthorized());
+		}
+
+		mvc.perform(post("/api/v1/sesiones").contentType(JSON)
+						.content("{\"username\":\"vende01\",\"clave\":\"" + CLAVE + "\"}"))
+				.andExpect(status().isTooManyRequests())
+				.andExpect(ValidadorContrato.cumple(contrato))
+				.andExpect(jsonPath("$.code", is("DEMASIADOS_INTENTOS")));
+	}
+
+	@Test
+	void cambiaLaClavePropiaYLaNuevaPermiteIniciarSesion() throws Exception {
+		String token = bearer("vende01");
+
+		mvc.perform(put("/api/v1/sesiones/actual/clave").header("Authorization", token).contentType(JSON)
+						.content("{\"claveActual\":\"otra\",\"claveNueva\":\"Nueva2026\"}"))
+				.andExpect(status().isUnprocessableEntity())
+				.andExpect(ValidadorContrato.cumple(contrato))
+				.andExpect(jsonPath("$.errores[0].campo", is("claveActual")));
+		mvc.perform(put("/api/v1/sesiones/actual/clave").header("Authorization", token).contentType(JSON)
+						.content("{\"claveActual\":\"" + CLAVE + "\",\"claveNueva\":\"Nueva2026\"}"))
+				.andExpect(status().isNoContent());
+
+		mvc.perform(post("/api/v1/sesiones").contentType(JSON).content("{\"username\":\"vende01\",\"clave\":\"Nueva2026\"}"))
+				.andExpect(status().isOk());
 	}
 
 	@Test

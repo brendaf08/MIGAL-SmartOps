@@ -30,8 +30,35 @@ export class ApiError extends Error {
   }
 }
 
-export const guardarToken = (token: string): void => window.sessionStorage.setItem(CLAVE_TOKEN, token);
+export const guardarToken = (token: string): void =>
+  window.sessionStorage.setItem(CLAVE_TOKEN, token);
 export const borrarToken = (): void => window.sessionStorage.removeItem(CLAVE_TOKEN);
+
+/*
+ * Avisos de fin de sesión. La sesión registra `alExpirarSesion` para cerrar la sesión local cuando el backend responde
+ * 401 a un token (vencido o de una cuenta desactivada); los módulos con estado propio registran `alCerrarSesion` para
+ * olvidarlo al salir, de modo que el siguiente usuario de un equipo compartido no lo herede.
+ */
+let alExpirar: (() => void) | undefined;
+const alCerrar = new Set<() => void>();
+
+/** Registra la acción que se ejecuta cuando el backend rechaza el token de la sesión con 401. */
+export const alExpirarSesion = (accion: (() => void) | undefined): void => {
+  alExpirar = accion;
+};
+
+/** Registra una acción que se ejecuta al cerrar la sesión. */
+export const alCerrarSesion = (accion: () => void): void => {
+  alCerrar.add(accion);
+};
+
+/** Ejecuta las acciones registradas con `alCerrarSesion`. */
+export const notificarCierreSesion = (): void => alCerrar.forEach((accion) => accion());
+
+/** Un 401 con token significa que la sesión ya no es válida; el del inicio de sesión es una credencial incorrecta. */
+const revisarSesion = (estado: number, ruta: string, conToken: boolean) => {
+  if (estado === 401 && conToken && ruta !== '/sesiones') alExpirar?.();
+};
 const leerToken = (): string | null => window.sessionStorage.getItem(CLAVE_TOKEN);
 
 export interface OpcionesPeticion {
@@ -45,7 +72,8 @@ export interface OpcionesPeticion {
 function construirUrl(ruta: string, consulta?: OpcionesPeticion['consulta']): string {
   const parametros = new URLSearchParams();
   Object.entries(consulta ?? {}).forEach(([nombre, valor]) => {
-    if (valor !== null && valor !== undefined && valor !== '') parametros.set(nombre, String(valor));
+    if (valor !== null && valor !== undefined && valor !== '')
+      parametros.set(nombre, String(valor));
   });
   const texto = parametros.toString();
   return `${BASE}${ruta}${texto ? `?${texto}` : ''}`;
@@ -77,6 +105,7 @@ export async function peticion<T>(
   if (respuesta.ok) {
     return (respuesta.status === 204 ? undefined : await respuesta.json()) as T;
   }
+  revisarSesion(respuesta.status, ruta, token !== null);
   const problema = (await respuesta.json().catch(() => ({}))) as {
     code?: string;
     detail?: string;
@@ -93,7 +122,8 @@ export async function peticion<T>(
 }
 
 export const api = {
-  get: <T>(ruta: string, consulta?: OpcionesPeticion['consulta']) => peticion<T>('GET', ruta, { consulta }),
+  get: <T>(ruta: string, consulta?: OpcionesPeticion['consulta']) =>
+    peticion<T>('GET', ruta, { consulta }),
   post: <T>(ruta: string, cuerpo?: unknown, claveIdempotencia?: string) =>
     peticion<T>('POST', ruta, { cuerpo, claveIdempotencia }),
   put: <T>(ruta: string, cuerpo?: unknown) => peticion<T>('PUT', ruta, { cuerpo }),
@@ -125,6 +155,7 @@ export const api = {
     if (respuesta.ok) {
       return (respuesta.status === 204 ? undefined : await respuesta.json()) as T;
     }
+    revisarSesion(respuesta.status, ruta, token !== null);
     const problema = (await respuesta.json().catch(() => ({}))) as {
       code?: string;
       detail?: string;

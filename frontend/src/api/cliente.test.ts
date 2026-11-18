@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ApiError, api, guardarToken } from './cliente';
+import { ApiError, alExpirarSesion, api, guardarToken } from './cliente';
 import { problema, simularServidor } from '@/test/apiReal';
 
 afterEach(() => {
@@ -53,5 +53,31 @@ describe('api.subir', () => {
       estado: 0,
       codigo: 'SERVICIO_NO_DISPONIBLE',
     });
+  });
+});
+
+describe('fin de sesión', () => {
+  afterEach(() => alExpirarSesion(undefined));
+
+  it('avisa a la sesión cuando el backend rechaza el token con 401', async () => {
+    guardarToken('token-vencido');
+    const expirar = vi.fn();
+    alExpirarSesion(expirar);
+    simularServidor(() => problema(401, 'NO_AUTENTICADO'));
+
+    await expect(api.get('/ventas')).rejects.toBeInstanceOf(ApiError);
+    expect(expirar).toHaveBeenCalledTimes(1);
+  });
+
+  it('no avisa ante una credencial incorrecta en el inicio de sesión ni sin token', async () => {
+    const expirar = vi.fn();
+    alExpirarSesion(expirar);
+    simularServidor(() => problema(401, 'NO_AUTENTICADO'));
+
+    await expect(api.post('/sesiones', { username: 'a', clave: 'b' })).rejects.toBeInstanceOf(
+      ApiError,
+    );
+    await expect(api.get('/ventas')).rejects.toBeInstanceOf(ApiError);
+    expect(expirar).not.toHaveBeenCalled();
   });
 });

@@ -27,7 +27,8 @@ paths:
         Es la única operación pública del módulo. Las credenciales incorrectas responden NO_AUTENTICADO (401)
         con un detalle que no indica cuál de los dos datos es erróneo. Una cuenta desactivada responde
         CUENTA_INACTIVA (403) solo cuando las credenciales son correctas, con un detalle que indica contactar
-        al Administrador. El token dura 8 horas y no se renueva (ADR-009).
+        al Administrador. Tras cinco intentos fallidos del mismo usuario desde el mismo origen en 15 minutos,
+        responde DEMASIADOS_INTENTOS (429) durante 15 minutos. El token dura 8 horas y no se renueva (ADR-009).
       security: []
       requestBody:
         required: true
@@ -50,6 +51,8 @@ paths:
           $ref: ../componentes/errores.yaml#/Error403
         '422':
           $ref: ../componentes/errores.yaml#/Error422
+        '429':
+          $ref: ../componentes/errores.yaml#/Error429
         '500':
           $ref: ../componentes/errores.yaml#/Error500
   /sesiones/actual:
@@ -74,6 +77,39 @@ paths:
                 $ref: '#/components/schemas/UsuarioRegistrado'
         '401':
           $ref: ../componentes/errores.yaml#/Error401
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500
+  /sesiones/actual/clave:
+    put:
+      tags:
+        - Sesiones
+      operationId: cambiarClaveActual
+      summary: Cambiar la clave propia
+      description: >-
+        Reemplaza la clave del usuario autenticado. Exige la clave actual; una clave actual incorrecta o
+        una clave nueva igual a la actual responden VALIDACION_FALLIDA con el campo en errores. El
+        Administrador inicial la usa para reemplazar la clave configurada en MIGAL_ADMIN_CLAVE tras el
+        primer ingreso.
+      security:
+        - bearerAuth: []
+      x-roles: [administrador, vendedor, almacenero, reponedor]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CambioClave'
+      responses:
+        '204':
+          description: Clave reemplazada.
+        '400':
+          $ref: ../componentes/errores.yaml#/Error400
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
+        '422':
+          $ref: ../componentes/errores.yaml#/Error422
         '500':
           $ref: ../componentes/errores.yaml#/Error500
   /usuarios:
@@ -351,6 +387,26 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/UsuarioRegistrado'
+    CambioClave:
+      type: object
+      description: Cambio de la clave del usuario autenticado.
+      required: [claveActual, claveNueva]
+      additionalProperties: false
+      properties:
+        claveActual:
+          type: string
+          format: password
+          writeOnly: true
+          minLength: 1
+          maxLength: 255
+        claveNueva:
+          type: string
+          format: password
+          writeOnly: true
+          minLength: 8
+          maxLength: 255
+          pattern: '^(?=.*[A-Za-z])(?=.*[0-9]).{8,}$'
+          description: Clave nueva de al menos 8 caracteres, con al menos una letra y un número.
     UsuarioNuevo:
       type: object
       description: >-

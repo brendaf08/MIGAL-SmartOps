@@ -75,7 +75,7 @@ export function OrdenCompraDetallePage() {
         breadcrumbs={[{ label: 'Órdenes de compra', href: '/compras' }, { label: orden.id }]}
         status={<StatusBadge entity="compra" value={orden.estado} variant="sello" />}
         actions={
-          completada || user?.role !== 'Almacenero' ? undefined : (
+          completada || (user?.role !== 'Almacenero' && user?.role !== 'Administrador') ? undefined : (
             <Button
               leftSection={<Icon name="recepcion" />}
               onClick={() => void navigate(`/recepciones/nueva?oc=${orden.id}`)}

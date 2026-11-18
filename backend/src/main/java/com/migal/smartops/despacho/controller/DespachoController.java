@@ -49,7 +49,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class DespachoController {
 
 	private static final String ROLES_CONSULTA = "hasAnyRole('ALMACENERO','ADMINISTRADOR')";
-	private static final String ROLES_ALMACENERO = "hasRole('ALMACENERO')";
+	private static final String ROLES_ALMACENERO = "hasAnyRole('ALMACENERO','ADMINISTRADOR')";
 	private static final String ESTADOS = "^(preparacion|emitida|salida_confirmada|entregada)"
 			+ "(,(preparacion|emitida|salida_confirmada|entregada))*$";
 

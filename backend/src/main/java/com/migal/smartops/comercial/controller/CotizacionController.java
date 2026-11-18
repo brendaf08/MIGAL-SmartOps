@@ -50,7 +50,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class CotizacionController {
 
 	private static final String ROLES_CONSULTA = "hasAnyRole('VENDEDOR','ADMINISTRADOR')";
-	private static final String ROLES_VENDEDOR = "hasRole('VENDEDOR')";
+	private static final String ROLES_COMERCIAL = "hasAnyRole('VENDEDOR','ADMINISTRADOR')";
 	private static final String ROLES_ADMINISTRADOR = "hasRole('ADMINISTRADOR')";
 	private static final String ROLES_RECHAZO = "hasAnyRole('VENDEDOR','ADMINISTRADOR')";
 	private static final String ESTADOS = "^(emitida|aceptada|validada|rechazada|vencida)(,(emitida|aceptada|validada|rechazada|vencida))*$";
@@ -87,7 +87,7 @@ public class CotizacionController {
 	}
 
 	@PostMapping
-	@PreAuthorize(ROLES_VENDEDOR)
+	@PreAuthorize(ROLES_COMERCIAL)
 	public ResponseEntity<CotizacionDto> crear(@AuthenticationPrincipal UsuarioAutenticado actor,
 			@Valid @RequestBody CotizacionRegistro solicitud) {
 		Cotizacion creada = cotizaciones.crear(solicitud.datos(), actor.id());
@@ -102,13 +102,13 @@ public class CotizacionController {
 	}
 
 	@PutMapping("/{id}")
-	@PreAuthorize(ROLES_VENDEDOR)
+	@PreAuthorize(ROLES_COMERCIAL)
 	public CotizacionDto actualizar(@PathVariable String id, @Valid @RequestBody CotizacionRegistro solicitud) {
 		return CotizacionDto.de(cotizaciones.actualizar(Identificadores.numero(id), solicitud.datos()));
 	}
 
 	@PostMapping("/{id}/aceptacion")
-	@PreAuthorize(ROLES_VENDEDOR)
+	@PreAuthorize(ROLES_COMERCIAL)
 	public ResponseEntity<CotizacionDto> registrarAceptacion(
 			@RequestHeader(value = "Idempotency-Key", required = false) String clave,
 			@AuthenticationPrincipal UsuarioAutenticado actor, @PathVariable String id) {
@@ -148,7 +148,7 @@ public class CotizacionController {
 	}
 
 	@PostMapping("/{id}/division")
-	@PreAuthorize(ROLES_VENDEDOR)
+	@PreAuthorize(ROLES_COMERCIAL)
 	public ResponseEntity<DivisionDto> dividir(
 			@RequestHeader(value = "Idempotency-Key", required = false) String clave,
 			@AuthenticationPrincipal UsuarioAutenticado actor, @PathVariable String id,

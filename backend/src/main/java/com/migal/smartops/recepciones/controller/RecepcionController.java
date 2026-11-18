@@ -52,7 +52,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class RecepcionController {
 
 	private static final String ROLES_CONSULTA = "hasAnyRole('ALMACENERO','ADMINISTRADOR')";
-	private static final String ROLES_ALMACENERO = "hasRole('ALMACENERO')";
+	private static final String ROLES_ALMACENERO = "hasAnyRole('ALMACENERO','ADMINISTRADOR')";
 	private static final String ESTADOS = "^(pendiente|validada)(,(pendiente|validada))*$";
 	private static final Map<String, String> CAMPOS_ORDENABLES = Map.of("fechaRecepcion", "fechaRecepcion", "codigo", "codigo");
 

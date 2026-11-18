@@ -105,7 +105,7 @@ public class InventarioController {
 	}
 
 	@PostMapping("/inventario/movimientos")
-	@PreAuthorize("hasRole('ALMACENERO')")
+	@PreAuthorize("hasAnyRole('ALMACENERO','ADMINISTRADOR')")
 	public ResponseEntity<ResultadoMovimientoDto> registrarMovimiento(
 			@RequestHeader(value = "Idempotency-Key", required = false) String clave,
 			@AuthenticationPrincipal UsuarioAutenticado actor,

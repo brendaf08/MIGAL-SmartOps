@@ -374,7 +374,7 @@ paths:
       description: Emite una cotización nueva con estado emitida. Sin cliente responde CLIENTE_REQUERIDO y con cliente inactivo responde CLIENTE_INACTIVO. La existencia del cliente y de los productos, la ausencia de productos repetidos y un descuento no mayor que el subtotal generan VALIDACION_FALLIDA. No reserva ni modifica existencias.
       tags: [Cotizaciones]
       security: [{bearerAuth: []}]
-      x-roles: [vendedor]
+      x-roles: [vendedor, administrador]
       requestBody:
         required: true
         content: {application/json: {schema: {$ref: '#/components/schemas/CotizacionDatos'}}}
@@ -408,7 +408,7 @@ paths:
       description: Modifica una cotización emitida antes de su aceptación. La fecha de emisión se conserva y la fecha de vencimiento se recalcula con validezDias. Una cotización que no está emitida responde COTIZACION_NO_EDITABLE. Una cotización emitida cuyo vencimiento ya superó la fecha de consulta responde COTIZACION_VENCIDA.
       tags: [Cotizaciones]
       security: [{bearerAuth: []}]
-      x-roles: [vendedor]
+      x-roles: [vendedor, administrador]
       requestBody:
         required: true
         content: {application/json: {schema: {$ref: '#/components/schemas/CotizacionDatos'}}}
@@ -431,7 +431,7 @@ paths:
       description: Registra la aceptación de la propuesta por el cliente y cambia el estado de emitida a aceptada (CU-09, flujo alternativo 1). Fija fechaAceptacionCliente y no reserva existencias (RF-COT-08). Una cotización vencida responde COTIZACION_VENCIDA. Cualquier otro estado distinto de emitida responde COTIZACION_NO_EDITABLE.
       tags: [Cotizaciones]
       security: [{bearerAuth: []}]
-      x-roles: [vendedor]
+      x-roles: [vendedor, administrador]
       parameters:
         - {$ref: ../componentes/parametros.yaml#/IdempotencyKey}
       responses:
@@ -498,7 +498,7 @@ paths:
       description: Divide una cotización emitida en dos (ADR-003, regla 4). Traslada las cantidades indicadas a una cotización nueva, con el mismo cliente, condiciones y fechas, y conserva el resto en la original. Cada una podrá convertirse en su propia venta. Una cotización que no está emitida responde COTIZACION_NO_EDITABLE. Una cantidad superior a la cotizada, un producto ajeno a la cotización o la omisión de todas las líneas de la original generan VALIDACION_FALLIDA. No reserva existencias.
       tags: [Cotizaciones]
       security: [{bearerAuth: []}]
-      x-roles: [vendedor]
+      x-roles: [vendedor, administrador]
       parameters:
         - {$ref: ../componentes/parametros.yaml#/IdempotencyKey}
       requestBody:

@@ -50,7 +50,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/ordenes-compra")
 public class OrdenCompraController {
 
-	private static final String ROLES_REPONEDOR = "hasRole('REPONEDOR')";
+	private static final String ROLES_REPONEDOR = "hasAnyRole('REPONEDOR','ADMINISTRADOR')";
 	private static final String ROLES_CONSULTA = "hasAnyRole('REPONEDOR','ALMACENERO','ADMINISTRADOR')";
 	private static final String ROLES_LISTADO = "hasAnyRole('REPONEDOR','ADMINISTRADOR')";
 	private static final String ESTADOS = "^(pendiente|parcial|completada)(,(pendiente|parcial|completada))*$";
@@ -84,7 +84,7 @@ public class OrdenCompraController {
 	}
 
 	@GetMapping("/recepcionables")
-	@PreAuthorize("hasRole('ALMACENERO')")
+	@PreAuthorize("hasAnyRole('ALMACENERO','ADMINISTRADOR')")
 	public PaginaDto<OrdenCompraRecepcionableDto> listarRecepcionables(
 			@RequestParam(defaultValue = "1") @Min(1) int page,
 			@RequestParam(defaultValue = "20") @Min(1) @Max(100) int pageSize,

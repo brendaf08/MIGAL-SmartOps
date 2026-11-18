@@ -43,11 +43,11 @@ const columns: Column<LineaCotizacion>[] = [
  * rechazaría para el rol no se muestra.
  */
 const ROLES_ACCION = {
-  modificar: ['Vendedor'],
+  modificar: ['Vendedor', 'Administrador'],
   rechazar: ['Vendedor', 'Administrador'],
-  aceptar: ['Vendedor'],
+  aceptar: ['Vendedor', 'Administrador'],
   validar: ['Administrador'],
-  convertir: ['Vendedor'],
+  convertir: ['Vendedor', 'Administrador'],
 } satisfies Record<string, Role[]>;
 
 /** CU-09: detalle de una cotización con su ciclo de vida, líneas, totales, cliente y condiciones. */

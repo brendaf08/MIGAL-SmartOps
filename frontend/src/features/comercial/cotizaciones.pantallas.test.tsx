@@ -296,18 +296,18 @@ describe('Aceptación y rechazo desde el detalle', () => {
     expect(screen.queryByRole('button', { name: 'Validar viabilidad' })).not.toBeInTheDocument();
   });
 
-  it('muestra al Administrador solo las acciones que el contrato le permite', async () => {
+  it('muestra al Administrador las acciones permitidas sobre una cotización emitida', async () => {
     renderApp('/cotizaciones/COT-0231', 'Administrador');
 
     expect(await screen.findByRole('button', { name: 'Registrar rechazo' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Registrar aceptación' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'Modificar' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Registrar aceptación' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Modificar' })).toBeInTheDocument();
   });
 
-  it('ofrece validar la viabilidad al Administrador y no convertir en venta', async () => {
+  it('ofrece validar la viabilidad y convertir en venta al Administrador', async () => {
     renderApp('/cotizaciones/COT-0230', 'Administrador');
 
     expect(await screen.findByRole('button', { name: 'Validar viabilidad' })).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'Convertir en venta' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Convertir en venta' })).toBeInTheDocument();
   });
 });

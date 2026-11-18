@@ -85,7 +85,7 @@ export function ComprasPage() {
         title="Órdenes de compra"
         description="Órdenes emitidas a proveedores y su avance de recepción."
         actions={
-          user?.role === 'Reponedor' && (
+          (user?.role === 'Reponedor' || user?.role === 'Administrador') && (
             <Button
               leftSection={<Icon name="plus" />}
               onClick={() => void navigate('/compras/nueva')}

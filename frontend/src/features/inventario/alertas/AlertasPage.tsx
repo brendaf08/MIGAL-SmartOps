@@ -28,7 +28,7 @@ const NIVELES = {
 export function AlertasPage() {
   const navigate = useNavigate();
   const { user } = useSession();
-  const reponedor = user?.role === 'Reponedor';
+  const reponedor = user?.role === 'Reponedor' || user?.role === 'Administrador';
   const [tab, setTab] = useState<keyof typeof NIVELES>('todas');
   const [q, setQ] = useState('');
   const [debouncedQ] = useDebouncedValue(q, 300);

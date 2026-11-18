@@ -45,8 +45,8 @@ import org.springframework.web.bind.annotation.RestController;
 public class VentaController {
 
 	private static final String ROLES_CONSULTA = "hasAnyRole('ALMACENERO','VENDEDOR','ADMINISTRADOR')";
-	private static final String ROLES_COBERTURA = "hasAnyRole('ALMACENERO','VENDEDOR')";
-	private static final String ROLES_VENDEDOR = "hasRole('VENDEDOR')";
+	private static final String ROLES_COBERTURA = "hasAnyRole('ALMACENERO','VENDEDOR','ADMINISTRADOR')";
+	private static final String ROLES_VENDEDOR = "hasAnyRole('VENDEDOR','ADMINISTRADOR')";
 	private static final String ROLES_DIRECTA = "hasAnyRole('VENDEDOR','ADMINISTRADOR')";
 	private static final String ESTADOS = "^(pendiente_abastecimiento|pendiente_despacho|lista_para_despacho|despachada|cancelada)"
 			+ "(,(pendiente_abastecimiento|pendiente_despacho|lista_para_despacho|despachada|cancelada))*$";

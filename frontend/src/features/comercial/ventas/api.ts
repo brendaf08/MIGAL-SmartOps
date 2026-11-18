@@ -34,7 +34,7 @@ export const pendienteDe = (linea: LineaVenta) => linea.solicitada - linea.atend
 
 /** Unidades pendientes de la venta, en todas sus líneas. */
 export const unidadesPendientes = (venta: Venta) =>
-  venta.lineas.reduce((suma, l) => suma + pendienteDe(l), 0);
+  venta.resumen?.unidadesPendientes ?? venta.lineas.reduce((suma, l) => suma + pendienteDe(l), 0);
 
 /** Una venta tiene pendientes solo mientras está activa; una cancelada no atiende nada más. */
 export const tienePendientes = (venta: Venta) =>
@@ -67,6 +67,15 @@ export function planAtencion(venta: Venta): LineaAtencion[] {
 
 /** Subtotal por lo solicitado, descuento global y total, redondeados a céntimos. */
 export function totalesVenta(venta: Venta) {
+  if (venta.resumen && venta.lineas.length === 0) {
+    // Venta del listado: el total llega calculado por la API y no hay líneas para derivar el subtotal.
+    const total = venta.resumen.total;
+    return {
+      subtotal: Math.round((total + venta.descuento) * 100) / 100,
+      descuento: venta.descuento,
+      total,
+    };
+  }
   const subtotal =
     Math.round(venta.lineas.reduce((s, l) => s + l.solicitada * l.precio, 0) * 100) / 100;
   const total = Math.round((subtotal - venta.descuento) * 100) / 100;
@@ -107,10 +116,13 @@ export interface VentaApi {
 /** Venta en el listado (VentaResumen), sin líneas. */
 export interface VentaResumenApi {
   id: string;
+  fechaVenta: string;
   cotizacionId: string;
   clienteId: string;
+  clienteNombre: string;
   estado: VentaApi['estado'];
   total: number;
+  unidadesPendientes: number;
 }
 
 const ESTADO_DE_API: Record<VentaApi['estado'], EstadoVenta> = {
@@ -125,6 +137,20 @@ const ESTADO_DE_API: Record<VentaApi['estado'], EstadoVenta> = {
  * Convierte una venta de la API al tipo de la interfaz. La cantidad atendida es la reservada actual; la entrega es
  * parcial mientras alguna línea tenga cantidad pendiente de abastecimiento.
  */
+/** Venta del listado a partir de VentaResumen, sin líneas. */
+export const ventaDesdeResumen = (r: VentaResumenApi): Venta => ({
+  id: r.id,
+  fecha: r.fechaVenta.slice(0, 10),
+  clienteId: r.clienteId,
+  clienteNombre: r.clienteNombre,
+  cotizacionId: r.cotizacionId,
+  estado: ESTADO_DE_API[r.estado],
+  entrega: r.unidadesPendientes > 0 ? 'Parcial' : 'Completa',
+  descuento: 0,
+  lineas: [],
+  resumen: { total: r.total, unidadesPendientes: r.unidadesPendientes },
+});
+
 export function ventaDesde(v: VentaApi): Venta {
   return {
     id: v.id,
@@ -171,8 +197,9 @@ const obtenerVentaApi = (id: string) =>
   api.get<VentaApi>(`/ventas/${encodeURIComponent(id)}`).then(ventaDesde);
 
 async function listarVentasReal(): Promise<Venta[]> {
+  // Solo los resúmenes: el detalle de cada venta se consulta al abrirla, no una vez por fila del listado.
   const resumenes = await paginas<VentaResumenApi>('/ventas');
-  return Promise.all(resumenes.map((r) => obtenerVentaApi(r.id)));
+  return resumenes.map(ventaDesdeResumen);
 }
 
 async function completarVentaReal(

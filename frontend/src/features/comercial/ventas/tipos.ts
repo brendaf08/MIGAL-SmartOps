@@ -27,4 +27,9 @@ export interface Venta {
   /** Descuento global en soles. */
   descuento: number;
   lineas: LineaVenta[];
+  /**
+   * Cifras del listado (VentaResumen): con la API real el listado no trae las líneas, y el total y las unidades
+   * pendientes llegan ya calculados. El detalle de la venta se consulta al abrirla.
+   */
+  resumen?: { total: number; unidadesPendientes: number };
 }

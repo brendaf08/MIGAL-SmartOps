@@ -62,6 +62,10 @@ public class VentaService {
 	}
 
 	/** Venta con la cobertura de cada línea (por identificador de línea) y sus reservas. */
+	/** Venta del listado con las unidades que faltan reservar en todas sus líneas. */
+	public record VentaResumen(Venta venta, BigDecimal unidadesPendientes) {
+	}
+
 	public record VentaDetalle(Venta venta, Map<Long, Cobertura> coberturaPorLinea, List<ReservaVista> reservas) {
 	}
 
@@ -122,6 +126,30 @@ public class VentaService {
 			return cb.and(condiciones.toArray(Predicate[]::new));
 		};
 		return ventas.findAll(filtros, paginacion);
+	}
+
+	/**
+	 * Listado con las unidades pendientes de cada venta, calculadas con una sola consulta de reservas para toda la
+	 * página. Así el listado no necesita consultar el detalle de cada venta para mostrar lo que falta atender.
+	 */
+	@Transactional(readOnly = true)
+	public Page<VentaResumen> listarConPendientes(Collection<EstadoVenta> estados, Long clienteId, LocalDate desde,
+			LocalDate hasta, Pageable paginacion) {
+		Page<Venta> pagina = listar(estados, clienteId, desde, hasta, paginacion);
+		List<Long> lineas = pagina.getContent().stream().flatMap(v -> v.getLineas().stream()).map(DetalleVenta::getId)
+				.toList();
+		Map<Long, BigDecimal> reservado = new LinkedHashMap<>();
+		reservasInventario.reservasDe(lineas).stream().filter(r -> r.getEstado().valor().equals("activa"))
+				.forEach(r -> reservado.merge(r.getIdDetalleVenta(), r.getCantidadReservada(), BigDecimal::add));
+		return pagina.map(venta -> {
+			boolean cerrada = venta.getEstado() == EstadoVenta.DESPACHADA || venta.getEstado() == EstadoVenta.CANCELADA;
+			BigDecimal pendientes = cerrada ? BigDecimal.ZERO
+					: venta.getLineas().stream()
+							.map(l -> l.getCantidadVendida().subtract(reservado.getOrDefault(l.getId(), BigDecimal.ZERO))
+									.max(BigDecimal.ZERO))
+							.reduce(BigDecimal.ZERO, BigDecimal::add);
+			return new VentaResumen(venta, pendientes);
+		});
 	}
 
 	/** Consulta una venta con sus líneas, su cobertura y sus reservas, incluidas las cerradas. */

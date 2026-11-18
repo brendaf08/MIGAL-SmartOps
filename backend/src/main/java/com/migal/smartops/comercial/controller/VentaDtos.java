@@ -1,5 +1,6 @@
 package com.migal.smartops.comercial.controller;
 
+import com.migal.smartops.comercial.service.VentaService;
 import com.migal.smartops.comercial.model.DetalleVenta;
 import com.migal.smartops.comercial.model.Venta;
 import com.migal.smartops.comercial.service.VentaService.Cobertura;
@@ -62,12 +63,14 @@ public final class VentaDtos {
 
 	/** {@code VentaResumen}: venta del listado, sin líneas ni reservas. */
 	public record VentaResumenDto(String id, Instant fechaVenta, String cotizacionId, String clienteId,
-			String clienteNombre, String estado, BigDecimal total) {
+			String clienteNombre, String estado, BigDecimal total, BigDecimal unidadesPendientes) {
 
-		public static VentaResumenDto de(Venta venta) {
+		public static VentaResumenDto de(VentaService.VentaResumen resumen) {
+			Venta venta = resumen.venta();
 			return new VentaResumenDto(String.valueOf(venta.getId()), venta.getFechaVenta(),
 					String.valueOf(venta.getCotizacion().getId()), String.valueOf(venta.getCliente().getId()),
-					venta.getCliente().getNombreRazonSocial(), venta.getEstado().valor(), venta.total());
+					venta.getCliente().getNombreRazonSocial(), venta.getEstado().valor(), venta.total(),
+					resumen.unidadesPendientes());
 		}
 	}
 }

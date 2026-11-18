@@ -76,7 +76,8 @@ public class VentaController {
 		List<EstadoVenta> estados = estado == null ? null
 				: Arrays.stream(estado.split(",")).map(EstadoVenta::de).toList();
 		Long idCliente = clienteId == null ? null : Identificadores.numero(clienteId);
-		return PaginaDto.de(ventas.listar(estados, idCliente, desde, hasta, paginacion), VentaResumenDto::de);
+		return PaginaDto.de(ventas.listarConPendientes(estados, idCliente, desde, hasta, paginacion),
+				VentaResumenDto::de);
 	}
 
 	@PostMapping

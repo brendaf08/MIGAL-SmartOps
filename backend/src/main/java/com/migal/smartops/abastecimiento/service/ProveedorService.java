@@ -1,5 +1,6 @@
 package com.migal.smartops.abastecimiento.service;
 
+import com.migal.smartops.comun.web.Busqueda;
 import com.migal.smartops.abastecimiento.model.CatalogoProveedor;
 import com.migal.smartops.abastecimiento.model.Proveedor;
 import com.migal.smartops.abastecimiento.repository.CatalogoProveedorRepository;
@@ -61,13 +62,13 @@ public class ProveedorService {
 	 */
 	@Transactional(readOnly = true)
 	public Page<Proveedor> listar(String texto, Boolean estadoActivo, String sku, Pageable paginacion) {
-		String patron = texto == null || texto.isBlank() ? null : "%" + texto.trim().toLowerCase() + "%";
+		String patron = texto == null || texto.isBlank() ? null : Busqueda.patron(texto);
 		List<Long> proveedoresSku = sku == null || sku.isBlank() ? null : catalogos.idsProveedoresPorSku(sku.trim());
 		Specification<Proveedor> filtros = (raiz, consulta, cb) -> {
 			List<Predicate> condiciones = new ArrayList<>();
 			if (patron != null) {
-				condiciones.add(cb.or(cb.like(cb.lower(raiz.get("razonSocial")), patron),
-						cb.like(cb.lower(raiz.get("ruc")), patron)));
+				condiciones.add(cb.or(cb.like(cb.lower(raiz.get("razonSocial")), patron, Busqueda.ESCAPE),
+						cb.like(cb.lower(raiz.get("ruc")), patron, Busqueda.ESCAPE)));
 			}
 			if (estadoActivo != null) {
 				condiciones.add(cb.equal(raiz.get("estadoActivo"), estadoActivo));

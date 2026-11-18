@@ -2,6 +2,7 @@ package com.migal.smartops.recepciones.controller;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -25,7 +26,7 @@ public final class SolicitudesRecepciones {
 	/** {@code RecepcionLineaSolicitud}: cantidad recibida de un producto en una ubicación. */
 	public record LineaSolicitud(@NotBlank @Pattern(regexp = IDENTIFICADOR) String productoId,
 			@NotBlank @Pattern(regexp = IDENTIFICADOR) String ubicacionId,
-			@NotNull @DecimalMin("0") BigDecimal cantidadRecibida) {
+			@NotNull @DecimalMin("0") @Digits(integer = 11, fraction = 3) BigDecimal cantidadRecibida) {
 	}
 
 	/**

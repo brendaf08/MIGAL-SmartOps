@@ -1,5 +1,6 @@
 package com.migal.smartops.seguridad.service;
 
+import com.migal.smartops.comun.web.Busqueda;
 import com.migal.smartops.comun.errores.CodigoError;
 import com.migal.smartops.comun.errores.ErrorDeNegocio;
 import com.migal.smartops.seguridad.model.RolUsuario;
@@ -43,11 +44,11 @@ public class UsuarioService {
 		Specification<Usuario> filtros = (raiz, consulta, cb) -> {
 			List<Predicate> condiciones = new ArrayList<>();
 			if (q != null && !q.isBlank()) {
-				String patron = "%" + q.trim().toLowerCase() + "%";
+				String patron = Busqueda.patron(q);
 				condiciones.add(cb.or(
-						cb.like(cb.lower(raiz.get("nombres")), patron),
-						cb.like(cb.lower(raiz.get("apellidos")), patron),
-						cb.like(cb.lower(raiz.get("username")), patron)));
+						cb.like(cb.lower(raiz.get("nombres")), patron, Busqueda.ESCAPE),
+						cb.like(cb.lower(raiz.get("apellidos")), patron, Busqueda.ESCAPE),
+						cb.like(cb.lower(raiz.get("username")), patron, Busqueda.ESCAPE)));
 			}
 			if (rol != null) {
 				condiciones.add(cb.equal(raiz.get("rol"), rol));

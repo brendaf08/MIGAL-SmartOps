@@ -104,14 +104,14 @@ public class ServicioAgente {
 		if (texto.isEmpty()) {
 			throw new ErrorDeNegocio(CodigoError.VALIDACION_FALLIDA, "El mensaje no puede estar vacío.");
 		}
-		if (idConversacion != null) {
-			lectura.executeWithoutResult(estado -> buscar(actor, idConversacion));
-		}
+		List<TurnoAgente> historial = idConversacion == null ? List.of()
+				: lectura.execute(estado -> buscar(actor, idConversacion).getMensajes().stream()
+						.map(m -> new TurnoAgente(m.getRol() == RolMensaje.USUARIO, m.getTexto())).toList());
 
-		List<LlamadaHerramienta> llamadas = proveedor.planificar(texto, catalogo.disponiblesPara(actor.rol()));
+		List<LlamadaHerramienta> llamadas = proveedor.planificar(texto, catalogo.disponiblesPara(actor.rol()), historial);
 		List<InvocacionHerramienta> invocaciones = llamadas.stream()
 				.map(llamada -> catalogo.ejecutar(actor.rol(), llamada.nombre(), llamada.parametros())).toList();
-		RespuestaRedactada redactada = proveedor.redactar(texto, invocaciones);
+		RespuestaRedactada redactada = proveedor.redactar(texto, invocaciones, historial);
 		List<ReferenciaAgente> referencias = invocaciones.stream().filter(invocacion -> invocacion.codigo() == null)
 				.flatMap(invocacion -> invocacion.referencias().stream()).toList();
 

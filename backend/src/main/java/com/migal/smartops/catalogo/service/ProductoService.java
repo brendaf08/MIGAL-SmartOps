@@ -1,5 +1,6 @@
 package com.migal.smartops.catalogo.service;
 
+import com.migal.smartops.comun.web.Busqueda;
 import com.migal.smartops.catalogo.model.Categoria;
 import com.migal.smartops.catalogo.model.Producto;
 import com.migal.smartops.catalogo.repository.ProductoRepository;
@@ -57,10 +58,10 @@ public class ProductoService {
 		Specification<Producto> filtros = (raiz, consulta, cb) -> {
 			List<Predicate> condiciones = new ArrayList<>();
 			if (q != null && !q.isBlank()) {
-				String patron = "%" + q.trim().toLowerCase() + "%";
+				String patron = Busqueda.patron(q);
 				condiciones.add(cb.or(
-						cb.like(cb.lower(raiz.get("sku")), patron),
-						cb.like(cb.lower(raiz.get("nombreOficial")), patron)));
+						cb.like(cb.lower(raiz.get("sku")), patron, Busqueda.ESCAPE),
+						cb.like(cb.lower(raiz.get("nombreOficial")), patron, Busqueda.ESCAPE)));
 			}
 			if (sku != null && !sku.isBlank()) {
 				condiciones.add(cb.equal(raiz.get("sku"), sku.trim()));

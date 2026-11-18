@@ -1,5 +1,6 @@
 package com.migal.smartops.comercial.service;
 
+import com.migal.smartops.comun.web.Busqueda;
 import com.migal.smartops.catalogo.model.Producto;
 import com.migal.smartops.catalogo.service.ProductoService;
 import com.migal.smartops.comercial.model.Cliente;
@@ -97,7 +98,7 @@ public class CotizacionService {
 			List<Predicate> condiciones = new ArrayList<>();
 			if (q != null && !q.isBlank()) {
 				condiciones.add(cb.like(cb.lower(raiz.get("cliente").get("nombreRazonSocial")),
-						"%" + q.trim().toLowerCase() + "%"));
+						Busqueda.patron(q), Busqueda.ESCAPE));
 			}
 			if (estados != null && !estados.isEmpty()) {
 				condiciones.add(raiz.get("estado").in(estados.stream().map(EstadoCotizacion::valor).toList()));

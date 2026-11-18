@@ -1,5 +1,6 @@
 package com.migal.smartops.abastecimiento.service;
 
+import com.migal.smartops.comun.web.Busqueda;
 import com.migal.smartops.abastecimiento.model.DetalleCompra;
 import com.migal.smartops.abastecimiento.model.EstadoOrdenCompra;
 import com.migal.smartops.abastecimiento.model.OrdenCompra;
@@ -82,14 +83,14 @@ public class OrdenCompraService {
 	@Transactional(readOnly = true)
 	public Page<OrdenDetalle> listar(String texto, Long proveedorId, Collection<EstadoOrdenCompra> estados, LocalDate desde,
 			LocalDate hasta, Pageable paginacion) {
-		String patron = texto == null || texto.isBlank() ? null : "%" + texto.trim().toLowerCase() + "%";
+		String patron = texto == null || texto.isBlank() ? null : Busqueda.patron(texto);
 		Instant inicio = desde == null ? null : desde.atStartOfDay(ZONA).toInstant();
 		Instant fin = hasta == null ? null : hasta.plusDays(1).atStartOfDay(ZONA).toInstant();
 		Specification<OrdenCompra> filtros = (raiz, consulta, cb) -> {
 			List<Predicate> condiciones = new ArrayList<>();
 			if (patron != null) {
-				condiciones.add(cb.or(cb.like(cb.lower(raiz.get("codigo")), patron),
-						cb.like(cb.lower(raiz.get("proveedor").get("razonSocial")), patron)));
+				condiciones.add(cb.or(cb.like(cb.lower(raiz.get("codigo")), patron, Busqueda.ESCAPE),
+						cb.like(cb.lower(raiz.get("proveedor").get("razonSocial")), patron, Busqueda.ESCAPE)));
 			}
 			if (proveedorId != null) {
 				condiciones.add(cb.equal(raiz.get("proveedor").get("id"), proveedorId));

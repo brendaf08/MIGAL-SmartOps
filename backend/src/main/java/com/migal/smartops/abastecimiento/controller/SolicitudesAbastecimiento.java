@@ -2,6 +2,7 @@ package com.migal.smartops.abastecimiento.controller;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
@@ -41,7 +42,8 @@ public final class SolicitudesAbastecimiento {
 	}
 
 	/** {@code CatalogoEntrada}: producto del catálogo de un proveedor. */
-	public record CatalogoEntrada(@NotBlank String sku, @NotNull @DecimalMin("0") BigDecimal precioCompra,
+	public record CatalogoEntrada(@NotBlank String sku,
+			@NotNull @DecimalMin("0") @Digits(integer = 12, fraction = 2) BigDecimal precioCompra,
 			@Min(0) Integer plazoEntregaReferencialDias) {
 	}
 
@@ -51,8 +53,9 @@ public final class SolicitudesAbastecimiento {
 
 	/** {@code OrdenCompraLineaRegistro}: línea de una orden nueva o modificada. */
 	public record LineaOrdenSolicitud(@NotBlank String sku,
-			@NotNull @DecimalMin(value = "0", inclusive = false) BigDecimal cantidadComprada,
-			@NotNull @DecimalMin("0") BigDecimal costoUnitario) {
+			@NotNull @DecimalMin(value = "0", inclusive = false) @Digits(integer = 11, fraction = 3)
+			BigDecimal cantidadComprada,
+			@NotNull @DecimalMin("0") @Digits(integer = 12, fraction = 2) BigDecimal costoUnitario) {
 	}
 
 	/** {@code OrdenCompraRegistro}: orden nueva en estado pendiente. */

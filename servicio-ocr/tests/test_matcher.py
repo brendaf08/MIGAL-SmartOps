@@ -124,3 +124,30 @@ def test_un_material_distinto_penaliza_el_puntaje() -> None:
     linea = normalizar("tubo cpvc 1/2")
 
     assert puntaje(linea, NOTAS[1].normalizado) < 0.4
+
+
+def test_una_medida_de_volumen_distinta_penaliza_el_puntaje() -> None:
+    galon = preparar_catalogo(
+        [
+            ProductoCatalogo(
+                sku="P-4", nombreOficial="Pintura látex 4 L", marca=None, presentacion=None, unidadMedida="u"
+            ),
+            ProductoCatalogo(
+                sku="P-1", nombreOficial="Pintura látex 1 L", marca=None, presentacion=None, unidadMedida="u"
+            ),
+        ]
+    )
+
+    assert coincidencias("pintura latex 1 L", galon, 0.0)[0].sku == "P-1"
+
+
+def test_el_prefiltro_conserva_el_mejor_candidato_en_catalogos_grandes() -> None:
+    relleno = [
+        ProductoCatalogo(
+            sku=f"R-{i}", nombreOficial=f"Producto variado {i}", marca=None, presentacion=None, unidadMedida="u"
+        )
+        for i in range(200)
+    ]
+    grande = preparar_catalogo([*relleno, *CATALOGO])
+
+    assert coincidencias("lad kk 18 huecos", grande, 0.6)[0].sku == "LAD-018"

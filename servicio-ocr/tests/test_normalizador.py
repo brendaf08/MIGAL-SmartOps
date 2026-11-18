@@ -102,3 +102,32 @@ def test_el_formato_se_escribe_igual_con_o_sin_espacios() -> None:
 def test_kk_seguido_del_numero_es_el_ladrillo_de_huecos() -> None:
     assert normalizar("LADRILLO KK18").texto == normalizar("lad kk 18 huecos").texto
     assert "18huecos" in normalizar("Ladrillo KK-18").medidas
+
+
+@pytest.mark.parametrize(
+    ("texto", "medida"),
+    [
+        ("Pegamento PVC 1/4 galón", "1/4gal"),
+        ("galón pegamento 1/4", "1/4gal"),
+        ("Pintura látex 4 L", "4l"),
+        ("Thinner 500 ml", "500ml"),
+        ("Martillo de uña 16 oz", "16oz"),
+        ("Taladro percutor 650 W", "650w"),
+    ],
+)
+def test_reconoce_volumen_peso_y_potencia(texto: str, medida: str) -> None:
+    assert medida in normalizar(texto).medidas
+
+
+def test_un_galon_no_se_confunde_con_pulgadas() -> None:
+    assert "1/4in" not in normalizar("Pegamento PVC 1/4 galón").medidas
+
+
+def test_el_envase_tras_la_cantidad_no_es_el_tipo_de_producto() -> None:
+    assert normalizar('2 cajas clavo 3"').texto.startswith("clavo")
+    assert normalizar("caja octagonales").texto == "caja octogonal"
+
+
+def test_plurales_en_ces_y_palabras_que_no_son_plurales() -> None:
+    assert normalizar("luces led").texto == "luz led"
+    assert normalizar("arnés de seguridad").texto == "arnes seguridad"

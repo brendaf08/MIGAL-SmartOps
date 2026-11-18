@@ -88,10 +88,9 @@ public class CotizacionService {
 	 * razón social del cliente, {@code estados} acepta varios valores, y {@code desde} y {@code hasta} delimitan la
 	 * fecha de emisión de forma inclusiva.
 	 */
-	@Transactional
+	@Transactional(readOnly = true)
 	public Page<Cotizacion> listar(String q, Collection<EstadoCotizacion> estados, Long clienteId, LocalDate desde,
 			LocalDate hasta, Pageable paginacion) {
-		vencerVencidas();
 		Instant inicio = desde == null ? null : desde.atStartOfDay(ZONA).toInstant();
 		Instant fin = hasta == null ? null : hasta.plusDays(1).atStartOfDay(ZONA).toInstant();
 		Specification<Cotizacion> filtros = (raiz, consulta, cb) -> {
@@ -118,9 +117,8 @@ public class CotizacionService {
 	}
 
 	/** Consulta una cotización con sus líneas y su estado vigente. */
-	@Transactional
+	@Transactional(readOnly = true)
 	public Cotizacion consultar(long id) {
-		vencerVencidas();
 		return cotizaciones.findById(id).orElseThrow(CotizacionService::noEncontrada);
 	}
 
@@ -301,6 +299,16 @@ public class CotizacionService {
 	/** Marca como vencidas las cotizaciones cuyo vencimiento ya pasó, salvo las que originaron una venta. */
 	private void vencerVencidas() {
 		cotizaciones.vencerVencidas(hoy());
+	}
+
+	/**
+	 * Marca como vencidas las cotizaciones cuya fecha de vencimiento ya pasó. Lo ejecuta {@link VencimientoCotizaciones}
+	 * al iniciar y cada medianoche, de modo que las consultas no escriben; las operaciones de escritura lo repiten antes de
+	 * decidir. Devuelve la cantidad de cotizaciones vencidas.
+	 */
+	@Transactional
+	public int vencerVencidasProgramado() {
+		return cotizaciones.vencerVencidas(hoy());
 	}
 
 	/** Registra en el log las líneas cuyo stock libre no cubre la cantidad y requieren confirmación de abastecimiento. */

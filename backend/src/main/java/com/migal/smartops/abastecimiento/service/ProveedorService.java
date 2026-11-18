@@ -124,7 +124,8 @@ public class ProveedorService {
 	 */
 	@Transactional
 	public List<CatalogoProveedor> actualizarCatalogo(long id, List<EntradaCatalogo> entradas) {
-		Proveedor proveedor = proveedores.findById(id).orElseThrow(ProveedorService::noEncontrado);
+		// Dos reemplazos simultáneos del catálogo se ordenan: el segundo espera y ve el resultado del primero.
+		Proveedor proveedor = proveedores.bloquearPorId(id).orElseThrow(ProveedorService::noEncontrado);
 		Map<String, Producto> porSku = resolverProductos(entradas);
 		Map<Long, CatalogoProveedor> existentes = new HashMap<>();
 		catalogos.findByIdIdProveedorOrderByIdIdProductoAsc(id)

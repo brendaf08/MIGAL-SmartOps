@@ -1,6 +1,7 @@
 package com.migal.smartops.comercial;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -164,10 +165,20 @@ class CotizacionServiceTest {
 	}
 
 	@Test
-	void venceAutomaticamenteYRechazaLaAceptacionPosterior() {
+	void laTareaProgramadaVenceLaCotizacionYSeRechazaLaAceptacionPosterior() {
 		Cotizacion nueva = emitida();
 		CotizacionService posterior = servicioEn(EMISION.plusSeconds(10L * 86_400));
+		// La consulta no escribe: la cotización vence con la tarea programada (VencimientoCotizaciones).
+		assertEquals(EstadoCotizacion.EMITIDA, posterior.consultar(nueva.getId()).getEstado());
+		assertTrue(posterior.vencerVencidasProgramado() >= 1);
 		assertEquals(EstadoCotizacion.VENCIDA, posterior.consultar(nueva.getId()).getEstado());
+		assertCodigo(CodigoError.COTIZACION_VENCIDA, () -> posterior.registrarAceptacion(nueva.getId()));
+	}
+
+	@Test
+	void unaEscrituraVenceLaCotizacionAntesDeDecidirAunqueNoHayaCorridoLaTarea() {
+		Cotizacion nueva = emitida();
+		CotizacionService posterior = servicioEn(EMISION.plusSeconds(10L * 86_400));
 		assertCodigo(CodigoError.COTIZACION_VENCIDA, () -> posterior.registrarAceptacion(nueva.getId()));
 	}
 

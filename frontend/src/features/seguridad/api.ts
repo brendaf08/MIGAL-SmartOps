@@ -1,4 +1,4 @@
-import { API_REAL, api, borrarToken, guardarToken } from '@/api/cliente';
+import { API_REAL, ApiError, api, borrarToken, guardarToken } from '@/api/cliente';
 import { mockRequest } from '@/api/mock';
 import { todosLosElementos, type PaginaApi } from '@/api/paginas';
 import { USUARIOS } from './fixtures';
@@ -18,8 +18,19 @@ const iniciarSesionReal = async (usuario: string, clave: string): Promise<User> 
       name: `${sesion.usuario.nombres} ${sesion.usuario.apellidos}`.trim(),
       role: rolDeApi(sesion.usuario.rol),
     };
-  } catch {
-    // El mensaje no revela cuál de las dos credenciales falló, ni el motivo del rechazo.
+  } catch (error) {
+    // Una cuenta desactivada o el exceso de intentos se informan con el detalle del backend; un servidor caído no se
+    // confunde con una clave incorrecta. Una credencial incorrecta no revela cuál de las dos falló.
+    if (error instanceof ApiError) {
+      if (error.codigo === 'CUENTA_INACTIVA' || error.codigo === 'DEMASIADOS_INTENTOS') {
+        throw new Error(error.message);
+      }
+      if (error.estado === 0 || error.estado >= 500) {
+        throw new Error(
+          'No fue posible comunicarse con el servidor. Intentar de nuevo en unos minutos.',
+        );
+      }
+    }
     throw new Error('Credenciales incorrectas');
   }
 };
@@ -54,3 +65,24 @@ export const listarUsuarios = (): Promise<UsuarioResumen[]> =>
     : mockRequest<UsuarioResumen[]>(() =>
         USUARIOS.map(({ usuario, name, role }) => ({ usuario, name, role })),
       );
+
+/** Cambia la clave del usuario de la sesión (PUT /sesiones/actual/clave). */
+export const cambiarClave = (claveActual: string, claveNueva: string): Promise<void> =>
+  API_REAL
+    ? api.put<void>('/sesiones/actual/clave', { claveActual, claveNueva })
+    : mockRequest(() => {
+        if (claveActual === claveNueva) {
+          throw new ApiError(
+            422,
+            'VALIDACION_FALLIDA',
+            'La nueva contraseña debe ser distinta de la actual.',
+            [
+              {
+                campo: 'claveNueva',
+                codigo: 'VALIDACION_FALLIDA',
+                mensaje: 'La nueva contraseña debe ser distinta de la actual.',
+              },
+            ],
+          );
+        }
+      });

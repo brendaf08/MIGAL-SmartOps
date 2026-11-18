@@ -1,44 +1,47 @@
-title CU-08: Procesar documento con OCR
+title CU-08: Procesar documento con OCR (ADR-011 y ADR-012)
 
 actor "Vendedor/Almacenero" as Actor
 boundary InterfazOCR
-control OcrDigitalController
-participant OcrIAIntegratorService
-participant "Microservicio OCR Python" as PythonOCR
-participant DocumentoDigitalRepository
-participant DetalleExtraidoRepository
-participant ProductoRepository
+control DocumentoOcrController
+participant DocumentoOcrService
+participant EnvioOcrHttp
+participant "Servicio OCR (Python)" as PythonOCR
+participant "API Gemini" as Gemini
+participant VigilanciaOcr
 database BD
 
-Actor -> InterfazOCR: cargar documento y especificar tipoDocumento
-InterfazOCR -> OcrDigitalController: uploadDocumento(archivo, tipoDocumento)
-OcrDigitalController -> DocumentoDigitalRepository: registrar(DocumentoDigital)
-DocumentoDigitalRepository -> BD: insert
-BD --> DocumentoDigitalRepository: idDocumento
+Actor -> InterfazOCR: cargar documento y tipoDocumento
+InterfazOCR -> DocumentoOcrController: POST /documentos (multipart)
+DocumentoOcrController -> DocumentoOcrService: cargar(archivo, tipo)
+DocumentoOcrService -> BD: insert documento_digital (pendiente, fecha_encolado)
+DocumentoOcrService --> DocumentoOcrController: documento pendiente
+DocumentoOcrController --> InterfazOCR: 202 Accepted
 
-OcrDigitalController -> OcrIAIntegratorService: procesarDocumento(idDocumento)
-OcrIAIntegratorService -> PythonOCR: enviar(doc, tipoDocumento)
-PythonOCR -> PythonOCR: procesar imagen/extraer texto
-PythonOCR --> OcrIAIntegratorService: texto y cantidades extraídas
+note over EnvioOcrHttp: después de confirmar la transacción (AFTER_COMMIT)
+EnvioOcrHttp -> DocumentoOcrService: catalogoActivo()
+DocumentoOcrService -> BD: select productos activos
+EnvioOcrHttp -> PythonOCR: POST /procesar (archivo, catálogo, token por documento, X-Token-Interno)
+PythonOCR --> EnvioOcrHttp: 202 Accepted
+
+PythonOCR -> Gemini: transcribir líneas y cantidades
+Gemini --> PythonOCR: líneas leídas (JSON)
+PythonOCR -> PythonOCR: normalizar jerga y medidas\nasignar SKU con RapidFuzz
 
 alt Documento legible
-    OcrIAIntegratorService -> ProductoRepository: consultar catálogo para Fuzzy
-    ProductoRepository -> BD: select
-    BD --> ProductoRepository: datos
-    OcrIAIntegratorService -> OcrIAIntegratorService: ejecutarFuzzyMatching()
-    
-    OcrIAIntegratorService -> DetalleExtraidoRepository: guardar detalles y similitud
-    DetalleExtraidoRepository -> BD: insert
-    
-    OcrIAIntegratorService --> OcrDigitalController: candidatos y similitud
-    OcrDigitalController --> InterfazOCR: mostrar sugerencias
-    Actor -> InterfazOCR: validar / seleccionar producto
-    InterfazOCR -> OcrDigitalController: asociarProducto()
-    OcrDigitalController -> OcrIAIntegratorService: registrar asociación normalizada
-    OcrIAIntegratorService -> DetalleExtraidoRepository: update (fk_producto)
-    DetalleExtraidoRepository -> BD: update
-    OcrDigitalController --> InterfazOCR: disponible para operación (Venta/Compra/Recepcion)
+    PythonOCR -> DocumentoOcrController: PUT /documentos/{id}/resultados (procesado, coincidencias)
+    DocumentoOcrController -> DocumentoOcrService: registrarResultados()
+    DocumentoOcrService -> BD: insert detalle_extraido y coincidencias\n(asocia la única coincidencia de confianza alta)
 else Documento ilegible
-    OcrIAIntegratorService --> OcrDigitalController: error
-    OcrDigitalController --> InterfazOCR: solicitar nuevo archivo o carga manual
+    PythonOCR -> DocumentoOcrController: PUT /documentos/{id}/resultados (ilegible)
+    DocumentoOcrService -> BD: codigo_error = DOCUMENTO_ILEGIBLE
+else Sin respuesta en 60 s
+    VigilanciaOcr -> BD: codigo_error = SERVICIO_NO_DISPONIBLE (reprocesable)
 end
+
+InterfazOCR -> DocumentoOcrController: GET /documentos/{id} (sondeo)
+DocumentoOcrController --> InterfazOCR: líneas, coincidencias y umbrales
+Actor -> InterfazOCR: revisar, corregir y confirmar productos
+InterfazOCR -> DocumentoOcrController: PUT /documentos/{id}/detalles/{idDetalle}
+InterfazOCR -> DocumentoOcrController: POST /documentos/{id}/validacion
+DocumentoOcrService -> BD: documento validado
+DocumentoOcrController --> InterfazOCR: disponible para cotización o recepción

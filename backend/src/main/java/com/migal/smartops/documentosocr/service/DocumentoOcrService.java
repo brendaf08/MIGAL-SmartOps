@@ -114,7 +114,7 @@ public class DocumentoOcrService {
 		return switch (rol) {
 			case VENDEDOR -> EnumSet.of(TipoDocumento.SOLICITUD_CLIENTE);
 			case ALMACENERO -> EnumSet.of(TipoDocumento.DOCUMENTO_RECEPCION);
-			case ADMINISTRADOR -> EnumSet.allOf(TipoDocumento.class);
+			case ADMINISTRADOR, DEMOSTRACION -> EnumSet.allOf(TipoDocumento.class);
 			case REPONEDOR -> EnumSet.noneOf(TipoDocumento.class);
 		};
 	}
@@ -398,7 +398,8 @@ public class DocumentoOcrService {
 	 */
 	@Transactional
 	public List<LineaPrecargada> precargaRecepcion(long idDocumento) {
-		DocumentoDigital documento = documentos.findById(idDocumento)
+		// Bloqueo hasta el fin de la transacción de la recepción: dos recepciones simultáneas no usan el mismo documento.
+		DocumentoDigital documento = documentos.bloquearPorId(idDocumento)
 				.orElseThrow(() -> new ErrorDeNegocio(CodigoError.RECURSO_NO_ENCONTRADO, "El documento no existe."));
 		boolean utilizable = documento.getEstado() == EstadoProcesamiento.VALIDADO && !documento.estaAsociado()
 				&& !documento.estaEliminado();
@@ -423,7 +424,11 @@ public class DocumentoOcrService {
 	/** Registra el documento como apoyo de una recepción. Lo invoca el módulo de recepciones dentro de su transacción. */
 	@Transactional
 	public void vincularRecepcion(long idDocumento, long idRecepcion) {
-		DocumentoDigital documento = documentos.findById(idDocumento).orElseThrow(DocumentoOcrService::noEncontrado);
+		DocumentoDigital documento = documentos.bloquearPorId(idDocumento).orElseThrow(DocumentoOcrService::noEncontrado);
+		if (documento.estaAsociado() || documento.estaEliminado()) {
+			throw new ErrorDeNegocio(CodigoError.DOCUMENTO_NO_VALIDADO,
+					"El documento no está validado o ya apoya otra operación.");
+		}
 		documento.asociarRecepcion(idRecepcion);
 		documentos.saveAndFlush(documento);
 	}

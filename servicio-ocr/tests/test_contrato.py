@@ -58,7 +58,15 @@ def test_el_resultado_cumple_documento_resultados_del_backend() -> None:
 
     for resultado in (procesado, ResultadoDocumento.ilegible()):
         documento = resultado.model_dump(mode="json")
-        for linea in documento["detalles"]:
-            if linea["cantidadLeida"] is not None:
-                linea["cantidadLeida"] = float(linea["cantidadLeida"])
         jsonschema.validate(documento, esquema, cls=jsonschema.Draft202012Validator)
+
+
+def test_la_cantidad_se_envia_como_numero_json_y_se_descartan_lecturas_enormes() -> None:
+    from app.extractor import cantidad_valida
+
+    linea = Linea(textoCrudo="cemento", cantidadLeida=cantidad_valida(100.0), coincidencias=[])
+    assert linea.model_dump(mode="json")["cantidadLeida"] == 100
+    linea = Linea(textoCrudo="arena", cantidadLeida=cantidad_valida(2.5), coincidencias=[])
+    assert linea.model_dump(mode="json")["cantidadLeida"] == 2.5
+    assert cantidad_valida(100_000_000_000.0) is None
+    assert cantidad_valida(20100070970.0) is not None

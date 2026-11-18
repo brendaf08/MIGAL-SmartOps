@@ -42,7 +42,8 @@ export class SkuDuplicadoError extends Error {
 /** Datos que el catálogo conserva fuera de `PRODUCTOS` (descripción y estado), por SKU. */
 const DATOS_EXTRA = new Map<string, { descripcion: string; estado: EstadoProducto }>();
 
-const extraDe = (sku: string) => DATOS_EXTRA.get(sku) ?? { descripcion: '', estado: 'Activo' as const };
+const extraDe = (sku: string) =>
+  DATOS_EXTRA.get(sku) ?? { descripcion: '', estado: 'Activo' as const };
 
 const aCatalogo = (p: ProductoDisponibilidad): ProductoCatalogo => {
   const extra = extraDe(p.sku);
@@ -92,7 +93,8 @@ interface PaginaDto<T> {
 const estadoDe = (activo: boolean): EstadoProducto => (activo ? 'Activo' : 'Inactivo');
 
 /** Traduce la lista de categorías en un mapa de identificador a nombre. */
-const nombresPorId = (categorias: CategoriaDto[]) => new Map(categorias.map((c) => [c.id, c.nombre]));
+const nombresPorId = (categorias: CategoriaDto[]) =>
+  new Map(categorias.map((c) => [c.id, c.nombre]));
 
 /** Identificador de la categoría con el nombre indicado, o `undefined` si no existe. */
 const idDeCategoria = (categorias: CategoriaDto[], nombre: string) =>
@@ -120,7 +122,9 @@ const listarCategoriasApi = () => api.get<CategoriaDto[]>('/categorias');
 
 const buscarCatalogoReal = async (consulta: ConsultaCatalogo): Promise<Page<ProductoCatalogo>> => {
   const categorias = await listarCategoriasApi();
-  const idCategoria = consulta.categoria ? idDeCategoria(categorias, consulta.categoria) : undefined;
+  const idCategoria = consulta.categoria
+    ? idDeCategoria(categorias, consulta.categoria)
+    : undefined;
   if (consulta.categoria && !idCategoria) return { items: [], total: 0 };
   const pagina = await api.get<PaginaDto<ProductoDto>>('/productos', {
     q: consulta.q.trim(),
@@ -159,12 +163,16 @@ const registrarProductoReal = async (datos: DatosProducto): Promise<ProductoCata
     });
     return aProductoCatalogo(creado, categorias);
   } catch (error) {
-    if (error instanceof ApiError && error.codigo === 'SKU_DUPLICADO') throw new SkuDuplicadoError();
+    if (error instanceof ApiError && error.codigo === 'SKU_DUPLICADO')
+      throw new SkuDuplicadoError();
     throw error;
   }
 };
 
-const actualizarProductoReal = async (sku: string, datos: DatosProducto): Promise<ProductoCatalogo> => {
+const actualizarProductoReal = async (
+  sku: string,
+  datos: DatosProducto,
+): Promise<ProductoCatalogo> => {
   const actual = await productoDtoPorSku(sku);
   if (!actual) throw new Error('El producto no existe.');
   const categorias = await listarCategoriasApi();
@@ -172,7 +180,9 @@ const actualizarProductoReal = async (sku: string, datos: DatosProducto): Promis
   let producto = await api.put<ProductoDto>(ruta, cuerpoProducto(datos, categorias));
   // El estado de vigencia no forma parte de PUT /productos/{id}: se cambia con su operación propia cuando difiere.
   if (estadoDe(actual.estadoActivo) !== datos.estado) {
-    producto = await api.put<ProductoDto>(`${ruta}/estado`, { estadoActivo: datos.estado === 'Activo' });
+    producto = await api.put<ProductoDto>(`${ruta}/estado`, {
+      estadoActivo: datos.estado === 'Activo',
+    });
   }
   return aProductoCatalogo(producto, categorias);
 };
@@ -217,7 +227,9 @@ export const obtenerExistencias = (sku: string): Promise<ProductoDisponibilidad 
         );
         return aDisponibilidad(existencias);
       })
-    : mockRequest<ProductoDisponibilidad | null>(() => PRODUCTOS.find((p) => p.sku === sku) ?? null);
+    : mockRequest<ProductoDisponibilidad | null>(
+        () => PRODUCTOS.find((p) => p.sku === sku) ?? null,
+      );
 
 /** Categorías presentes en el catálogo, en orden alfabético. */
 export const listarCategorias = (): Promise<string[]> =>
@@ -225,7 +237,9 @@ export const listarCategorias = (): Promise<string[]> =>
     ? listarCategoriasApi().then((categorias) =>
         categorias.map((c) => c.nombre).sort((a, b) => a.localeCompare(b, 'es')),
       )
-    : mockRequest(() => [...new Set(PRODUCTOS.map((p) => p.categoria))].sort((a, b) => a.localeCompare(b, 'es')));
+    : mockRequest(() =>
+        [...new Set(PRODUCTOS.map((p) => p.categoria))].sort((a, b) => a.localeCompare(b, 'es')),
+      );
 
 /** Registra un producto nuevo. Sin existencias iniciales: las cantidades se registran por recepción. */
 export const registrarProducto = (datos: DatosProducto): Promise<ProductoCatalogo> =>

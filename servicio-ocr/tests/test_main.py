@@ -4,6 +4,7 @@ import httpx
 import pytest
 import respx
 from fastapi.testclient import TestClient
+from pydantic import ValidationError
 
 from app import main
 from app.extractor import Extraccion, LineaLeida
@@ -27,7 +28,7 @@ class ModeloGrabado:
         self, extraccion: Extraccion | None = None, falla: bool = False, error: Exception | None = None
     ) -> None:
         self.extraccion = extraccion
-        self.error = error or (RuntimeError("API no disponible") if falla else None)
+        self.error = error or (TimeoutError("API no disponible") if falla else None)
         self.llamadas = 0
 
     def extraer(self, contenido: bytes, tipo_mime: str) -> Extraccion:
@@ -94,7 +95,7 @@ def test_procesa_y_registra_el_resultado_con_el_token_recibido(
     assert peticion.headers["Authorization"] == "Bearer token-812"
     cuerpo = json.loads(peticion.content)
     assert cuerpo["resultado"] == "procesado"
-    assert cuerpo["detalles"][0]["cantidadLeida"] == "2"
+    assert cuerpo["detalles"][0]["cantidadLeida"] == 2
     assert cuerpo["detalles"][0]["coincidencias"][0]["sku"] == "CEM-001"
     assert cuerpo["detalles"][1] == {"textoCrudo": "pintura azul", "cantidadLeida": None, "coincidencias": []}
 
@@ -161,3 +162,31 @@ def test_un_error_5xx_de_la_api_se_reintenta(cliente: TestClient, monkeypatch: p
 
     assert enviar(cliente, solicitud()).status_code == 202
     assert modelo.llamadas == 2
+
+
+@respx.mock
+def test_una_respuesta_fuera_del_esquema_no_se_reintenta(cliente: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    try:
+        Extraccion.model_validate_json("{}")
+    except ValidationError as error:
+        invalida = error
+    modelo = ModeloGrabado(error=invalida)
+    monkeypatch.setattr(main, "_modelo", modelo)
+
+    assert enviar(cliente, solicitud()).status_code == 202
+    assert modelo.llamadas == 1
+
+
+def test_exige_el_token_interno_cuando_esta_configurado(cliente: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("MIGAL_OCR_TOKEN_INTERNO", "secreto-compartido")
+    main.configuracion.cache_clear()
+    monkeypatch.setattr(main, "_modelo", ModeloGrabado(extraccion=Extraccion(legible=False, lineas=[])))
+
+    assert enviar(cliente, solicitud()).status_code == 401
+    respuesta = cliente.post(
+        "/procesar",
+        files={"archivo": ("3f2a.png", PNG, "image/png")},
+        data={"solicitud": solicitud()},
+        headers={"X-Token-Interno": "secreto-compartido"},
+    )
+    assert respuesta.status_code == 202

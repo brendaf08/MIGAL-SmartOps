@@ -25,6 +25,10 @@ class Configuracion(BaseSettings):
     tiempo_backend_segundos: float = 5.0
     """Tiempo máximo de cada intento de registrar el resultado en el backend."""
 
+    migal_ocr_token_interno: str = ""
+    """Secreto compartido con el backend (MIGAL_OCR_TOKEN_INTERNO). Si está definido, POST /procesar exige la cabecera
+    X-Token-Interno con este valor, para que otro proceso de la red no consuma la cuota de Gemini."""
+
 
 @lru_cache
 def configuracion() -> Configuracion:

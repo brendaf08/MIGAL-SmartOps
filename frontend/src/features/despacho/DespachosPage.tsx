@@ -19,6 +19,7 @@ import { Tabs } from '@/components/ui/Tabs/Tabs';
 import { formatDate, formatNumber } from '@/lib/format';
 import { listarOrdenes, reservaCompleta } from './api';
 import { generarOrden, reimprimirOrden, ventasParaOrden, type VentaParaOrden } from './ordenes/api';
+import { usePermisos } from '@/features/seguridad/permisos';
 import type { EstadoGuia, OrdenDespacho } from './types';
 
 /** Pestañas del listado: cada una agrupa las órdenes de un estado de la guía. */
@@ -64,6 +65,7 @@ const columnsOrdenes: Column<OrdenDespacho>[] = [
 
 /** CU-06: órdenes de despacho por estado y ventas listas para generar su orden. */
 export function DespachosPage() {
+  const puede = usePermisos();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [pestana, setPestana] = useState(PESTANAS[0]!.value);
@@ -138,21 +140,26 @@ export function DespachosPage() {
       header: 'Orden',
       render: (v) => (v.orden ? `Con orden ${v.orden.id}` : 'Sin orden'),
     },
-    {
-      key: 'accion',
-      header: 'Acción',
-      render: (v) => (
-        <Button
-          size="sm"
-          variant="default"
-          leftSection={<Icon name="despacho" size={16} />}
-          aria-label={`Generar orden de despacho para ${v.venta.id}`}
-          onClick={() => setSeleccion(v)}
-        >
-          Generar orden de despacho
-        </Button>
-      ),
-    },
+    // Generar la orden es del Almacenero (POST /guias-despacho); el Administrador solo consulta.
+    ...(puede('operarDespacho')
+      ? [
+          {
+            key: 'accion',
+            header: 'Acción',
+            render: (v: VentaParaOrden) => (
+              <Button
+                size="sm"
+                variant="default"
+                leftSection={<Icon name="despacho" size={16} />}
+                aria-label={`Generar orden de despacho para ${v.venta.id}`}
+                onClick={() => setSeleccion(v)}
+              >
+                Generar orden de despacho
+              </Button>
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (

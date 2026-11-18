@@ -135,21 +135,19 @@ export interface DocumentoOrden {
 
 export const obtenerDocumentoOrden = (id: string): Promise<DocumentoOrden> =>
   API_REAL
-    ? api
-        .get<GuiaApi>(`/guias-despacho/${encodeURIComponent(id)}/documento`)
-        .then((g) => ({
-          orden: ordenDesde(g),
-          // La guía registra la fecha de emisión; la fecha de la venta no llega con el documento.
-          fecha: g.fechaEmision.slice(0, 10),
-          direccion: g.direccionEntrega,
-          lineas: g.lineas.map((l) => ({
-            sku: l.sku,
-            nombre: l.nombre,
-            cantidad: l.cantidad,
-            reservado: l.ubicacionesSalida.reduce((suma, u) => suma + u.cantidad, 0),
-            unidad: l.unidad,
-          })),
-        }))
+    ? api.get<GuiaApi>(`/guias-despacho/${encodeURIComponent(id)}/documento`).then((g) => ({
+        orden: ordenDesde(g),
+        // La guía registra la fecha de emisión; la fecha de la venta no llega con el documento.
+        fecha: g.fechaEmision.slice(0, 10),
+        direccion: g.direccionEntrega,
+        lineas: g.lineas.map((l) => ({
+          sku: l.sku,
+          nombre: l.nombre,
+          cantidad: l.cantidad,
+          reservado: l.ubicacionesSalida.reduce((suma, u) => suma + u.cantidad, 0),
+          unidad: l.unidad,
+        })),
+      }))
     : mockRequest<DocumentoOrden>(() => {
         const orden = ORDENES.find((o) => o.id === id);
         if (!orden) throw new Error('Orden no encontrada');

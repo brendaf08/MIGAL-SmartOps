@@ -5,13 +5,7 @@ import { resumen } from '@/features/inventario/calculos';
 import { PRODUCTOS } from '@/features/inventario/fixtures';
 import { COTIZACIONES } from '../../fixtures';
 import type { Cotizacion } from '../../types';
-import {
-  paginas,
-  productoIdDeSku,
-  ventaDesde,
-  type VentaApi,
-  type VentaResumenApi,
-} from '../api';
+import { paginas, productoIdDeSku, ventaDesde, type VentaApi, type VentaResumenApi } from '../api';
 import { VENTAS } from '../fixtures';
 import type { LineaVenta, Venta } from '../tipos';
 import { calcularAtencion, type ModalidadAtencion, type ResultadoAtencion } from './atencion';
@@ -30,7 +24,13 @@ interface CotizacionApi {
   condicionesComerciales: string | null;
   descuento: number;
   subtotal: number;
-  lineas: { productoId: string; sku: string; nombreProducto: string; cantidad: number; precioUnitario: number }[];
+  lineas: {
+    productoId: string;
+    sku: string;
+    nombreProducto: string;
+    cantidad: number;
+    precioUnitario: number;
+  }[];
 }
 
 /** Convierte una cotización validada de la API al tipo de la interfaz, sin detalle de condiciones. */
@@ -78,9 +78,11 @@ export const cotizacionUtilizable = (id: string): Cotizacion | undefined =>
   API_REAL
     ? undefined
     : COTIZACIONES.find(
-    (c) =>
-      c.id === id && c.estado === 'AceptadaCliente' && !VENTAS.some((v) => v.cotizacionId === c.id),
-  );
+        (c) =>
+          c.id === id &&
+          c.estado === 'AceptadaCliente' &&
+          !VENTAS.some((v) => v.cotizacionId === c.id),
+      );
 
 export interface EntradaVenta {
   clienteId?: string;

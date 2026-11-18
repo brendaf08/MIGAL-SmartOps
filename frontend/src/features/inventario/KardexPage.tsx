@@ -23,9 +23,9 @@ import { QueryTable } from '@/components/ui/QueryTable/QueryTable';
 import { SearchInput } from '@/components/ui/SearchInput/SearchInput';
 import { formatDate } from '@/lib/format';
 import { UBICACIONES } from './movimientos/esquema';
-import { listarMovimientosFiltrados, SIN_FILTROS_KARDEX, type FiltrosKardex } from './api';
-import { MOVIMIENTOS } from './fixtures';
+import { consultarKardex, SIN_FILTROS_KARDEX, type FiltrosKardex } from './api';
 import type { Movimiento } from './types';
+import { usePermisos } from '@/features/seguridad/permisos';
 
 const PAGE_SIZE = 20;
 
@@ -38,10 +38,13 @@ const ORIGEN_TEXTO: Record<Movimiento['origen'], string> = {
 
 const ORIGENES = Object.entries(ORIGEN_TEXTO).map(([value, label]) => ({ value, label }));
 
-/** Par de un movimiento de traslado: la salida y la entrada se registran juntas, con igual fecha, producto y cantidad. */
-const parDe = (m: Movimiento) =>
+/**
+ * Par de un movimiento de traslado: la salida y la entrada se registran juntas, con igual fecha, producto y cantidad.
+ * Se busca entre los movimientos consultados, no en los datos de prueba.
+ */
+const parDe = (m: Movimiento, movimientos: readonly Movimiento[]) =>
   m.origen === 'Traslado'
-    ? MOVIMIENTOS.find(
+    ? movimientos.find(
         (o) =>
           o.id !== m.id &&
           o.origen === 'Traslado' &&
@@ -52,7 +55,7 @@ const parDe = (m: Movimiento) =>
       )
     : undefined;
 
-const columns: Column<Movimiento>[] = [
+const columnas = (movimientos: readonly Movimiento[]): Column<Movimiento>[] => [
   { key: 'fecha', header: 'Fecha', render: (m) => formatDate(m.fecha) },
   { key: 'sku', header: 'SKU', mono: true, primary: true },
   { key: 'producto', header: 'Producto', phone: false },
@@ -65,7 +68,7 @@ const columns: Column<Movimiento>[] = [
     key: 'origen',
     header: 'Origen',
     render: (m) => {
-      const par = parDe(m);
+      const par = parDe(m, movimientos);
       return (
         <Stack gap={0}>
           <span>{ORIGEN_TEXTO[m.origen]}</span>
@@ -96,6 +99,7 @@ function etiquetasDe(f: FiltrosKardex) {
 
 /** P14. Kardex con filtros combinables; en teléfono los filtros se agrupan en una hoja. */
 export function KardexPage() {
+  const puede = usePermisos();
   const navigate = useNavigate();
   const location = useLocation();
   const enHoja = useMatches({ base: true, sm: false });
@@ -108,8 +112,8 @@ export function KardexPage() {
   const consulta = { ...filtros, q: debouncedQ };
 
   const query = useQuery({
-    queryKey: ['kardex', consulta],
-    queryFn: () => listarMovimientosFiltrados(consulta),
+    queryKey: ['kardex', consulta, page],
+    queryFn: () => consultarKardex(consulta, page, PAGE_SIZE),
     placeholderData: keepPreviousData,
   });
 
@@ -121,8 +125,9 @@ export function KardexPage() {
     return () => window.clearTimeout(timer);
   }, [location.state]);
 
-  const movimientos = query.data ?? [];
-  const pagina = movimientos.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  // El servidor devuelve solo la página en pantalla y el total que cumple los filtros.
+  const pagina = query.data?.items ?? [];
+  const total = query.data?.total ?? 0;
   const etiquetas = etiquetasDe(filtros);
 
   /** Cambiar un filtro vuelve a la primera página. */
@@ -190,9 +195,14 @@ export function KardexPage() {
         title="Movimientos y Kardex"
         description="Entradas y salidas de mercadería por producto y ubicación."
         actions={
-          <Button leftSection={<Icon name="plus" />} onClick={() => void navigate('/kardex/nuevo')}>
-            Registrar movimiento
-          </Button>
+          puede('registrarMovimiento') && (
+            <Button
+              leftSection={<Icon name="plus" />}
+              onClick={() => void navigate('/kardex/nuevo')}
+            >
+              Registrar movimiento
+            </Button>
+          )
         }
       />
       {enHoja ? (
@@ -233,7 +243,7 @@ export function KardexPage() {
         query={{ data: pagina, isLoading: query.isLoading, isError: query.isError }}
         errorTitle="No se pudo cargar el Kardex"
         caption="Movimientos de Kardex"
-        columns={columns}
+        columns={columnas(pagina)}
         rowKey="id"
         changedKey={resaltado}
         empty={
@@ -252,12 +262,7 @@ export function KardexPage() {
       />
       {!query.isError && (
         <div>
-          <Pagination
-            page={page}
-            total={movimientos.length}
-            pageSize={PAGE_SIZE}
-            onChange={setPage}
-          />
+          <Pagination page={page} total={total} pageSize={PAGE_SIZE} onChange={setPage} />
         </div>
       )}
       <Modal
@@ -276,7 +281,7 @@ export function KardexPage() {
         <Stack gap="md">
           {campos}
           <Text size="sm" c="dimmed">
-            {movimientos.length} movimientos con los filtros aplicados.
+            {total} movimientos con los filtros aplicados.
           </Text>
         </Stack>
       </Modal>

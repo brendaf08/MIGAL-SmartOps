@@ -106,9 +106,22 @@ docker exec -i migal-postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_E
 El archivo opcional `precios.csv` (líneas `codigo,precio`) completa los productos que llegan sin precio desde Odoo;
 los que siguen sin precio se cargan con precio 0.
 
+## Respaldos (RNF-12)
+
+En el entorno local, `scripts/respaldar-bd.ps1` genera un respaldo completo con `pg_dump` en formato personalizado,
+dentro de la carpeta `respaldos/` (excluida de Git), con la fecha y hora en el nombre. Para restaurarlo sobre una base
+vacía:
+
+```bash
+docker exec -i migal-postgres sh -c 'pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" --clean --if-exists' < respaldos/ARCHIVO.dump
+```
+
+En Supabase, los respaldos diarios los realiza la plataforma según el plan contratado; antes de una migración
+riesgosa conviene descargar un respaldo manual desde el panel del proyecto.
+
 ## Estado de Supabase y migraciones
 
-La verificación del 15 de noviembre de 2026 encontró en el esquema `public` las tablas del sistema y `flyway_schema_history`, con línea base 0 y migraciones V1 a V15, todas con `success = true`. El esquema del proyecto Supabase actual ya está aplicado. La migración V16 (`fecha_encolado` de `documento_digital`, ADR-012) se aplica en Supabase cuando el backend arranque por primera vez con una versión que la incluya; hasta entonces el proyecto permanece en V15.
+La verificación del 15 de noviembre de 2026 encontró en el esquema `public` las tablas del sistema y `flyway_schema_history`, con línea base 0 y migraciones V1 a V15, todas con `success = true`. El esquema del proyecto Supabase actual ya está aplicado. Las migraciones V16 (`fecha_encolado` de `documento_digital`, ADR-012) V17 (índices de los listados y unicidad del documento de una recepción) y V18 (rol `demostracion`, ADR-013) se aplican en Supabase cuando el backend arranque por primera vez con una versión que las incluya; hasta entonces el proyecto permanece en V15.
 
 Las migraciones versionadas de `database/migraciones/` son la fuente del esquema. Para cambios futuros, agrega una nueva migración Flyway; no edites migraciones ya ejecutadas ni modifiques el esquema mediante el editor SQL de Supabase o sus migraciones propias.
 

@@ -50,7 +50,9 @@ backend/almacen-documentos/
 .impeccable/
 frontend/CLAUDE.md
 # Evidencias y reportes locales de extremo a extremo (base temporal por ejecución).
-/artifacts/e2e-local/
+/artifacts/
+/respaldos/
+.ruff_cache/
 # Metadatos de instalación del servicio de OCR (pip install -e).
 *.egg-info/
 

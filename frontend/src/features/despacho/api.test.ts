@@ -95,7 +95,14 @@ describe('despacho (API real)', () => {
         cliente: 'Constructora Los Andes S.A.C.',
         estado: 'Emitida',
         entrega: 'Completa',
-        lineas: [{ sku: 'CEM-001', nombre: 'Cemento Sol tipo I, bolsa 42.5 kg', cantidad: 200, reservado: 200 }],
+        lineas: [
+          {
+            sku: 'CEM-001',
+            nombre: 'Cemento Sol tipo I, bolsa 42.5 kg',
+            cantidad: 200,
+            reservado: 200,
+          },
+        ],
       },
     ]);
   });
@@ -104,10 +111,21 @@ describe('despacho (API real)', () => {
     const api = await cargarApiReal();
     fetchMock.mockResolvedValueOnce(
       respuesta({
-        guia: guiaApi({ estado: 'salida_confirmada', usuarioResponsableId: '7', fechaSalidaReal: '2026-11-07T14:32:10-05:00' }),
+        guia: guiaApi({
+          estado: 'salida_confirmada',
+          usuarioResponsableId: '7',
+          fechaSalidaReal: '2026-11-07T14:32:10-05:00',
+        }),
         movimientos: [],
         cambios: [
-          { productoId: '42', sku: 'CEM-001', ubicacionId: '101', unidad: 'bolsa', antes: 120, despues: 80 },
+          {
+            productoId: '42',
+            sku: 'CEM-001',
+            ubicacionId: '101',
+            unidad: 'bolsa',
+            antes: 120,
+            despues: 80,
+          },
         ],
       }),
     );
@@ -119,17 +137,26 @@ describe('despacho (API real)', () => {
     expect(cabeceras(0)['Idempotency-Key']).toBe('clave-salida-1');
     expect(resultado.orden.estado).toBe('SalidaConfirmada');
     expect(resultado.cambios).toEqual([
-      { producto: 'Cemento Sol tipo I, bolsa 42.5 kg', ubicacion: 'Tienda principal', antes: 120, despues: 80, unidad: 'bolsa' },
+      {
+        producto: 'Cemento Sol tipo I, bolsa 42.5 kg',
+        ubicacion: 'Tienda principal',
+        antes: 120,
+        despues: 80,
+        unidad: 'bolsa',
+      },
     ]);
   });
 
   it('propaga RESERVA_INCOMPLETA al confirmar la salida', async () => {
     const api = await cargarApiReal();
     fetchMock.mockResolvedValueOnce(
-      new Response(JSON.stringify({ code: 'RESERVA_INCOMPLETA', detail: 'Reserva incompleta.', status: 409 }), {
-        status: 409,
-        headers: { 'Content-Type': 'application/problem+json' },
-      }),
+      new Response(
+        JSON.stringify({ code: 'RESERVA_INCOMPLETA', detail: 'Reserva incompleta.', status: 409 }),
+        {
+          status: 409,
+          headers: { 'Content-Type': 'application/problem+json' },
+        },
+      ),
     );
 
     await expect(api.confirmarSalida('31', 'clave-salida-2')).rejects.toMatchObject({
@@ -152,7 +179,18 @@ describe('despacho (API real)', () => {
   it('registra la reimpresión con motivo y luego consulta la guía', async () => {
     const api = await cargarApiReal();
     fetchMock
-      .mockResolvedValueOnce(respuesta({ id: '18', idGuia: '31', fechaHora: '2026-11-07T16:05:44-05:00', usuarioId: '7', motivo: 'Documento dañado' }, 201))
+      .mockResolvedValueOnce(
+        respuesta(
+          {
+            id: '18',
+            idGuia: '31',
+            fechaHora: '2026-11-07T16:05:44-05:00',
+            usuarioId: '7',
+            motivo: 'Documento dañado',
+          },
+          201,
+        ),
+      )
       .mockResolvedValueOnce(respuesta(guiaApi()));
 
     const orden = await api.reimprimirOrden('31', '  Documento dañado  ');
@@ -166,7 +204,9 @@ describe('despacho (API real)', () => {
   it('no registra la reimpresión sin motivo', async () => {
     const api = await cargarApiReal();
 
-    await expect(api.reimprimirOrden('31', '   ')).rejects.toThrow('Indicar el motivo de la reimpresión.');
+    await expect(api.reimprimirOrden('31', '   ')).rejects.toThrow(
+      'Indicar el motivo de la reimpresión.',
+    );
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -180,5 +220,16 @@ describe('despacho (API real)', () => {
     expect(documento.direccion).toBe('Av. Javier Prado Este 4200, San Borja, Lima');
     expect(documento.fecha).toBe('2026-11-06');
     expect(documento.lineas[0]).toMatchObject({ sku: 'CEM-001', unidad: 'bolsa', cantidad: 200 });
+  });
+
+  it('registra la entrega con POST /guias-despacho/{id}/entrega', async () => {
+    const api = await cargarApiReal();
+    fetchMock.mockResolvedValueOnce(respuesta(guiaApi({ estado: 'entregada' })));
+
+    const orden = await api.registrarEntrega('31');
+
+    expect(llamada(0)[0]).toBe('/api/v1/guias-despacho/31/entrega');
+    expect(llamada(0)[1]?.method).toBe('POST');
+    expect(orden.estado).toBe('Entregada');
   });
 });

@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { StatusBadge } from '@/components/domain/StatusBadge/StatusBadge';
+import { tieneRol } from '@/features/seguridad/roles';
 import { useSession } from '@/features/seguridad/session';
 import { PageHeader } from '@/components/layout/PageHeader/PageHeader';
 import { type Column } from '@/components/ui/DataTable/DataTable';
@@ -85,7 +86,7 @@ export function ComprasPage() {
         title="Órdenes de compra"
         description="Órdenes emitidas a proveedores y su avance de recepción."
         actions={
-          user?.role === 'Reponedor' && (
+          tieneRol(user?.role, ['Reponedor']) && (
             <Button
               leftSection={<Icon name="plus" />}
               onClick={() => void navigate('/compras/nueva')}

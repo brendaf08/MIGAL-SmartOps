@@ -48,12 +48,17 @@ export function LoginPage() {
         <Card>
           <form onSubmit={form.onSubmit((values) => mutation.mutate(values))} noValidate>
             <Stack gap="sm">
-              {mutation.isError && (
-                <Alert color="danger" title="Credenciales incorrectas" role="alert">
-                  Verificar el usuario y la contraseña. Tras cinco intentos fallidos la cuenta se
-                  bloquea temporalmente.
-                </Alert>
-              )}
+              {mutation.isError &&
+                (mutation.error.message === 'Credenciales incorrectas' ? (
+                  <Alert color="danger" title="Credenciales incorrectas" role="alert">
+                    Verificar el usuario y la contraseña. Tras cinco intentos fallidos el acceso se
+                    bloquea durante 15 minutos.
+                  </Alert>
+                ) : (
+                  <Alert color="danger" title="No se pudo iniciar sesión" role="alert">
+                    {mutation.error.message}
+                  </Alert>
+                ))}
               <TextInput
                 label="Usuario"
                 size="lg"

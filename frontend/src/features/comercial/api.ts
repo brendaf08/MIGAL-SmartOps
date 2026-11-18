@@ -6,6 +6,7 @@ import { CLIENTES } from './clientes/fixtures';
 import { estadoVigente, hoyIso, sumarDias } from './calculos';
 import { COTIZACIONES } from './fixtures';
 import type { Cliente, Cotizacion, EstadoCotizacion, LineaCotizacion } from './types';
+import { productoIdDeSku } from '@/api/productos';
 
 /** Copia de una cotización con el estado vigente a la fecha de consulta (CU-09, flujo alternativo 3). */
 const conEstadoVigente = (c: Cotizacion): Cotizacion => ({
@@ -93,20 +94,6 @@ const cotizacionDesde = (c: CotizacionApi): Cotizacion => ({
     precio: l.precioUnitario,
   })),
 });
-
-/**
- * Resuelve el identificador técnico del producto a partir de su SKU. El vendedor puede consultar disponibilidad
- * (CU-04), pero no el catálogo maestro (CU-03).
- */
-async function productoIdDeSku(sku: string): Promise<string> {
-  const pagina = await api.get<{ items: { productoId: string; sku: string }[] }>(
-    '/inventario/disponibilidad',
-    { sku, pageSize: 1 },
-  );
-  const producto = pagina.items.find((p) => p.sku === sku);
-  if (!producto) throw new Error(`No se encontró el producto con SKU ${sku} en el catálogo.`);
-  return producto.productoId;
-}
 
 /** Cuerpo de CotizacionDatos. El descuento de la interfaz es una fracción que se convierte en monto. */
 async function cuerpoDesde(datos: DatosCotizacion) {

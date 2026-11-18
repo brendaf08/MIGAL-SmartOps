@@ -10,6 +10,8 @@ from typing import Protocol
 
 from pydantic import BaseModel, Field
 
+from app.esquemas import CANTIDAD_MAXIMA
+
 REGISTRO = logging.getLogger(__name__)
 
 INSTRUCCIONES = """\
@@ -67,23 +69,30 @@ class ModeloGemini:
 
 
 def cantidad_valida(valor: float | None) -> Decimal | None:
-    """Cantidad no negativa con hasta tres decimales, como exige CantidadNoNegativa; otra lectura se descarta."""
+    """Cantidad no negativa, menor a 10^11 y con hasta tres decimales (CantidadNoNegativa y numeric(14,3)); otra
+    lectura, como un RUC tomado por cantidad, se descarta."""
     if valor is None:
         return None
     try:
         cantidad = Decimal(str(valor)).quantize(Decimal("0.001"))
     except (InvalidOperation, ValueError):
         return None
-    if cantidad < 0:
+    if cantidad < 0 or cantidad >= CANTIDAD_MAXIMA:
         return None
-    return cantidad.normalize() if cantidad == cantidad.to_integral() else cantidad
+    return cantidad
 
 
 def es_reintentable(error: Exception) -> bool:
-    """Un error 4xx de la API (cuota agotada 429, clave inválida 403, solicitud rechazada 400) se repite igual al
-    reintentar; solo los fallos de red, los tiempos agotados y los 5xx pueden resolverse con otro intento."""
+    """Solo los fallos transitorios se reintentan: 5xx de la API, tiempos agotados y errores de red. Un 4xx (cuota
+    agotada 429, clave inválida 403, solicitud rechazada 400) o una respuesta que no cumple el esquema
+    (``pydantic.ValidationError``) se repetiría igual y solo gastaría otra solicitud de la cuota."""
     codigo = getattr(error, "code", None)
-    return not (isinstance(codigo, int) and 400 <= codigo < 500)
+    if isinstance(codigo, int):
+        return codigo >= 500
+    if isinstance(error, TimeoutError | ConnectionError):
+        return True
+    nombre = type(error).__name__
+    return "Timeout" in nombre or "Connect" in nombre or "Network" in nombre
 
 
 def extraer_con_reintento(modelo: ModeloVision, contenido: bytes, tipo_mime: str) -> Extraccion:

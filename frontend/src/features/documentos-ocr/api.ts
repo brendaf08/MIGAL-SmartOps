@@ -1,6 +1,7 @@
 import { API_REAL, api } from '@/api/cliente';
 import { mockRequest } from '@/api/mock';
 import { recorrerPaginas } from '@/api/paginacion';
+import { idsDeProductosPorSku } from '@/api/productos';
 
 /** Tipos de documento que se cargan desde P23; los dos últimos solo aparecen en documentos ya procesados. */
 export type TipoDocumento =
@@ -189,10 +190,7 @@ const aDocumento = (documento: DocumentoResumenApi, detalles: DetalleApi[] = [])
   lineas: detalles.filter((d) => !d.descartado).map(aLinea),
 });
 
-const productosPorSku = async (): Promise<Map<string, string>> => {
-  const productos = await recorrerPaginas<{ id: string; sku: string }>('/productos');
-  return new Map(productos.map((p) => [p.sku, p.id] as const));
-};
+const productosPorSku = idsDeProductosPorSku;
 
 const INTERVALO_SONDEO_MS = 1500;
 const MAXIMO_SONDEOS = 40;
@@ -214,6 +212,8 @@ const procesarDocumentoReal = async (archivo: File, tipo: TipoDocumento): Promis
   const registrado = await api.subir<DocumentoResumenApi>('/documentos', formulario);
   const documento = await esperarProcesamiento(registrado.id);
   if (documento.codigoError === 'DOCUMENTO_ILEGIBLE') throw new Error('Documento ilegible.');
+  if (documento.codigoError === 'SERVICIO_NO_DISPONIBLE')
+    throw new Error('El servicio de OCR no respondió. Intentar de nuevo en unos minutos.');
   if (documento.codigoError) throw new Error('No se pudo procesar el documento.');
   return aDocumento(documento, documento.detalles);
 };

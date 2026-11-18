@@ -11,6 +11,23 @@ on:
       - 'backend/**'
       - 'database/migraciones/**'
       - '.github/workflows/verificar-backend.yml'
+      - 'servicio-ocr/api/procesar.yaml'
+  # También al integrar en main, para detectar a tiempo una rotura por la combinación de PR.
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - 'database/migraciones/**'
+      - '.github/workflows/verificar-backend.yml'
+      - 'servicio-ocr/api/procesar.yaml'
+
+permissions:
+  contents: read
+
+# Un push nuevo a la misma rama cancela la verificación anterior.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   verificar:

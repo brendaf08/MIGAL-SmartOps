@@ -19,6 +19,12 @@ public final class SolicitudesUsuario {
 			@NotBlank @Size(max = 255) String clave) {
 	}
 
+	/** Cambio de clave del usuario autenticado, según el esquema {@code CambioClave}. */
+	public record CambioClave(
+			@NotBlank @Size(max = 255) String claveActual,
+			@NotBlank @Size(max = 255) @Pattern(regexp = "^(?=.*[A-Za-z])(?=.*[0-9]).{8,}$") String claveNueva) {
+	}
+
 	/** {@code UsuarioNuevo}. */
 	public record Nuevo(
 			@NotBlank @Size(max = 100) String nombres,

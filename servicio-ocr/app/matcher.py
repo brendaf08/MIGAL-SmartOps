@@ -18,7 +18,7 @@ el catálogo real de 818 productos, 47 de esas líneas reciben sugerencia sobre 
 
 from dataclasses import dataclass
 
-from rapidfuzz import fuzz
+from rapidfuzz import fuzz, process
 
 from app.esquemas import Coincidencia, ProductoCatalogo
 from app.normalizador import TextoNormalizado, normalizar, tipo_de_medida
@@ -30,6 +30,9 @@ FACTOR_TIPO_DISTINTO = 0.7
 SIMILITUD_TIPO = 80
 MATERIALES = frozenset({"pvc", "cpvc", "bronce", "galvanizado", "cobre", "acero"})
 MAXIMO_COINCIDENCIAS = 3
+# Con catálogos grandes, solo los candidatos más parecidos por conjunto de palabras (calculado en C++ por RapidFuzz)
+# pasan al puntaje completo, que se calcula en Python.
+CANDIDATOS_PREFILTRO = 50
 
 
 @dataclass(frozen=True)
@@ -98,6 +101,14 @@ def puntaje(linea: TextoNormalizado, candidato: TextoNormalizado) -> float:
 def coincidencias(texto: str, candidatos: list[Candidato], umbral_baja: float) -> list[Coincidencia]:
     """Hasta tres coincidencias con confianza igual o mayor al umbral, de mayor a menor."""
     linea = normalizar(texto)
+    if len(candidatos) > CANDIDATOS_PREFILTRO and linea.texto:
+        elegidos = process.extract(
+            linea.texto,
+            [c.normalizado.texto for c in candidatos],
+            scorer=fuzz.token_set_ratio,
+            limit=CANDIDATOS_PREFILTRO,
+        )
+        candidatos = [candidatos[indice] for _, _, indice in elegidos]
     puntuados = [(puntaje(linea, c.normalizado), c.sku) for c in candidatos]
     seleccionados = sorted((p for p in puntuados if p[0] >= umbral_baja), key=lambda p: (-p[0], p[1]))
     return [Coincidencia(sku=sku, confianza=valor) for valor, sku in seleccionados[:MAXIMO_COINCIDENCIAS]]

@@ -1,5 +1,6 @@
 import { Button, Radio, Select, Stack, Text } from '@mantine/core';
 import { useForm } from '@mantine/form';
+import { notifications } from '@mantine/notifications';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { zod4Resolver } from 'mantine-form-zod-resolver';
 import { useEffect, useRef, useState } from 'react';
@@ -58,6 +59,9 @@ const lineasDeCotizacion = (c: Cotizacion) => {
 };
 
 /** Pantalla del registro de venta (P20). Al terminar, una nueva ronda reinicia el formulario. */
+const plural = (n: number, uno: string, varios: string) =>
+  `${formatNumber(n)} ${n === 1 ? uno : varios}`;
+
 export function VentaFormPage() {
   const [ronda, setRonda] = useState(0);
   return <RegistroVenta key={ronda} onOtra={() => setRonda((r) => r + 1)} />;
@@ -142,6 +146,14 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
       await queryClient.invalidateQueries({ queryKey: ['ventas'] });
       setConfirmando(false);
       setResultado(r);
+    },
+    onError: (e) => {
+      setConfirmando(false);
+      notifications.show({
+        color: 'danger',
+        title: 'No se pudo registrar la venta',
+        message: e.message,
+      });
     },
   });
 
@@ -376,7 +388,7 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
         open={confirmando}
         title="Confirmar la venta"
         consequences={[
-          `Se registrarán ${formatNumber(vista.lineas.filter((l) => l.atendida > 0).length)} salidas en el Kardex.`,
+          `Se reservará el stock de ${plural(vista.lineas.filter((l) => l.atendida > 0).length, 'producto', 'productos')}. La salida del Kardex se registra al confirmar el despacho.`,
           ...(vista.totalPendiente > 0
             ? [`Quedan ${formatNumber(vista.totalPendiente)} unidades pendientes.`]
             : []),

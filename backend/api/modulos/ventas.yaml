@@ -307,6 +307,7 @@ components:
         - clienteNombre
         - estado
         - total
+        - unidadesPendientes
       properties:
         id:
           $ref: ../componentes/esquemas-comunes.yaml#/Identificador
@@ -324,6 +325,12 @@ components:
           description: Subtotal menos descuento. Derivado, de solo lectura.
           $ref: ../componentes/esquemas-comunes.yaml#/Importe
           readOnly: true
+        unidadesPendientes:
+          description: >-
+            Unidades que faltan reservar en todas las líneas. Cero en una venta despachada o cancelada. Permite
+            mostrar lo pendiente en el listado sin consultar el detalle de cada venta.
+          $ref: ../componentes/esquemas-comunes.yaml#/CantidadNoNegativa
+          readOnly: true
       example:
         id: "501"
         fechaVenta: "2026-11-07T16:45:00-05:00"
@@ -332,6 +339,7 @@ components:
         clienteNombre: Constructora Ejemplo SAC
         estado: pendiente_abastecimiento
         total: 1350
+        unidadesPendientes: 10
     VentaPagina:
       description: Página de ventas con el sobre de paginación común, de la más reciente a la más antigua.
       allOf:

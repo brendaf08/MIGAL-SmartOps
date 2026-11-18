@@ -9,6 +9,7 @@ import { Icon } from '@/components/ui/Icon/Icon';
 import { formatDate } from '@/lib/format';
 import { listarRecepciones } from './api';
 import type { RecepcionListada } from './types';
+import { usePermisos } from '@/features/seguridad/permisos';
 
 const columns: Column<RecepcionListada>[] = [
   { key: 'id', header: 'Recepción', mono: true, primary: true },
@@ -31,6 +32,7 @@ const columns: Column<RecepcionListada>[] = [
 
 /** CU-13: historial de recepciones y acceso a una nueva recepción con documento. */
 export function RecepcionesPage() {
+  const puede = usePermisos();
   const navigate = useNavigate();
   const query = useQuery({ queryKey: ['recepciones'], queryFn: listarRecepciones });
 
@@ -40,12 +42,14 @@ export function RecepcionesPage() {
         title="Recepciones"
         description="Mercadería recibida de proveedores."
         actions={
-          <Button
-            leftSection={<Icon name="scan" />}
-            onClick={() => void navigate('/recepciones/nueva')}
-          >
-            Nueva recepción
-          </Button>
+          puede('registrarRecepcion') && (
+            <Button
+              leftSection={<Icon name="scan" />}
+              onClick={() => void navigate('/recepciones/nueva')}
+            >
+              Nueva recepción
+            </Button>
+          )
         }
       />
       <QueryTable

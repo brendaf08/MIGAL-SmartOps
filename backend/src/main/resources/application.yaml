@@ -13,6 +13,11 @@ spring:
     open-in-view: false
     hibernate:
       ddl-auto: validate
+    properties:
+      hibernate:
+        # Las asociaciones de los listados (líneas, cotización, cliente, producto) se cargan por lotes de hasta 100
+        # identificadores en lugar de una consulta por fila (N+1). Las pruebas de listado lo verifican.
+        default_batch_fetch_size: 100
   servlet:
     multipart:
       # Límite de 10 MB por archivo del contrato; la solicitud admite además el resto del cuerpo multipart.
@@ -41,6 +46,12 @@ migal:
     administrador-inicial:
       username: ${MIGAL_ADMIN_USERNAME:}
       clave: ${MIGAL_ADMIN_CLAVE:}
+    # Rol de demostración (ADR-013): reúne los permisos de los cuatro roles para presentar el sistema con una sola
+    # cuenta. Desactivado por defecto; con él desactivado, la cuenta de demostración no puede iniciar sesión.
+    demostracion:
+      habilitada: ${MIGAL_ROL_DEMOSTRACION:false}
+      username: ${MIGAL_DEMO_USERNAME:}
+      clave: ${MIGAL_DEMO_CLAVE:}
   ocr:
     # Proveedor del servicio de OCR: simulado (por defecto, para desarrollo y pruebas), no-configurado, que responde
     # SERVICIO_NO_DISPONIBLE, o http, que envía los documentos al servicio de OCR (ADR-012). Los umbrales del Fuzzy
@@ -57,6 +68,8 @@ migal:
       intervalo-vigilancia: PT30S
       tiempo-conexion: PT2S
       tiempo-lectura: PT5S
+      # Secreto compartido con el servicio de OCR, que lo exige en la cabecera X-Token-Interno si está definido.
+      token-interno: ${MIGAL_OCR_TOKEN_INTERNO:}
   documentos:
     # Carpeta de los archivos cargados, relativa a la carpeta de ejecución. El límite de 10 MB corresponde al contrato.
     directorio: ${MIGAL_DOCUMENTOS_DIRECTORIO:almacen-documentos}

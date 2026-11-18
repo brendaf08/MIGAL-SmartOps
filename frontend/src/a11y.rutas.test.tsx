@@ -2,7 +2,7 @@ import { screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { axe } from 'vitest-axe';
 import * as matchers from 'vitest-axe/matchers';
-import type { Role } from '@/features/seguridad/roles';
+import { tieneRol, type Role } from '@/features/seguridad/roles';
 import { NAV } from '@/routes/navigation';
 import { renderApp } from '@/test/renderApp';
 
@@ -13,6 +13,7 @@ afterEach(() => window.sessionStorage.clear());
 const RUTAS: [ruta: string, rol: Role][] = [
   ['/usuarios', 'Administrador'],
   ['/usuarios/nuevo', 'Administrador'],
+  ['/cuenta', 'Vendedor'],
   ['/catalogo', 'Administrador'],
   ['/catalogo/nuevo', 'Administrador'],
   ['/catalogo/CEM-001', 'Administrador'],
@@ -36,7 +37,7 @@ const RUTAS: [ruta: string, rol: Role][] = [
   ['/ventas/V-0040', 'Vendedor'],
   ['/clientes', 'Vendedor'],
   ['/proveedores', 'Reponedor'],
-  ['/proveedores/nueva', 'Reponedor'],
+  ['/proveedores/nuevo', 'Reponedor'],
   ['/proveedores/P-001', 'Reponedor'],
   ['/compras', 'Reponedor'],
   ['/compras/nueva', 'Reponedor'],
@@ -85,6 +86,7 @@ describe('Cobertura de la navegación', () => {
   it('cada rol ve en la navegación sus módulos y el administrador los ve todos', async () => {
     const esperados: Record<Role, string[]> = {
       Administrador: NAV.flatMap((g) => g.items).map((i) => i.label),
+      Demostración: NAV.flatMap((g) => g.items).map((i) => i.label),
       Vendedor: [
         'Disponibilidad',
         'Documentos OCR',
@@ -92,6 +94,7 @@ describe('Cobertura de la navegación', () => {
         'Ventas',
         'Clientes',
         'Agente de IA',
+        'Cambiar contraseña',
       ],
       Almacenero: [
         'Disponibilidad',
@@ -101,14 +104,22 @@ describe('Cobertura de la navegación', () => {
         'Despachos',
         'Recepciones',
         'Documentos OCR',
+        'Ventas',
+        'Agente de IA',
+        'Cambiar contraseña',
+      ],
+      Reponedor: [
+        'Disponibilidad',
+        'Alertas de stock',
+        'Proveedores',
         'Órdenes de compra',
         'Agente de IA',
+        'Cambiar contraseña',
       ],
-      Reponedor: ['Alertas de stock', 'Proveedores', 'Órdenes de compra', 'Agente de IA'],
     };
     for (const [rol, etiquetas] of Object.entries(esperados) as [Role, string[]][]) {
       const visibles = NAV.flatMap((g) => g.items)
-        .filter((i) => !i.roles || i.roles.includes(rol))
+        .filter((i) => !i.roles || tieneRol(rol, i.roles))
         .map((i) => i.label);
       expect(visibles.sort(), `módulos del rol ${rol}`).toEqual([...etiquetas].sort());
     }

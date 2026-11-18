@@ -15,6 +15,7 @@ import { CLIENTES } from '@/features/comercial/clientes/fixtures';
 import { listarVentas, tienePendientes, totalesVenta, unidadesPendientes } from './api';
 import type { EstadoVenta, Venta } from './tipos';
 import classes from './Ventas.module.css';
+import { usePermisos } from '@/features/seguridad/permisos';
 
 /** Estados que aparecen como pestañas, en el orden del flujo de la venta. */
 const ESTADOS: EstadoVenta[] = [
@@ -62,6 +63,7 @@ const columns: Column<Venta>[] = [
 
 /** CU-10: lista de ventas por estado, con búsqueda por número o cliente. Clic abre el detalle. */
 export function VentasPage() {
+  const puede = usePermisos();
   const navigate = useNavigate();
   const [tab, setTab] = useState('todas');
   const [q, setQ] = useState('');
@@ -93,9 +95,14 @@ export function VentasPage() {
         title="Ventas"
         description="Ventas por estado, con sus cantidades pendientes de atención."
         actions={
-          <Button leftSection={<Icon name="plus" />} onClick={() => void navigate('/ventas/nueva')}>
-            Registrar venta
-          </Button>
+          puede('registrarVenta') && (
+            <Button
+              leftSection={<Icon name="plus" />}
+              onClick={() => void navigate('/ventas/nueva')}
+            >
+              Registrar venta
+            </Button>
+          )
         }
       />
       <div className={classes.toolbar}>

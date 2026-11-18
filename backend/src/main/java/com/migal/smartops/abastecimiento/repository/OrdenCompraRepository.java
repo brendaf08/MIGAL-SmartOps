@@ -3,6 +3,7 @@ package com.migal.smartops.abastecimiento.repository;
 import com.migal.smartops.abastecimiento.model.OrdenCompra;
 import jakarta.persistence.LockModeType;
 import java.util.Optional;
+import java.util.Collection;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -26,6 +27,12 @@ public interface OrdenCompraRepository extends JpaRepository<OrdenCompra, Long>,
 	@Query("select d.id.idProducto, sum(d.cantidadRecibida) from DetalleRecepcion d "
 			+ "where d.recepcion.orden.id = :idOrden and d.recepcion.estado = 'validada' group by d.id.idProducto")
 	List<Object[]> recibidoPorProducto(@Param("idOrden") Long idOrden);
+
+	/** Cantidad recibida por orden y producto en las recepciones validadas de varias órdenes: ternas de orden, producto y suma. */
+	@Query("select d.recepcion.orden.id, d.id.idProducto, sum(d.cantidadRecibida) from DetalleRecepcion d "
+			+ "where d.recepcion.orden.id in :idsOrden and d.recepcion.estado = 'validada' "
+			+ "group by d.recepcion.orden.id, d.id.idProducto")
+	List<Object[]> recibidoPorProductoDeOrdenes(@Param("idsOrden") Collection<Long> idsOrden);
 
 	/** Cantidad de recepciones validadas de la orden. */
 	@Query("select count(r) from Recepcion r where r.orden.id = :idOrden and r.estado = 'validada'")

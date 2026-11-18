@@ -7,6 +7,7 @@ import type { OpcionProducto } from '@/components/ui/ProductoSelect/ProductoSele
 import {
   aCambioStock,
   aMovimiento,
+  idDeUbicacion,
   type CambioExistenciaDto,
   type MovimientoKardexDto,
 } from '../adaptadores';
@@ -57,9 +58,12 @@ export const listarProductosMovibles = (): Promise<OpcionProducto[]> =>
 
 /** Registro real de un movimiento: ajuste de entrada o salida, o traslado entre dos ubicaciones. */
 const registrarMovimientoReal = async (datos: DatosMovimiento): Promise<ResultadoMovimiento> => {
-  const [productoId, almacenes] = await Promise.all([productoIdDeSku(datos.sku), listarAlmacenes()]);
+  const [productoId, almacenes] = await Promise.all([
+    productoIdDeSku(datos.sku),
+    listarAlmacenes(),
+  ]);
   const idDe = (nombre: string) => {
-    const id = almacenes.find((a) => a.nombre === nombre)?.id;
+    const id = idDeUbicacion(almacenes, nombre);
     if (!id) throw new Error('La ubicación seleccionada no existe.');
     return id;
   };
@@ -117,56 +121,58 @@ const hoy = () => {
  * las existencias y el Kardex de prueba.
  */
 export const registrarMovimiento = (datos: DatosMovimiento): Promise<ResultadoMovimiento> =>
-  API_REAL ? registrarMovimientoReal(datos) : mockRequest<ResultadoMovimiento>(() => {
-    const producto = buscarProducto(datos.sku);
-    if (!producto) throw new Error('El producto no existe en el catálogo.');
+  API_REAL
+    ? registrarMovimientoReal(datos)
+    : mockRequest<ResultadoMovimiento>(() => {
+        const producto = buscarProducto(datos.sku);
+        if (!producto) throw new Error('El producto no existe en el catálogo.');
 
-    const tipo = TIPOS_MOVIMIENTO.find((t) => t.value === datos.tipo);
-    if (!tipo) throw new Error('El tipo de movimiento no es válido.');
+        const tipo = TIPOS_MOVIMIENTO.find((t) => t.value === datos.tipo);
+        if (!tipo) throw new Error('El tipo de movimiento no es válido.');
 
-    const origen = (datos.tipo === 'traslado' ? datos.origen : datos.ubicacion) as Ubicacion;
-    if (datos.tipo !== 'entrada') {
-      const bloqueo = bloqueoPorStock(datos.sku, origen, datos.cantidad);
-      if (bloqueo) throw new Error(bloqueo);
-    }
+        const origen = (datos.tipo === 'traslado' ? datos.origen : datos.ubicacion) as Ubicacion;
+        if (datos.tipo !== 'entrada') {
+          const bloqueo = bloqueoPorStock(datos.sku, origen, datos.cantidad);
+          if (bloqueo) throw new Error(bloqueo);
+        }
 
-    const fecha = hoy();
-    const id = Math.max(0, ...MOVIMIENTOS.map((m) => Number(m.id)));
-    const nuevos: Movimiento[] = [];
-    const cambios: CambioStock[] = [];
+        const fecha = hoy();
+        const id = Math.max(0, ...MOVIMIENTOS.map((m) => Number(m.id)));
+        const nuevos: Movimiento[] = [];
+        const cambios: CambioStock[] = [];
 
-    /** Aplica un delta a la existencia física de una ubicación y anota el cambio para la constancia. */
-    const aplicar = (ubicacion: Ubicacion, delta: number) => {
-      const antes = existenciaEn(producto, ubicacion);
-      const despues = antes + delta;
-      producto[CAMPO_UBICACION[ubicacion]] = despues;
-      cambios.push({
-        producto: producto.nombre,
-        ubicacion,
-        antes,
-        despues,
-        unidad: producto.unidad,
+        /** Aplica un delta a la existencia física de una ubicación y anota el cambio para la constancia. */
+        const aplicar = (ubicacion: Ubicacion, delta: number) => {
+          const antes = existenciaEn(producto, ubicacion);
+          const despues = antes + delta;
+          producto[CAMPO_UBICACION[ubicacion]] = despues;
+          cambios.push({
+            producto: producto.nombre,
+            ubicacion,
+            antes,
+            despues,
+            unidad: producto.unidad,
+          });
+          nuevos.push({
+            id: String(id + nuevos.length + 1),
+            fecha,
+            sku: producto.sku,
+            producto: producto.nombre,
+            tipo: delta > 0 ? 'Entrada' : 'Salida',
+            cantidad: Math.abs(delta),
+            origen: tipo.origen,
+            ubicacion,
+            usuario: datos.usuario,
+          });
+        };
+
+        if (datos.tipo === 'traslado') {
+          aplicar(origen, -datos.cantidad);
+          aplicar(datos.destino as Ubicacion, datos.cantidad);
+        } else {
+          aplicar(origen, datos.tipo === 'entrada' ? datos.cantidad : -datos.cantidad);
+        }
+
+        MOVIMIENTOS.unshift(...nuevos);
+        return { movimientos: nuevos, cambios };
       });
-      nuevos.push({
-        id: String(id + nuevos.length + 1),
-        fecha,
-        sku: producto.sku,
-        producto: producto.nombre,
-        tipo: delta > 0 ? 'Entrada' : 'Salida',
-        cantidad: Math.abs(delta),
-        origen: tipo.origen,
-        ubicacion,
-        usuario: datos.usuario,
-      });
-    };
-
-    if (datos.tipo === 'traslado') {
-      aplicar(origen, -datos.cantidad);
-      aplicar(datos.destino as Ubicacion, datos.cantidad);
-    } else {
-      aplicar(origen, datos.tipo === 'entrada' ? datos.cantidad : -datos.cantidad);
-    }
-
-    MOVIMIENTOS.unshift(...nuevos);
-    return { movimientos: nuevos, cambios };
-  });

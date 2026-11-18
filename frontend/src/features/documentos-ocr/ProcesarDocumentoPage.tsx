@@ -48,6 +48,7 @@ export function ProcesarDocumentoPage() {
   };
 
   const estado = procesar.isPending ? 'processing' : procesar.isError ? 'error' : 'processed';
+  const ilegible = procesar.error?.message === 'Documento ilegible.';
 
   return (
     <>
@@ -86,9 +87,17 @@ export function ProcesarDocumentoPage() {
               </>
             )}
             {procesar.isError && (
-              <Alert tone="danger" title="Documento ilegible">
+              <Alert
+                tone="danger"
+                title={ilegible ? 'Documento ilegible' : 'No se pudo procesar el documento'}
+              >
                 <Stack gap="sm" align="flex-start">
-                  <span>Cargar una foto más nítida o un PDF, o registrar los datos a mano.</span>
+                  {/* Un archivo rechazado, un servicio caído o un fallo de red no son un documento ilegible. */}
+                  <span>
+                    {ilegible
+                      ? 'Cargar una foto más nítida o un PDF, o registrar los datos a mano.'
+                      : procesar.error.message}
+                  </span>
                   <Group gap="sm">
                     <Button
                       variant="default"

@@ -107,7 +107,7 @@ describe('Recepciones', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Confirmar recepción' }));
 
     const dialog = await screen.findByRole('dialog', { name: 'Confirmar recepción OC-0087' });
-    expect(dialog).toHaveTextContent('3 movimientos de entrada en el Kardex del Almacén 1');
+    expect(dialog).toHaveTextContent('3 movimientos de entrada en el Kardex de Almacén 1');
     expect(dialog).toHaveTextContent('recepción parcial');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Confirmar recepción' }));
 

@@ -25,4 +25,19 @@ public interface ProveedorLlm {
 	 * @throws com.migal.smartops.comun.errores.ErrorDeNegocio con SERVICIO_NO_DISPONIBLE si el proveedor no responde
 	 */
 	RespuestaRedactada redactar(String consulta, List<InvocacionHerramienta> invocaciones);
+
+	/**
+	 * Igual que {@link #planificar(String, List)}, con los mensajes previos de la conversación para resolver
+	 * repreguntas ("¿y en el almacén 2?"). Por defecto los ignora.
+	 */
+	default List<LlamadaHerramienta> planificar(String consulta, List<DefinicionHerramienta> disponibles,
+			List<TurnoAgente> historial) {
+		return planificar(consulta, disponibles);
+	}
+
+	/** Igual que {@link #redactar(String, List)}, con los mensajes previos de la conversación. Por defecto los ignora. */
+	default RespuestaRedactada redactar(String consulta, List<InvocacionHerramienta> invocaciones,
+			List<TurnoAgente> historial) {
+		return redactar(consulta, invocaciones);
+	}
 }

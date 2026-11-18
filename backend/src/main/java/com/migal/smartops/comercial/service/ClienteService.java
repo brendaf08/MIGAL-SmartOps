@@ -1,5 +1,6 @@
 package com.migal.smartops.comercial.service;
 
+import com.migal.smartops.comun.web.Busqueda;
 import com.migal.smartops.comercial.model.Cliente;
 import com.migal.smartops.comercial.model.TipoDocumentoCliente;
 import com.migal.smartops.comercial.repository.ClienteRepository;
@@ -58,10 +59,10 @@ public class ClienteService {
 		Specification<Cliente> filtros = (raiz, consulta, cb) -> {
 			List<Predicate> condiciones = new ArrayList<>();
 			if (q != null && !q.isBlank()) {
-				String patron = "%" + q.trim().toLowerCase() + "%";
+				String patron = Busqueda.patron(q);
 				condiciones.add(cb.or(
-						cb.like(cb.lower(raiz.get("nombreRazonSocial")), patron),
-						cb.like(cb.lower(raiz.get("numeroDocumento")), patron)));
+						cb.like(cb.lower(raiz.get("nombreRazonSocial")), patron, Busqueda.ESCAPE),
+						cb.like(cb.lower(raiz.get("numeroDocumento")), patron, Busqueda.ESCAPE)));
 			}
 			if (estadoActivo != null) {
 				condiciones.add(cb.equal(raiz.get("estadoActivo"), estadoActivo));

@@ -43,7 +43,14 @@ export interface GuiaApi {
 interface GuiaResultadoSalidaApi {
   guia: GuiaApi;
   movimientos: unknown[];
-  cambios: { productoId: string; sku: string; ubicacionId: string; unidad: string; antes: number; despues: number }[];
+  cambios: {
+    productoId: string;
+    sku: string;
+    ubicacionId: string;
+    unidad: string;
+    antes: number;
+    despues: number;
+  }[];
 }
 
 const ESTADO_DE_API: Record<Exclude<GuiaApi['estado'], 'anulada'>, EstadoGuia> = {
@@ -66,14 +73,12 @@ export const ordenDesde = (g: GuiaApi): OrdenDespacho => {
     cliente: g.cliente,
     estado: ESTADO_DE_API[g.estado],
     entrega: 'Completa',
-    lineas: g.lineas.map(
-      (l): LineaDespacho => ({
-        sku: l.sku,
-        nombre: l.nombre,
-        cantidad: l.cantidad,
-        reservado: l.ubicacionesSalida.reduce((suma, u) => suma + u.cantidad, 0),
-      }),
-    ),
+    lineas: g.lineas.map((l): LineaDespacho => ({
+      sku: l.sku,
+      nombre: l.nombre,
+      cantidad: l.cantidad,
+      reservado: l.ubicacionesSalida.reduce((suma, u) => suma + u.cantidad, 0),
+    })),
   };
 };
 
@@ -133,9 +138,8 @@ function cambiosDeSalida(lineas: LineaDespacho[]): CambioStock[] {
 const resultadoDesde = (r: GuiaResultadoSalidaApi): ResultadoSalida => {
   const nombreDeSku = (sku: string) => r.guia.lineas.find((l) => l.sku === sku)?.nombre ?? sku;
   const nombreDeUbicacion = (ubicacionId: string) =>
-    r.guia.lineas
-      .flatMap((l) => l.ubicacionesSalida)
-      .find((u) => u.ubicacionId === ubicacionId)?.nombre ?? ubicacionId;
+    r.guia.lineas.flatMap((l) => l.ubicacionesSalida).find((u) => u.ubicacionId === ubicacionId)
+      ?.nombre ?? ubicacionId;
   return {
     orden: ordenDesde(r.guia),
     cambios: r.cambios.map((c) => ({
@@ -165,4 +169,19 @@ export const confirmarSalida = (id: string, claveIdempotencia: string): Promise<
           throw new Error('Hay cantidades sin reservar; la entrega no puede ser completa.');
         found.estado = 'SalidaConfirmada';
         return { orden: found, cambios: cambiosDeSalida(found.lineas) };
+      });
+
+/**
+ * Registra la entrega al cliente de una guía con salida confirmada (POST /guias-despacho/{id}/entrega). No mueve
+ * inventario ni genera movimientos de Kardex.
+ */
+export const registrarEntrega = (id: string): Promise<OrdenDespacho> =>
+  API_REAL
+    ? api.post<GuiaApi>(ruta(id, '/entrega')).then(ordenDesde)
+    : mockRequest<OrdenDespacho>(() => {
+        const found = ORDENES.find((o) => o.id === id);
+        if (!found || found.estado !== 'SalidaConfirmada')
+          throw new Error('La orden no tiene la salida confirmada.');
+        found.estado = 'Entregada';
+        return found;
       });

@@ -82,7 +82,10 @@ export function MovimientoFormPage() {
     validate: zod4Resolver(movimientoSchema),
   });
 
-  const productos = useQuery({ queryKey: ['movimiento-productos'], queryFn: listarProductosMovibles });
+  const productos = useQuery({
+    queryKey: ['movimiento-productos'],
+    queryFn: listarProductosMovibles,
+  });
   const { sku, ubicacion, origen } = form.values;
   const productoConsulta = useQuery({
     queryKey: ['movimiento-producto', sku],
@@ -115,7 +118,8 @@ export function MovimientoFormPage() {
     onError: (e) => {
       setConfirmando(false);
       // Un rechazo definitivo (4xx) indica una intención no aceptada: el siguiente envío es una nueva intención.
-      if (e instanceof ApiError && e.estado >= 400 && e.estado < 500) setClaveIdempotencia(crypto.randomUUID());
+      if (e instanceof ApiError && e.estado >= 400 && e.estado < 500)
+        setClaveIdempotencia(crypto.randomUUID());
       notifications.show({
         color: 'danger',
         title: 'No se pudo registrar el movimiento',

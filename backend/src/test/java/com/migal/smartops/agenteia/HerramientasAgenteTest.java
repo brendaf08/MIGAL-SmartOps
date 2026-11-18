@@ -94,6 +94,19 @@ class HerramientasAgenteTest {
 	}
 
 	@Test
+	void elRolDeDemostracionDisponeDeTodasLasHerramientas() {
+		List<String> nombres = catalogo.disponiblesPara(RolUsuario.DEMOSTRACION).stream()
+				.map(DefinicionHerramienta::nombre).toList();
+		List<String> administrador = catalogo.disponiblesPara(RolUsuario.ADMINISTRADOR).stream()
+				.map(DefinicionHerramienta::nombre).toList();
+
+		assertTrue(nombres.containsAll(administrador));
+		assertTrue(nombres.containsAll(catalogo.disponiblesPara(RolUsuario.VENDEDOR).stream()
+				.map(DefinicionHerramienta::nombre).toList()));
+		assertNull(catalogo.ejecutar(RolUsuario.DEMOSTRACION, "consultarKardex", Map.of()).codigo());
+	}
+
+	@Test
 	void herramientaInexistenteRespondeValidacionFallida() {
 		InvocacionHerramienta invocacion = catalogo.ejecutar(RolUsuario.ADMINISTRADOR, "eliminarProducto", Map.of());
 

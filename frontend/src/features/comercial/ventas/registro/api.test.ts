@@ -97,11 +97,24 @@ describe('registro de ventas (API real)', () => {
   it('registra una venta directa resolviendo los productos por SKU', async () => {
     const api = await cargarApiReal();
     fetchMock
-      .mockResolvedValueOnce(respuesta({ items: [{ id: '101', sku: 'CEM-049' }], total: 1, page: 1, pageSize: 1 }))
+      .mockResolvedValueOnce(
+        respuesta({
+          items: [{ productoId: '101', sku: 'CEM-049' }],
+          total: 1,
+          page: 1,
+          pageSize: 1,
+        }),
+      )
       .mockResolvedValueOnce(respuesta(ventaApi, 201));
 
-    await api.registrarVenta({ ...entrada, cotizacionId: undefined, claveIdempotencia: 'clave-directa-1' });
+    await api.registrarVenta({
+      ...entrada,
+      cotizacionId: undefined,
+      claveIdempotencia: 'clave-directa-1',
+    });
 
+    // El Vendedor resuelve el producto en la disponibilidad: GET /productos solo admite almacenero y administrador.
+    expect(llamada(0)[0]).toBe('/api/v1/inventario/disponibilidad?sku=CEM-049&pageSize=1');
     expect(llamada(1)[0]).toBe('/api/v1/ventas/directas');
     expect(cabeceras(1)['Idempotency-Key']).toBe('clave-directa-1');
     expect(cuerpo(1)).toEqual({
@@ -121,11 +134,41 @@ describe('registro de ventas (API real)', () => {
       condicionesComerciales: null,
       descuento: 0,
       subtotal: 1140,
-      lineas: [{ productoId: '101', sku: 'CEM-049', nombreProducto: 'Cemento', cantidad: 40, precioUnitario: 28.5 }],
+      lineas: [
+        {
+          productoId: '101',
+          sku: 'CEM-049',
+          nombreProducto: 'Cemento',
+          cantidad: 40,
+          precioUnitario: 28.5,
+        },
+      ],
     });
     fetchMock
-      .mockResolvedValueOnce(respuesta({ items: [cotizacion('812'), cotizacion('813')], total: 2, page: 1, pageSize: 100 }))
-      .mockResolvedValueOnce(respuesta({ items: [{ id: '502', cotizacionId: '812', clienteId: '57', estado: 'pendiente_despacho', total: 1115 }], total: 1, page: 1, pageSize: 100 }));
+      .mockResolvedValueOnce(
+        respuesta({
+          items: [cotizacion('812'), cotizacion('813')],
+          total: 2,
+          page: 1,
+          pageSize: 100,
+        }),
+      )
+      .mockResolvedValueOnce(
+        respuesta({
+          items: [
+            {
+              id: '502',
+              cotizacionId: '812',
+              clienteId: '57',
+              estado: 'pendiente_despacho',
+              total: 1115,
+            },
+          ],
+          total: 1,
+          page: 1,
+          pageSize: 100,
+        }),
+      );
 
     const cotizaciones = await api.listarCotizacionesAceptadas();
 

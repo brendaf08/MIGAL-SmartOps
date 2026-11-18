@@ -32,7 +32,7 @@ public class CatalogoHerramientas {
 
 	/** Herramientas que el rol puede usar, en el orden de registro. */
 	public List<DefinicionHerramienta> disponiblesPara(RolUsuario rol) {
-		return porNombre.values().stream().filter(definicion -> definicion.roles().contains(rol)).toList();
+		return porNombre.values().stream().filter(definicion -> permitida(definicion, rol)).toList();
 	}
 
 	/**
@@ -47,7 +47,7 @@ public class CatalogoHerramientas {
 			return InvocacionHerramienta.fallida(nombre, parametros, "La herramienta solicitada no existe.",
 					CodigoError.VALIDACION_FALLIDA);
 		}
-		if (!definicion.roles().contains(rol)) {
+		if (!permitida(definicion, rol)) {
 			return InvocacionHerramienta.fallida(nombre, parametros,
 					"La herramienta no está disponible para el rol del usuario.", CodigoError.PERMISO_INSUFICIENTE);
 		}
@@ -56,5 +56,10 @@ public class CatalogoHerramientas {
 		} catch (ErrorDeNegocio error) {
 			return InvocacionHerramienta.fallida(nombre, parametros, error.getMessage(), error.codigo());
 		}
+	}
+
+	/** El rol de demostración usa todas las herramientas: reúne los permisos de los cuatro roles. */
+	private static boolean permitida(DefinicionHerramienta definicion, RolUsuario rol) {
+		return rol == RolUsuario.DEMOSTRACION || definicion.roles().contains(rol);
 	}
 }

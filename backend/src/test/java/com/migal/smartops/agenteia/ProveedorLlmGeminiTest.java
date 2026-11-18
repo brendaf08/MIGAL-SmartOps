@@ -21,6 +21,7 @@ import com.migal.smartops.agenteia.service.LlamadaHerramienta;
 import com.migal.smartops.agenteia.service.ParametroHerramienta;
 import com.migal.smartops.agenteia.service.ProveedorLlmGemini;
 import com.migal.smartops.agenteia.service.RespuestaRedactada;
+import com.migal.smartops.agenteia.service.TurnoAgente;
 import com.migal.smartops.agenteia.service.ResultadoHerramienta;
 import com.migal.smartops.comun.errores.CodigoError;
 import com.migal.smartops.comun.errores.ErrorDeNegocio;
@@ -80,6 +81,21 @@ class ProveedorLlmGeminiTest {
 		servidor.verify();
 		assertEquals(List.of(new LlamadaHerramienta("listarAlertasStock", Map.of("nivel", "critico")),
 				new LlamadaHerramienta("consultarExistenciasProducto", Map.of("id", "42"))), llamadas);
+	}
+
+	@Test
+	void enviaLosTurnosPreviosYUnLimiteDeTokens() {
+		servidor.expect(requestTo(URL))
+				.andExpect(content().string(allOf(
+						containsString("\"role\":\"model\",\"parts\":[{\"text\":\"Hay 12 bolsas en Tienda.\"}]"),
+						containsString("\"text\":\"¿y en el almacén 2?\""),
+						containsString("\"maxOutputTokens\":512"))))
+				.andRespond(withSuccess(respuesta("{\"text\":\"Sin llamadas\"}"), MediaType.APPLICATION_JSON));
+
+		proveedor.planificar("¿y en el almacén 2?", List.of(herramienta("listarAlertasStock")),
+				List.of(new TurnoAgente(true, "¿cuánto cemento hay?"), new TurnoAgente(false, "Hay 12 bolsas en Tienda.")));
+
+		servidor.verify();
 	}
 
 	@Test

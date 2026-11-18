@@ -72,13 +72,11 @@ describe('Lista de ventas', () => {
     ).toBeInTheDocument();
   });
 
-  it('no permite a un Almacenero acceder al módulo', async () => {
+  it('el Almacenero consulta las ventas pero no las registra (x-roles de GET y POST /ventas)', async () => {
     renderApp('/ventas', 'Almacenero');
 
-    expect(
-      await screen.findByRole('heading', { level: 1, name: 'Disponibilidad' }),
-    ).toBeInTheDocument();
-    expect(screen.queryByRole('table', { name: 'Ventas' })).not.toBeInTheDocument();
+    expect(await screen.findByRole('table', { name: 'Ventas' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Registrar venta' })).not.toBeInTheDocument();
   });
 });
 

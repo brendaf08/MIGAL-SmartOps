@@ -10,6 +10,7 @@ const USERS: Record<Role, { name: string; role: Role }> = {
   Vendedor: { name: 'Lucía Torres', role: 'Vendedor' },
   Almacenero: { name: 'Rosa Quispe', role: 'Almacenero' },
   Reponedor: { name: 'Miguel Paredes', role: 'Reponedor' },
+  Demostración: { name: 'Usuario Demostración', role: 'Demostración' },
 };
 
 /** Renderiza la aplicación en una ruta, con o sin sesión iniciada. */

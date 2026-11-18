@@ -25,7 +25,7 @@ import classes from './ProveedorFormPage.module.css';
 import { esquemaProveedor, type ValoresProveedor } from './esquema';
 import { useCatalogoVigente } from '@/features/catalogo/catalogoVigente';
 
-/** Ruta `proveedores/nueva` (sin identificador) y `proveedores/:id` (edición). */
+/** Ruta `proveedores/nuevo` (sin identificador) y `proveedores/:id` (edición). */
 export function ProveedorFormPage() {
   const { id } = useParams();
   if (!id) return <FormularioProveedor />;
@@ -253,6 +253,8 @@ function FormularioProveedor({ proveedor }: { proveedor?: Proveedor }) {
               placeholder="Buscar por SKU o nombre"
               data={opciones}
               searchable
+              // El catálogo real tiene cientos de productos: se listan las 50 primeras coincidencias.
+              limit={50}
               searchValue={busqueda}
               onSearchChange={setBusqueda}
               nothingFoundMessage={sinCoincidencia ? undefined : 'Sin coincidencias'}

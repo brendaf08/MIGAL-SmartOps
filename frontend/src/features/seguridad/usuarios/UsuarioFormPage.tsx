@@ -11,6 +11,12 @@ import { actualizarUsuario, obtenerUsuario, registrarUsuario } from './api';
 import { esquemaEdicion, esquemaRegistro, type DatosEdicion, type DatosRegistro } from './esquema';
 import type { UsuarioRegistro } from '@/features/seguridad/usuarios-tipos';
 
+/** Separa un nombre completo de los datos simulados en nombres (primera palabra) y apellidos (el resto). */
+const separar = (nombre = '') => {
+  const [primero = '', ...resto] = nombre.trim().split(/\s+/);
+  return { nombres: primero, apellidos: resto.join(' ') };
+};
+
 const MENSAJE_DUPLICADO = 'El usuario ya está registrado. Ingresar uno distinto.';
 
 /** CU-02: registro de un usuario nuevo o edición de su nombre y rol. */
@@ -41,7 +47,8 @@ function FormularioUsuario({ usuario }: FormularioUsuarioProps) {
 
   const form = useForm<DatosRegistro & { clave: string }>({
     initialValues: {
-      nombre: usuario?.nombre ?? '',
+      nombres: usuario?.nombres ?? separar(usuario?.nombre).nombres,
+      apellidos: usuario?.apellidos ?? separar(usuario?.nombre).apellidos,
       usuario: usuario?.usuario ?? '',
       clave: '',
       rol: (usuario?.rol ?? '') as DatosRegistro['rol'],
@@ -73,7 +80,11 @@ function FormularioUsuario({ usuario }: FormularioUsuarioProps) {
 
   const guardar = (valores: typeof form.values) => {
     if (editando) {
-      mutation.mutate({ nombre: valores.nombre, rol: valores.rol as DatosEdicion['rol'] });
+      mutation.mutate({
+        nombres: valores.nombres,
+        apellidos: valores.apellidos,
+        rol: valores.rol as DatosEdicion['rol'],
+      });
     } else {
       mutation.mutate(valores as DatosRegistro);
     }
@@ -84,7 +95,7 @@ function FormularioUsuario({ usuario }: FormularioUsuarioProps) {
       title={editando ? 'Modificar usuario' : 'Registrar usuario'}
       description={
         editando
-          ? 'Cambiar el nombre o el rol. El usuario y la contraseña no se modifican.'
+          ? 'Cambiar los nombres, los apellidos o el rol. El usuario y la contraseña no se modifican.'
           : 'Completar los datos personales y el acceso del nuevo usuario.'
       }
       breadcrumbs={[
@@ -98,7 +109,10 @@ function FormularioUsuario({ usuario }: FormularioUsuarioProps) {
     >
       <Stack gap="md">
         <Card title="Datos personales">
-          <TextInput label="Nombre completo" required {...form.getInputProps('nombre')} />
+          <Stack gap="md">
+            <TextInput label="Nombres" required {...form.getInputProps('nombres')} />
+            <TextInput label="Apellidos" required {...form.getInputProps('apellidos')} />
+          </Stack>
         </Card>
         <Card title="Acceso">
           <Stack gap="md">

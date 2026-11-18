@@ -13,7 +13,7 @@ export const NAV: NavGroup[] = [
         key: 'disponibilidad',
         label: 'Disponibilidad',
         icon: 'producto',
-        roles: ['Almacenero', 'Vendedor', 'Administrador'],
+        roles: ['Almacenero', 'Vendedor', 'Reponedor', 'Administrador'],
       },
       { key: 'catalogo', label: 'Catálogo', icon: 'sku', roles: ['Almacenero', 'Administrador'] },
       {
@@ -57,7 +57,12 @@ export const NAV: NavGroup[] = [
         icon: 'cotizacion',
         roles: ['Vendedor', 'Administrador'],
       },
-      { key: 'ventas', label: 'Ventas', icon: 'venta', roles: ['Vendedor', 'Administrador'] },
+      {
+        key: 'ventas',
+        label: 'Ventas',
+        icon: 'venta',
+        roles: ['Vendedor', 'Almacenero', 'Administrador'],
+      },
       { key: 'clientes', label: 'Clientes', icon: 'users', roles: ['Vendedor', 'Administrador'] },
     ],
   },
@@ -74,7 +79,7 @@ export const NAV: NavGroup[] = [
         key: 'compras',
         label: 'Órdenes de compra',
         icon: 'orden-compra',
-        roles: ['Reponedor', 'Almacenero', 'Administrador'],
+        roles: ['Reponedor', 'Administrador'],
       },
     ],
   },
@@ -83,4 +88,5 @@ export const NAV: NavGroup[] = [
     label: 'Administración',
     items: [{ key: 'usuarios', label: 'Usuarios y roles', icon: 'rol', roles: ['Administrador'] }],
   },
+  { label: 'Mi cuenta', items: [{ key: 'cuenta', label: 'Cambiar contraseña', icon: 'user' }] },
 ];

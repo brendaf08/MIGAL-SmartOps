@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/Card/Card';
 import { DataTable, type Column } from '@/components/ui/DataTable/DataTable';
 import { Icon } from '@/components/ui/Icon/Icon';
 import { formatCurrency, formatDate, formatNumber } from '@/lib/format';
+import { tieneRol } from '@/features/seguridad/roles';
 import { useSession } from '@/features/seguridad/session';
 import { obtenerOrdenCompra, subtotalLineaOrden, totalOrden } from './api';
 import type { LineaOrdenCompra } from '../tipos';
@@ -75,7 +76,7 @@ export function OrdenCompraDetallePage() {
         breadcrumbs={[{ label: 'Órdenes de compra', href: '/compras' }, { label: orden.id }]}
         status={<StatusBadge entity="compra" value={orden.estado} variant="sello" />}
         actions={
-          completada || user?.role !== 'Almacenero' ? undefined : (
+          completada || !tieneRol(user?.role, ['Almacenero']) ? undefined : (
             <Button
               leftSection={<Icon name="recepcion" />}
               onClick={() => void navigate(`/recepciones/nueva?oc=${orden.id}`)}

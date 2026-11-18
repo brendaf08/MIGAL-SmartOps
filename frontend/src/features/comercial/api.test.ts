@@ -199,7 +199,12 @@ describe('cotizaciones (API real)', () => {
     const api = await cargarApiReal();
     fetchMock
       .mockResolvedValueOnce(
-        respuesta({ items: [{ id: '101', sku: 'CEM-049' }], total: 1, page: 1, pageSize: 1 }),
+        respuesta({
+          items: [{ productoId: '101', sku: 'CEM-049' }],
+          total: 1,
+          page: 1,
+          pageSize: 1,
+        }),
       )
       .mockResolvedValueOnce(respuesta(cotizacionApi()));
 

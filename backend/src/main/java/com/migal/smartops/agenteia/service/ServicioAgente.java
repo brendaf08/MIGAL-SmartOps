@@ -19,7 +19,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 
@@ -71,10 +73,12 @@ public class ServicioAgente {
 	private final UsuarioRepository usuarios;
 	private final ObjectMapper mapeador;
 	private final Clock reloj;
+	private final TransactionTemplate lectura;
+	private final TransactionTemplate escritura;
 
 	public ServicioAgente(ProveedorLlm proveedor, CatalogoHerramientas catalogo,
 			ConversacionAgenteRepository conversaciones, MensajeAgenteRepository mensajes, UsuarioRepository usuarios,
-			ObjectMapper mapeador, Clock reloj) {
+			ObjectMapper mapeador, Clock reloj, PlatformTransactionManager transacciones) {
 		this.proveedor = proveedor;
 		this.catalogo = catalogo;
 		this.conversaciones = conversaciones;
@@ -82,42 +86,54 @@ public class ServicioAgente {
 		this.usuarios = usuarios;
 		this.mapeador = mapeador;
 		this.reloj = reloj;
+		this.lectura = new TransactionTemplate(transacciones);
+		this.lectura.setReadOnly(true);
+		this.escritura = new TransactionTemplate(transacciones);
 	}
 
 	/**
 	 * Procesa una consulta. Si se indica una conversación, la consulta se agrega a ella; si no, se crea una nueva. Si el
 	 * proveedor no responde, no se registra nada.
+	 *
+	 * <p>Las llamadas al modelo pueden tardar decenas de segundos, por lo que ocurren fuera de toda transacción: así no
+	 * retienen una conexión del pool mientras esperan. Cada herramienta abre su propia transacción de lectura y los dos
+	 * mensajes se guardan en una transacción corta al final.
 	 */
-	@Transactional
 	public RespuestaAgente enviar(UsuarioAutenticado actor, String consulta, Long idConversacion) {
 		String texto = consulta == null ? "" : consulta.trim();
 		if (texto.isEmpty()) {
 			throw new ErrorDeNegocio(CodigoError.VALIDACION_FALLIDA, "El mensaje no puede estar vacío.");
 		}
-		ConversacionAgente conversacion = idConversacion == null ? null : buscar(actor, idConversacion);
+		List<TurnoAgente> historial = idConversacion == null ? List.of()
+				: lectura.execute(estado -> buscar(actor, idConversacion).getMensajes().stream()
+						.map(m -> new TurnoAgente(m.getRol() == RolMensaje.USUARIO, m.getTexto())).toList());
 
-		List<LlamadaHerramienta> llamadas = proveedor.planificar(texto, catalogo.disponiblesPara(actor.rol()));
+		List<LlamadaHerramienta> llamadas = proveedor.planificar(texto, catalogo.disponiblesPara(actor.rol()), historial);
 		List<InvocacionHerramienta> invocaciones = llamadas.stream()
 				.map(llamada -> catalogo.ejecutar(actor.rol(), llamada.nombre(), llamada.parametros())).toList();
-		RespuestaRedactada redactada = proveedor.redactar(texto, invocaciones);
+		RespuestaRedactada redactada = proveedor.redactar(texto, invocaciones, historial);
 		List<ReferenciaAgente> referencias = invocaciones.stream().filter(invocacion -> invocacion.codigo() == null)
 				.flatMap(invocacion -> invocacion.referencias().stream()).toList();
 
-		Instant ahora = reloj.instant();
-		if (conversacion == null) {
-			conversacion = conversaciones.saveAndFlush(new ConversacionAgente(
-					usuarios.findById(actor.id()).orElseThrow(), tituloDe(texto), ahora));
-		}
-		conversacion.agregarMensaje(new MensajeAgente(RolMensaje.USUARIO, texto, false, SIN_HERRAMIENTAS,
-				SIN_HERRAMIENTAS, ahora));
-		MensajeAgente respuesta = new MensajeAgente(RolMensaje.AGENTE, redactada.texto(), redactada.incierta(),
-				json(invocaciones), json(referencias), ahora.plusMillis(1));
-		conversacion.agregarMensaje(respuesta);
-		// La conversación ya está gestionada: el vaciado persiste los mensajes nuevos en cascada y les asigna identificador.
-		conversaciones.flush();
+		String herramientas = json(invocaciones);
+		String consultados = json(referencias);
+		long[] ids = escritura.execute(estado -> {
+			Instant ahora = reloj.instant();
+			ConversacionAgente conversacion = idConversacion == null
+					? conversaciones.saveAndFlush(new ConversacionAgente(usuarios.findById(actor.id()).orElseThrow(),
+							tituloDe(texto), ahora))
+					: buscar(actor, idConversacion);
+			conversacion.agregarMensaje(new MensajeAgente(RolMensaje.USUARIO, texto, false, SIN_HERRAMIENTAS,
+					SIN_HERRAMIENTAS, ahora));
+			MensajeAgente respuesta = new MensajeAgente(RolMensaje.AGENTE, redactada.texto(), redactada.incierta(),
+					herramientas, consultados, ahora.plusMillis(1));
+			conversacion.agregarMensaje(respuesta);
+			// La conversación está gestionada: el vaciado persiste los mensajes en cascada y les asigna identificador.
+			conversaciones.flush();
+			return new long[] {conversacion.getId(), respuesta.getId()};
+		});
 
-		return new RespuestaAgente(conversacion.getId(), respuesta.getId(), redactada.texto(), redactada.incierta(),
-				invocaciones, referencias);
+		return new RespuestaAgente(ids[0], ids[1], redactada.texto(), redactada.incierta(), invocaciones, referencias);
 	}
 
 	/** Conversación del usuario con todos sus mensajes. */

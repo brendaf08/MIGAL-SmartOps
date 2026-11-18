@@ -137,7 +137,9 @@ describe('Registro de venta', () => {
       await userEvent.click(screen.getByRole('button', { name: 'Confirmar venta' }));
       const dialogo = await screen.findByRole('dialog', { name: 'Confirmar la venta' });
       expect(
-        within(dialogo).getByText('Se registrarán 1 salidas en el Kardex.'),
+        within(dialogo).getByText(
+          'Se reservará el stock de 1 producto. La salida del Kardex se registra al confirmar el despacho.',
+        ),
       ).toBeInTheDocument();
       await userEvent.click(within(dialogo).getByRole('button', { name: 'Confirmar venta' }));
 

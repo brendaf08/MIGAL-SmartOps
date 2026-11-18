@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -90,6 +91,18 @@ public class ManejadorDeErrores {
 	ResponseEntity<ProblemDetail> accesoDenegado(HttpServletRequest solicitud) {
 		return RespuestaProblema.respuesta(CodigoError.PERMISO_INSUFICIENTE,
 				"El rol del usuario no permite esta operación.", solicitud.getRequestURI(), null);
+	}
+
+	/**
+	 * Una restricción de la base de datos rechazó los datos (unicidad, clave foránea, dígitos de numeric) sin que una
+	 * validación previa lo detectara. Se informa como datos no válidos en lugar de un error interno.
+	 */
+	@ExceptionHandler(DataIntegrityViolationException.class)
+	ResponseEntity<ProblemDetail> integridad(DataIntegrityViolationException e, HttpServletRequest solicitud) {
+		REGISTRO.warn("Restricción de integridad en {}: {}", solicitud.getRequestURI(), e.getMostSpecificCause().getMessage());
+		return RespuestaProblema.respuesta(CodigoError.VALIDACION_FALLIDA,
+				"Los datos no cumplen una restricción del sistema. Revisar los valores e intentar nuevamente.",
+				solicitud.getRequestURI(), null);
 	}
 
 	@ExceptionHandler(Exception.class)

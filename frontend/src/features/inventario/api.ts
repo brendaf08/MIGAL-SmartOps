@@ -1,9 +1,11 @@
 import { API_REAL, api } from '@/api/cliente';
 import { mockRequest } from '@/api/mock';
 import { todosLosElementos, type PaginaApi } from '@/api/paginas';
+import { buscarIdProducto } from '@/api/productos';
 import {
   aDisponibilidad,
   aMovimiento,
+  idDeUbicacion,
   type AlmacenDto,
   type MovimientoKardexDto,
   type ProductoExistenciasDto,
@@ -40,18 +42,7 @@ interface AlertaStockDto {
 /** Ubicaciones (tienda principal y almacenes) del contrato de catálogo. */
 export const listarAlmacenes = () => api.get<AlmacenDto[]>('/almacenes');
 
-/** Identificador técnico del producto con el SKU indicado, o `null` si no existe. */
-export const buscarIdProducto = async (sku: string): Promise<string | null> => {
-  const pagina = await api.get<PaginaApi<{ id: string; sku: string }>>('/productos', { sku, pageSize: 1 });
-  return pagina.items.find((p) => p.sku === sku)?.id ?? null;
-};
-
-/** Identificador técnico del producto con el SKU indicado. Lanza un error si el producto no existe. */
-export const productoIdDeSku = async (sku: string): Promise<string> => {
-  const id = await buscarIdProducto(sku);
-  if (!id) throw new Error('El producto no existe en el catálogo.');
-  return id;
-};
+export { buscarIdProducto, productoIdDeSku } from '@/api/productos';
 
 const consultarDisponibilidadReal = async ({
   q,
@@ -85,7 +76,10 @@ export const consultarDisponibilidad = (consulta: ConsultaDisponibilidad) =>
             (!term || `${p.sku} ${p.nombre}`.toLowerCase().includes(term)),
         );
         return {
-          items: found.slice((consulta.page - 1) * consulta.pageSize, consulta.page * consulta.pageSize),
+          items: found.slice(
+            (consulta.page - 1) * consulta.pageSize,
+            consulta.page * consulta.pageSize,
+          ),
           total: found.length,
           enAlerta: PRODUCTOS.filter((p) => enAlerta(resumen(p).nivel)).length,
           totalGeneral: PRODUCTOS.length,
@@ -140,7 +134,7 @@ export const listarMovimientosFiltrados = (filtros: FiltrosKardex): Promise<Movi
 const listarMovimientosFiltradosReal = async (filtros: FiltrosKardex): Promise<Movimiento[]> => {
   const almacenes = await listarAlmacenes();
   // La interfaz filtra por el nombre de la ubicación; el contrato filtra por identificador.
-  const ubicacionId = filtros.ubicacion ? almacenes.find((a) => a.nombre === filtros.ubicacion)?.id : undefined;
+  const ubicacionId = filtros.ubicacion ? idDeUbicacion(almacenes, filtros.ubicacion) : undefined;
   if (filtros.ubicacion && !ubicacionId) return [];
   const nombres = new Map(almacenes.map((a) => [a.id, a.nombre]));
   const movimientos = await todosLosElementos((page, pageSize) =>
@@ -158,14 +152,56 @@ const listarMovimientosFiltradosReal = async (filtros: FiltrosKardex): Promise<M
   return movimientos.map((m) => aMovimiento(m, nombres));
 };
 
+/** Página del Kardex con el total de movimientos que cumplen los filtros. */
+export interface PaginaKardex {
+  items: Movimiento[];
+  total: number;
+}
+
+/**
+ * P14 paginado en el servidor: con la API real pide solo la página indicada (GET /inventario/movimientos con page y
+ * pageSize), en lugar de descargar todo el historial para paginarlo en el navegador.
+ */
+export const consultarKardex = async (
+  filtros: FiltrosKardex,
+  page: number,
+  pageSize: number,
+): Promise<PaginaKardex> => {
+  if (!API_REAL) {
+    const todos = await listarMovimientosFiltrados(filtros);
+    return { items: todos.slice((page - 1) * pageSize, page * pageSize), total: todos.length };
+  }
+  const almacenes = await listarAlmacenes();
+  const ubicacionId = filtros.ubicacion ? idDeUbicacion(almacenes, filtros.ubicacion) : undefined;
+  if (filtros.ubicacion && !ubicacionId) return { items: [], total: 0 };
+  const nombres = new Map(almacenes.map((a) => [a.id, a.nombre]));
+  const pagina = await api.get<PaginaApi<MovimientoKardexDto>>('/inventario/movimientos', {
+    q: filtros.q.trim(),
+    ubicacionId,
+    tipoOperacion: filtros.tipo ? filtros.tipo.toLowerCase() : undefined,
+    origen: filtros.origen ? filtros.origen.toLowerCase() : undefined,
+    desde: filtros.desde,
+    hasta: filtros.hasta,
+    page,
+    pageSize,
+  });
+  return { items: pagina.items.map((m) => aMovimiento(m, nombres)), total: pagina.total };
+};
+
 /** Existencias de un producto por SKU para el formulario de movimientos, o `null` si no existe. */
-export const obtenerDisponibilidadProducto = (sku: string): Promise<ProductoDisponibilidad | null> =>
+export const obtenerDisponibilidadProducto = (
+  sku: string,
+): Promise<ProductoDisponibilidad | null> =>
   API_REAL
     ? buscarIdProducto(sku).then(async (id) => {
         if (!id) return null;
-        return aDisponibilidad(await api.get<ProductoExistenciasDto>(`/productos/${encodeURIComponent(id)}/existencias`));
+        return aDisponibilidad(
+          await api.get<ProductoExistenciasDto>(`/productos/${encodeURIComponent(id)}/existencias`),
+        );
       })
-    : mockRequest<ProductoDisponibilidad | null>(() => PRODUCTOS.find((p) => p.sku === sku) ?? null);
+    : mockRequest<ProductoDisponibilidad | null>(
+        () => PRODUCTOS.find((p) => p.sku === sku) ?? null,
+      );
 
 /** Producto en alerta: nivel según el stock libre y cantidad que falta para llegar al mínimo (P12). */
 export interface Alerta extends ProductoDisponibilidad {
@@ -185,7 +221,11 @@ const listarAlertasReal = async (): Promise<Alerta[]> => {
       api.get<PaginaApi<AlertaStockDto>>('/inventario/alertas', { page, pageSize }),
     ),
     todosLosElementos((page, pageSize) =>
-      api.get<DisponibilidadPaginaDto>('/inventario/disponibilidad', { soloAlerta: true, page, pageSize }),
+      api.get<DisponibilidadPaginaDto>('/inventario/disponibilidad', {
+        soloAlerta: true,
+        page,
+        pageSize,
+      }),
     ),
   ]);
   const porSku = new Map(disponibles.map((d) => [d.sku, aDisponibilidad(d)]));

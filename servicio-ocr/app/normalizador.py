@@ -55,6 +55,16 @@ PALABRAS_VACIAS: frozenset[str] = frozenset(
     }
 )  # fmt: skip
 
+# Envases que una nota escribe después de la cantidad ("2 cajas clavo 3\""): no son el tipo de producto. Tras una
+# cantidad inicial se mueven al final para que la primera palabra siga siendo el producto. Sin cantidad, "caja
+# octogonal" sí es el producto y no se toca.
+EMPAQUES: frozenset[str] = frozenset({"caja", "saco", "balde", "rollo", "paquete", "galonera", "lata", "frasco"})
+
+# Palabras que terminan como un plural sin serlo: "arnés" no es el plural de "arn".
+NO_SINGULARIZAR: frozenset[str] = frozenset(
+    {"arnes", "compas", "gas", "mes", "tres", "seis", "dos", "ingles", "pais", "atlas", "lunes", "martes", "jueves"}
+)
+
 _FRACCION_PALABRAS = {"media": "1/2", "medio": "1/2", "un cuarto": "1/4", "tres octavos": "3/8", "un octavo": "1/8"}
 
 _NUMERO = r"\d+(?:[.,]\d+)?"
@@ -67,10 +77,19 @@ _HUECOS = re.compile(r"(?<!\d)(\d+)\s*huecos?\b")
 _KING_KONG = re.compile(r"\bkk-?(\d+)\b(?!\s*huecos?)")
 _AWG = re.compile(r"(?<!\d)(?:n[°o]\s*)?(\d+)\s*awg\b|\bawg\s*(\d+)\b")
 _MILIMETROS = re.compile(rf"(?<![\d.,])({_NUMERO})\s*mm\b")
+# Volumen: "1/4 galón", "4 L", "500 ml". Se reconoce antes que la fracción suelta, que la tomaría por pulgadas.
+_VOLUMEN = re.compile(rf"(?<![\d/])(\d+\s*/\s*\d+|{_NUMERO})\s*(galones|galon|gal|gln|litros|litro|lts|lt|l|ml)\b")
+_ONZAS = re.compile(rf"(?<![\d.,])({_NUMERO})\s*oz\b")
+_VATIOS = re.compile(rf"(?<![\d.,])({_NUMERO})\s*w\b")
+_GALON_SUELTO = re.compile(r"\b(?:galones|galon|gal|gln|glon|gdon)\b")
+_UNIDAD_VOLUMEN = {"galones": "gal", "galon": "gal", "gal": "gal", "gln": "gal", "ml": "ml"}
 _LARGO = re.compile(rf"\bx\s*({_NUMERO})\s*m\b")
 _FORMATO = re.compile(r"(?<![\d/])(\d+)\s*x\s*(\d+)(?:\s*cm\b)?")
 # Cantidad al inicio de la línea ("20 varillas F° 1/2\"", "10 bls cem sol"), salvo que sea la medida del producto.
-_CANTIDAD_INICIAL = re.compile(rf"^\s*{_NUMERO}\s+(?!(?:kgs?|kilos?|kilogramos?|mm|huecos?|awg|pulg\w*|plg)\b|[\"'”/])")
+_CANTIDAD_INICIAL = re.compile(
+    rf"^\s*{_NUMERO}\s+(?!(?:kgs?|kilos?|kilogramos?|mm|huecos?|awg|pulg\w*|plg|gal\w*|gln|l|lts?|litros?|ml|oz|w)\b"
+    rf"|[\"'”/])"
+)
 _SEPARADORES = re.compile(r"[^\w/.\s]")
 _ESPACIOS = re.compile(r"\s+")
 
@@ -102,8 +121,10 @@ def _fraccion(valor: str) -> str:
 
 def singular(palabra: str) -> str:
     """Singular aproximado del español para comparar ``codos`` con ``codo`` y ``uniones`` con ``union``."""
-    if len(palabra) <= 3 or not palabra.isalpha():
+    if len(palabra) <= 3 or not palabra.isalpha() or palabra in NO_SINGULARIZAR:
         return palabra
+    if palabra.endswith("ces") and len(palabra) > 4:
+        return palabra[:-3] + "z"
     if palabra.endswith("es") and palabra[-3] in "rnlzd":
         return palabra[:-2]
     if palabra.endswith("s") and palabra[-2] in "aeiou":
@@ -116,6 +137,7 @@ def normalizar(texto: str) -> TextoNormalizado:
     actual = _sin_tildes(texto.lower()).replace("º", "°")
     # El símbolo de diámetro llega como `ø`, `φ`, `∅` o `⌀` según el modelo; los dos últimos no son letras.
     actual = actual.replace("∅", " ø ").replace("⌀", " ø ")
+    con_cantidad = bool(_CANTIDAD_INICIAL.match(actual))
     actual = _CANTIDAD_INICIAL.sub("", actual, count=1)
     for palabras, fraccion in _FRACCION_PALABRAS.items():
         actual = re.sub(rf"\b{palabras}\s+pulgadas?\b", f'{fraccion}"', actual)
@@ -138,13 +160,23 @@ def normalizar(texto: str) -> TextoNormalizado:
     actual = _KING_KONG.sub(lambda m: f" kk {m.group(1)} huecos ", actual)
     actual = _LARGO.sub(lambda m: largo(m.group(1)), actual)
     actual = _FORMATO.sub(lambda m: f" {m.group(1)}x{m.group(2)} ", actual)
+
+    def volumen(valor: str, unidad: str) -> str:
+        cantidad = _fraccion(valor) if "/" in valor else _numero(valor)
+        return registrar(f"{cantidad}{_UNIDAD_VOLUMEN.get(unidad, 'l')}")
+
+    actual = _VOLUMEN.sub(lambda m: volumen(m.group(1), m.group(2)), actual)
+    actual = _ONZAS.sub(lambda m: registrar(f"{_numero(m.group(1))}oz"), actual)
+    actual = _VATIOS.sub(lambda m: registrar(f"{_numero(m.group(1))}w"), actual)
     actual = _PULGADA.sub(lambda m: pulgadas(m.group(1)), actual)
     actual = _KILOS.sub(lambda m: registrar(f"{_numero(m.group(1))}kg"), actual)
     actual = _HUECOS.sub(lambda m: registrar(f"{m.group(1)}huecos"), actual)
     actual = _AWG.sub(lambda m: registrar(f"{m.group(1) or m.group(2)}awg"), actual)
     actual = _MILIMETROS.sub(lambda m: registrar(f"{_numero(m.group(1))}mm"), actual)
-    # Una fracción sin unidad en ferretería es una medida en pulgadas: "fierro 1/2".
-    actual = _FRACCION_SUELTA.sub(lambda m: registrar(f"{m.group(1)}/{m.group(2)}in"), actual)
+    # Una fracción sin unidad en ferretería es una medida en pulgadas ("fierro 1/2"), salvo que la línea hable de
+    # galones con la unidad separada de la cantidad ("galón pegamento 1/4").
+    unidad_suelta = "gal" if _GALON_SUELTO.search(actual) else "in"
+    actual = _FRACCION_SUELTA.sub(lambda m: registrar(f"{m.group(1)}/{m.group(2)}{unidad_suelta}"), actual)
 
     actual = actual.replace("f°", " fierro ")
     palabras = []
@@ -158,9 +190,12 @@ def normalizar(texto: str) -> TextoNormalizado:
         palabra = JERGA.get(palabra) or JERGA.get(singular(palabra)) or singular(palabra)
         if not (len(palabra) == 1 and palabra.isalpha()) and palabra not in PALABRAS_VACIAS:
             palabras.append(palabra)
+    if con_cantidad and len(palabras) > 1 and palabras[0] in EMPAQUES:
+        palabras.append(palabras.pop(0))
     return TextoNormalizado(_ESPACIOS.sub(" ", " ".join(palabras)).strip(), frozenset(medidas))
 
 
 def tipo_de_medida(medida: str) -> str:
-    """Tipo de una medida canónica: ``in``, ``kg``, ``huecos``, ``awg``, ``mm`` o ``m``."""
+    """Tipo de una medida canónica: ``in``, ``kg``, ``huecos``, ``awg``, ``mm``, ``m``, ``gal``, ``l``, ``ml``, ``oz``
+    o ``w``."""
     return re.sub(r"^[\d./]+", "", medida)

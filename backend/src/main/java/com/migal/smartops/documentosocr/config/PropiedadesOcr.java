@@ -3,6 +3,7 @@ package com.migal.smartops.documentosocr.config;
 import java.math.BigDecimal;
 import java.time.Duration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.bind.ConstructorBinding;
 
 /**
  * Parámetros del procesamiento OCR. El proveedor selecciona la implementación de {@code ProveedorOcr}: {@code simulado}
@@ -34,10 +35,18 @@ public record PropiedadesOcr(String proveedor, Umbrales umbrales, Servicio servi
 	 * @param tiempoLectura     tiempo máximo para recibir la respuesta del encolado
 	 */
 	public record Servicio(String url, Duration plazoResultado, Duration intervaloVigilancia, Duration tiempoConexion,
-			Duration tiempoLectura) {
+			Duration tiempoLectura, String tokenInterno) {
 
+		/** Servicio sin token interno. */
+		public Servicio(String url, Duration plazoResultado, Duration intervaloVigilancia, Duration tiempoConexion,
+				Duration tiempoLectura) {
+			this(url, plazoResultado, intervaloVigilancia, tiempoConexion, tiempoLectura, null);
+		}
+
+		@ConstructorBinding
 		public Servicio {
 			url = url == null ? "" : url.trim();
+			tokenInterno = tokenInterno == null ? "" : tokenInterno.trim();
 			plazoResultado = plazoResultado == null ? Duration.ofSeconds(60) : plazoResultado;
 			intervaloVigilancia = intervaloVigilancia == null ? Duration.ofSeconds(30) : intervaloVigilancia;
 			tiempoConexion = tiempoConexion == null ? Duration.ofSeconds(2) : tiempoConexion;
@@ -68,7 +77,7 @@ public record PropiedadesOcr(String proveedor, Umbrales umbrales, Servicio servi
 	public PropiedadesOcr {
 		proveedor = proveedor == null || proveedor.isBlank() ? PROVEEDOR_SIMULADO : proveedor.trim();
 		umbrales = umbrales == null ? new Umbrales(null, null) : umbrales;
-		servicio = servicio == null ? new Servicio(null, null, null, null, null) : servicio;
+		servicio = servicio == null ? new Servicio(null, null, null, null, null, null) : servicio;
 		if (PROVEEDOR_HTTP.equals(proveedor) && servicio.url().isEmpty()) {
 			throw new IllegalStateException("El proveedor http exige migal.ocr.servicio.url");
 		}

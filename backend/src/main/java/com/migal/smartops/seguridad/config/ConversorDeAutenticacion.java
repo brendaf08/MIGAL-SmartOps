@@ -1,8 +1,11 @@
 package com.migal.smartops.seguridad.config;
 
+import com.migal.smartops.seguridad.model.RolUsuario;
 import com.migal.smartops.seguridad.model.Usuario;
 import com.migal.smartops.seguridad.repository.UsuarioRepository;
+import java.util.ArrayList;
 import java.util.List;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -27,9 +30,12 @@ public class ConversorDeAutenticacion implements Converter<Jwt, AbstractAuthenti
 	private static final String RECLAMACION_ALCANCES = "alcances";
 
 	private final UsuarioRepository usuarios;
+	private final boolean demostracionHabilitada;
 
-	public ConversorDeAutenticacion(UsuarioRepository usuarios) {
+	public ConversorDeAutenticacion(UsuarioRepository usuarios,
+			@Value("${migal.seguridad.demostracion.habilitada:false}") boolean demostracionHabilitada) {
 		this.usuarios = usuarios;
+		this.demostracionHabilitada = demostracionHabilitada;
 	}
 
 	@Override
@@ -42,9 +48,26 @@ public class ConversorDeAutenticacion implements Converter<Jwt, AbstractAuthenti
 				.filter(Usuario::isEstadoActivo)
 				.orElseThrow(() -> new OAuth2AuthenticationException(
 						new OAuth2Error("invalid_token", "El usuario no existe o está desactivado.", null)));
+		if (usuario.getRol() == RolUsuario.DEMOSTRACION && !demostracionHabilitada) {
+			throw new OAuth2AuthenticationException(
+					new OAuth2Error("invalid_token", "El rol de demostración está deshabilitado.", null));
+		}
 		UsuarioAutenticado principal = new UsuarioAutenticado(usuario.getId(), usuario.getUsername(), usuario.getRol());
-		return new UsernamePasswordAuthenticationToken(principal, jwt,
-				List.of(new SimpleGrantedAuthority("ROLE_" + usuario.getRol().name())));
+		return new UsernamePasswordAuthenticationToken(principal, jwt, autoridades(usuario.getRol()));
+	}
+
+	/**
+	 * Autoridades del rol. El de demostración recibe las de los cuatro roles del negocio, de modo que cada
+	 * {@code @PreAuthorize} existente lo admite sin enumerarlo (ADR-013).
+	 */
+	public static List<SimpleGrantedAuthority> autoridades(RolUsuario rol) {
+		if (rol != RolUsuario.DEMOSTRACION) {
+			return List.of(new SimpleGrantedAuthority("ROLE_" + rol.name()));
+		}
+		List<SimpleGrantedAuthority> autoridades = new ArrayList<>();
+		autoridades.add(new SimpleGrantedAuthority("ROLE_" + RolUsuario.DEMOSTRACION.name()));
+		RolUsuario.ROLES_DEL_NEGOCIO.forEach(r -> autoridades.add(new SimpleGrantedAuthority("ROLE_" + r.name())));
+		return autoridades;
 	}
 
 	/**

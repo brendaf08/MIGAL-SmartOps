@@ -12,12 +12,16 @@ import { ClienteFormModal } from './ClienteFormModal';
 import { listarClientes } from './api';
 import type { Cliente } from './tipos';
 import classes from './Clientes.module.css';
+import { API_REAL } from '@/api/cliente';
 
 const columns: Column<Cliente>[] = [
   { key: 'nombre', header: 'Nombre', primary: true },
   { key: 'documento', header: 'Documento', mono: true },
   { key: 'telefono', header: 'Teléfono', render: (c) => c.telefono || '—' },
-  { key: 'correo', header: 'Correo', render: (c) => c.correo || '—' },
+  // El contrato no almacena correo: la columna solo existe con los datos simulados.
+  ...(API_REAL
+    ? []
+    : [{ key: 'correo', header: 'Correo', render: (c: Cliente) => c.correo || '—' }]),
   {
     key: 'estado',
     header: 'Estado',

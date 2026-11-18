@@ -5,5 +5,5 @@ import type { RutaModulo } from './tipos';
 /** Rutas del módulo `kardex`: listado del Kardex (P14) y registro de movimiento (P13). */
 export const RUTAS: RutaModulo[] = [
   { path: '', element: <KardexPage /> },
-  { path: 'nuevo', element: <MovimientoFormPage /> },
+  { path: 'nuevo', element: <MovimientoFormPage />, roles: ['Almacenero', 'Administrador'] },
 ];

@@ -1,4 +1,13 @@
-import { NumberInput, Select, Skeleton, Stack, Switch, Text, TextInput, Textarea } from '@mantine/core';
+import {
+  NumberInput,
+  Select,
+  Skeleton,
+  Stack,
+  Switch,
+  Text,
+  TextInput,
+  Textarea,
+} from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';

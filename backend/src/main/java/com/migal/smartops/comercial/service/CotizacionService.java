@@ -1,5 +1,6 @@
 package com.migal.smartops.comercial.service;
 
+import com.migal.smartops.comun.web.Busqueda;
 import com.migal.smartops.catalogo.model.Producto;
 import com.migal.smartops.catalogo.service.ProductoService;
 import com.migal.smartops.comercial.model.Cliente;
@@ -88,17 +89,16 @@ public class CotizacionService {
 	 * razón social del cliente, {@code estados} acepta varios valores, y {@code desde} y {@code hasta} delimitan la
 	 * fecha de emisión de forma inclusiva.
 	 */
-	@Transactional
+	@Transactional(readOnly = true)
 	public Page<Cotizacion> listar(String q, Collection<EstadoCotizacion> estados, Long clienteId, LocalDate desde,
 			LocalDate hasta, Pageable paginacion) {
-		vencerVencidas();
 		Instant inicio = desde == null ? null : desde.atStartOfDay(ZONA).toInstant();
 		Instant fin = hasta == null ? null : hasta.plusDays(1).atStartOfDay(ZONA).toInstant();
 		Specification<Cotizacion> filtros = (raiz, consulta, cb) -> {
 			List<Predicate> condiciones = new ArrayList<>();
 			if (q != null && !q.isBlank()) {
 				condiciones.add(cb.like(cb.lower(raiz.get("cliente").get("nombreRazonSocial")),
-						"%" + q.trim().toLowerCase() + "%"));
+						Busqueda.patron(q), Busqueda.ESCAPE));
 			}
 			if (estados != null && !estados.isEmpty()) {
 				condiciones.add(raiz.get("estado").in(estados.stream().map(EstadoCotizacion::valor).toList()));
@@ -118,9 +118,8 @@ public class CotizacionService {
 	}
 
 	/** Consulta una cotización con sus líneas y su estado vigente. */
-	@Transactional
+	@Transactional(readOnly = true)
 	public Cotizacion consultar(long id) {
-		vencerVencidas();
 		return cotizaciones.findById(id).orElseThrow(CotizacionService::noEncontrada);
 	}
 
@@ -219,7 +218,7 @@ public class CotizacionService {
 		if (origen == OrigenRechazoCotizacion.CLIENTE) {
 			exigirEmitida(cotizacion);
 		} else {
-			if (rol != RolUsuario.ADMINISTRADOR) {
+			if (!rol.incluye(RolUsuario.ADMINISTRADOR)) {
 				throw new ErrorDeNegocio(CodigoError.PERMISO_INSUFICIENTE,
 						"Solo el Administrador registra el rechazo de MIGAL.");
 			}
@@ -301,6 +300,16 @@ public class CotizacionService {
 	/** Marca como vencidas las cotizaciones cuyo vencimiento ya pasó, salvo las que originaron una venta. */
 	private void vencerVencidas() {
 		cotizaciones.vencerVencidas(hoy());
+	}
+
+	/**
+	 * Marca como vencidas las cotizaciones cuya fecha de vencimiento ya pasó. Lo ejecuta {@link VencimientoCotizaciones}
+	 * al iniciar y cada medianoche, de modo que las consultas no escriben; las operaciones de escritura lo repiten antes de
+	 * decidir. Devuelve la cantidad de cotizaciones vencidas.
+	 */
+	@Transactional
+	public int vencerVencidasProgramado() {
+		return cotizaciones.vencerVencidas(hoy());
 	}
 
 	/** Registra en el log las líneas cuyo stock libre no cubre la cantidad y requieren confirmación de abastecimiento. */

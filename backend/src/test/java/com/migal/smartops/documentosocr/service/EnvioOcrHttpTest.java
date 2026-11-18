@@ -100,6 +100,21 @@ class EnvioOcrHttpTest {
 	}
 
 	@Test
+	void enviaElTokenInternoCuandoEstaConfigurado() {
+		PropiedadesOcr conToken = new PropiedadesOcr(PropiedadesOcr.PROVEEDOR_HTTP, propiedades.umbrales(),
+				new PropiedadesOcr.Servicio("http://ocr.local", Duration.ofSeconds(60), null, null, null, "secreto"));
+		RestClient.Builder constructor = RestClient.builder().baseUrl("http://ocr.local");
+		MockRestServiceServer otro = MockRestServiceServer.bindTo(constructor).build();
+		otro.expect(requestTo("http://ocr.local/procesar"))
+				.andExpect(header("X-Token-Interno", "secreto"))
+				.andRespond(withStatus(HttpStatus.ACCEPTED));
+
+		new EnvioOcrHttp(constructor.build(), conToken, tokens, documentos).enviar(solicitud(archivo));
+
+		otro.verify();
+	}
+
+	@Test
 	void unaRespuestaDeErrorRegistraServicioNoDisponible() {
 		servidor.expect(requestTo("http://ocr.local/procesar")).andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE));
 

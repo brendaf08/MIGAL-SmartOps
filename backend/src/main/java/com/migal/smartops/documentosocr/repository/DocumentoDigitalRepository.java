@@ -19,8 +19,8 @@ public interface DocumentoDigitalRepository extends JpaRepository<DocumentoDigit
 	/** Documento vigente, es decir, no eliminado lógicamente. */
 	Optional<DocumentoDigital> findByIdAndFechaEliminacionIsNull(Long id);
 
-	/** Identificador del documento que sirve de apoyo a una recepción, si existe. */
-	@Query("select d.id from DocumentoDigital d where d.idRecepcion = :idRecepcion")
+	/** Identificador del documento vigente que sirve de apoyo a una recepción, si existe. */
+	@Query("select d.id from DocumentoDigital d where d.idRecepcion = :idRecepcion and d.fechaEliminacion is null")
 	Optional<Long> idDocumentoDeRecepcion(@Param("idRecepcion") Long idRecepcion);
 
 	/** Bloquea el documento hasta el fin de la transacción. */

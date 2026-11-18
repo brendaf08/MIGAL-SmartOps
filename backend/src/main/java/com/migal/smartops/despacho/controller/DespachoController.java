@@ -50,8 +50,9 @@ public class DespachoController {
 
 	private static final String ROLES_CONSULTA = "hasAnyRole('ALMACENERO','ADMINISTRADOR')";
 	private static final String ROLES_ALMACENERO = "hasRole('ALMACENERO')";
-	private static final String ESTADOS = "^(preparacion|emitida|salida_confirmada|entregada)"
-			+ "(,(preparacion|emitida|salida_confirmada|entregada))*$";
+	// Todos los valores de GuiaEstado del contrato, incluida anulada (ADR-009): filtrar por ella respondía 422.
+	private static final String ESTADOS = "^(preparacion|emitida|salida_confirmada|entregada|anulada)"
+			+ "(,(preparacion|emitida|salida_confirmada|entregada|anulada))*$";
 
 	private static final Map<String, String> CAMPOS_ORDENABLES = Map.of("fechaEmision", "fechaEmision", "codigo", "codigo");
 

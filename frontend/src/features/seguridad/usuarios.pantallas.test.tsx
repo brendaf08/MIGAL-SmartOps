@@ -46,9 +46,13 @@ describe('Usuarios: lista', () => {
 
     await userEvent.type(screen.getByRole('searchbox', { name: 'Buscar usuario' }), 'esoto');
     await waitFor(() =>
-      expect(within(screen.getByRole('table', { name: 'Usuarios' })).queryByText('admin')).toBeNull(),
+      expect(
+        within(screen.getByRole('table', { name: 'Usuarios' })).queryByText('admin'),
+      ).toBeNull(),
     );
-    expect(within(screen.getByRole('table', { name: 'Usuarios' })).getByText('esoto')).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('table', { name: 'Usuarios' })).getByText('esoto'),
+    ).toBeInTheDocument();
   });
 
   it('no tiene violaciones de accesibilidad', async () => {
@@ -80,7 +84,8 @@ describe('Usuarios: registro y edición de rol', () => {
   it('registrar un usuario válido lo agrega a la lista', async () => {
     renderApp('/usuarios/nuevo', 'Administrador');
 
-    await userEvent.type(screen.getByRole('textbox', { name: 'Nombre completo' }), 'Ana Ríos');
+    await userEvent.type(screen.getByRole('textbox', { name: 'Nombres' }), 'Ana');
+    await userEvent.type(screen.getByRole('textbox', { name: 'Apellidos' }), 'Ríos');
     await userEvent.type(screen.getByRole('textbox', { name: 'Usuario' }), 'arios');
     await userEvent.type(screen.getByLabelText(/Contraseña temporal/), 'clave1234');
     await elegirRol('Vendedor');
@@ -93,7 +98,8 @@ describe('Usuarios: registro y edición de rol', () => {
   it('un usuario duplicado muestra el error junto al campo y conserva los datos', async () => {
     renderApp('/usuarios/nuevo', 'Administrador');
 
-    await userEvent.type(screen.getByRole('textbox', { name: 'Nombre completo' }), 'Otro Admin');
+    await userEvent.type(screen.getByRole('textbox', { name: 'Nombres' }), 'Otro');
+    await userEvent.type(screen.getByRole('textbox', { name: 'Apellidos' }), 'Admin');
     await userEvent.type(screen.getByRole('textbox', { name: 'Usuario' }), 'admin');
     await userEvent.type(screen.getByLabelText(/Contraseña temporal/), 'clave1234');
     await elegirRol('Administrador');
@@ -102,7 +108,8 @@ describe('Usuarios: registro y edición de rol', () => {
     expect(
       await screen.findByText('El usuario ya está registrado. Ingresar uno distinto.'),
     ).toBeInTheDocument();
-    expect(screen.getByRole('textbox', { name: 'Nombre completo' })).toHaveValue('Otro Admin');
+    expect(screen.getByRole('textbox', { name: 'Nombres' })).toHaveValue('Otro');
+    expect(screen.getByRole('textbox', { name: 'Apellidos' })).toHaveValue('Admin');
     expect(screen.getByRole('textbox', { name: 'Usuario' })).toHaveValue('admin');
   }, 20000);
 
@@ -110,9 +117,8 @@ describe('Usuarios: registro y edición de rol', () => {
     renderApp('/usuarios/nuevo', 'Administrador');
 
     await userEvent.click(screen.getByRole('button', { name: 'Registrar usuario' }));
-    expect(
-      await screen.findByText('Ingresar el nombre completo, con al menos 3 caracteres.'),
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Ingresar los nombres.')).toBeInTheDocument();
+    expect(screen.getByText('Ingresar los apellidos.')).toBeInTheDocument();
     expect(screen.getByText('Ingresar un usuario de 4 a 20 caracteres.')).toBeInTheDocument();
     expect(
       screen.getByText('La contraseña temporal debe tener al menos 8 caracteres.'),
@@ -131,13 +137,26 @@ describe('Usuarios: registro y edición de rol', () => {
   it('modificar el rol actualiza la fila', async () => {
     renderApp('/usuarios/U-002', 'Administrador');
 
-    await screen.findByDisplayValue('Lucía Torres');
+    await screen.findByDisplayValue('Lucía');
+    expect(screen.getByRole('textbox', { name: 'Apellidos' })).toHaveValue('Torres');
     await elegirRol('Almacenero');
     await userEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }));
 
     const t = await tablaCon('esoto');
     const fila = within(t).getByText('Lucía Torres').closest('tr')!;
     expect(within(fila).getByText('Almacenero')).toBeInTheDocument();
+  }, 20000);
+});
+
+describe('Usuarios: reactivación de acceso', () => {
+  it('reactivar un usuario inactivo lo deja activo', async () => {
+    renderApp('/usuarios', 'Administrador');
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Reactivar acceso de Pedro Huamán' }),
+    );
+
+    expect(await screen.findByText('Acceso reactivado a phuaman.')).toBeInTheDocument();
   }, 20000);
 });
 
@@ -169,9 +188,7 @@ describe('Usuarios: revocación de acceso', () => {
     renderApp('/usuarios', 'Administrador');
     await tablaCon('rquispe');
 
-    expect(
-      screen.getByRole('button', { name: /Revocar acceso de Carlos Medina/ }),
-    ).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Revocar acceso de Carlos Medina/ })).toBeDisabled();
     expect(screen.getAllByText('No se puede revocar la propia cuenta').length).toBeGreaterThan(0);
   }, 20000);
 
@@ -200,5 +217,25 @@ describe('Usuarios: revocación de acceso', () => {
         },
       }),
     ).toHaveNoViolations();
+  }, 20000);
+});
+
+describe('Cuenta: cambio de contraseña', () => {
+  it('valida la confirmación y luego cambia la contraseña', async () => {
+    renderApp('/cuenta', 'Vendedor');
+
+    await userEvent.type(await screen.findByLabelText(/^Contraseña actual/), 'Clave1234');
+    await userEvent.type(screen.getByLabelText(/^Nueva contraseña/), 'Nueva2026');
+    await userEvent.type(screen.getByLabelText(/^Confirmar la nueva contraseña/), 'Otra2026');
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar contraseña' }));
+    expect(
+      await screen.findByText('La confirmación no coincide con la nueva contraseña.'),
+    ).toBeInTheDocument();
+
+    await userEvent.clear(screen.getByLabelText(/^Confirmar la nueva contraseña/));
+    await userEvent.type(screen.getByLabelText(/^Confirmar la nueva contraseña/), 'Nueva2026');
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar contraseña' }));
+
+    expect(await screen.findByText('Contraseña actualizada.')).toBeInTheDocument();
   }, 20000);
 });

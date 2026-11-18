@@ -1,5 +1,6 @@
 package com.migal.smartops.despacho.service;
 
+import com.migal.smartops.comun.web.Busqueda;
 import com.migal.smartops.comercial.model.DetalleVenta;
 import com.migal.smartops.comercial.model.EstadoVenta;
 import com.migal.smartops.comercial.model.Venta;
@@ -106,8 +107,8 @@ public class DespachoService {
 				condiciones.add(raiz.get("estado").in(estados.stream().map(EstadoGuia::valor).toList()));
 			}
 			if (patron != null) {
-				condiciones.add(cb.or(cb.like(cb.lower(raiz.get("codigo")), patron),
-						cb.like(cb.lower(raiz.get("venta").get("cliente").get("nombreRazonSocial")), patron)));
+				condiciones.add(cb.or(cb.like(cb.lower(raiz.get("codigo")), patron, Busqueda.ESCAPE),
+						cb.like(cb.lower(raiz.get("venta").get("cliente").get("nombreRazonSocial")), patron, Busqueda.ESCAPE)));
 			}
 			if (idVenta != null) {
 				condiciones.add(cb.equal(raiz.get("venta").get("id"), idVenta));
@@ -137,8 +138,8 @@ public class DespachoService {
 			List<Predicate> condiciones = new ArrayList<>();
 			condiciones.add(cb.equal(raiz.get("estado"), EstadoVenta.PENDIENTE_DESPACHO.valor()));
 			if (patron != null) {
-				condiciones.add(cb.or(cb.like(cb.lower(raiz.get("codigo")), patron),
-						cb.like(cb.lower(raiz.get("cliente").get("nombreRazonSocial")), patron)));
+				condiciones.add(cb.or(cb.like(cb.lower(raiz.get("codigo")), patron, Busqueda.ESCAPE),
+						cb.like(cb.lower(raiz.get("cliente").get("nombreRazonSocial")), patron, Busqueda.ESCAPE)));
 			}
 			if (inicio != null) {
 				condiciones.add(cb.greaterThanOrEqualTo(raiz.<Instant>get("fechaVenta"), inicio));
@@ -301,7 +302,7 @@ public class DespachoService {
 	}
 
 	private static String patron(String texto) {
-		return texto == null || texto.isBlank() ? null : "%" + texto.trim().toLowerCase() + "%";
+		return texto == null || texto.isBlank() ? null : Busqueda.patron(texto);
 	}
 
 	private static Instant inicio(LocalDate desde) {

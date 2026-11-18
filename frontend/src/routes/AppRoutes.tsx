@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router';
 import { EmptyState } from '@/components/ui/EmptyState/EmptyState';
 import { RequireAuth, RequireRole } from '@/features/seguridad/guards';
 import { LoginPage } from '@/features/seguridad/LoginPage';
+import { tieneRol } from '@/features/seguridad/roles';
 import { useSession } from '@/features/seguridad/session';
 import { NAV } from './navigation';
 import type { RutaModulo } from './modulos/tipos';
@@ -27,7 +28,7 @@ const RUTAS_POR_MODULO = Object.entries(ARCHIVOS).reduce<Record<string, RutaModu
 /** Lleva al primer módulo visible para el rol del usuario. */
 function Home() {
   const { user } = useSession();
-  const first = ITEMS.find((item) => !item.roles || (user && item.roles.includes(user.role)));
+  const first = ITEMS.find((item) => !item.roles || tieneRol(user?.role, item.roles));
   return <Navigate to={`/${first?.key ?? 'agente-ia'}`} replace />;
 }
 

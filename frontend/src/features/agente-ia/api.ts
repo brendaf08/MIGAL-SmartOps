@@ -1,4 +1,4 @@
-import { API_REAL, ApiError, api } from '@/api/cliente';
+import { alCerrarSesion, api, API_REAL, ApiError } from '@/api/cliente';
 import { mockRequest } from '@/api/mock';
 import { recorrerPaginas } from '@/api/paginacion';
 import { formatNumber } from '@/lib/format';
@@ -36,6 +36,10 @@ interface RespuestaAgenteApi {
 
 /** Conversación de la sesión: las consultas siguientes se agregan a ella en lugar de abrir una nueva. */
 let conversacionActual: string | undefined;
+// El siguiente usuario de un equipo compartido no continúa la conversación del anterior.
+alCerrarSesion(() => {
+  conversacionActual = undefined;
+});
 
 const enviarMensaje = (mensaje: string, conversacionId?: string) =>
   api.post<RespuestaAgenteApi>(

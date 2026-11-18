@@ -13,6 +13,7 @@ import { formatCurrency, formatDate } from '@/lib/format';
 import { listarCotizaciones } from './api';
 import { diasEntre, hoyIso, totales } from './calculos';
 import type { Cotizacion, EstadoCotizacion } from './types';
+import { usePermisos } from '@/features/seguridad/permisos';
 
 type Filtro = 'todas' | EstadoCotizacion;
 
@@ -63,6 +64,7 @@ const FILTROS: { value: Filtro; label: string }[] = [
 
 /** CU-09: listado de cotizaciones por estado; cada fila abre su detalle. */
 export function CotizacionesPage() {
+  const puede = usePermisos();
   const navigate = useNavigate();
   const query = useQuery({ queryKey: ['cotizaciones'], queryFn: listarCotizaciones });
   const [filtro, setFiltro] = useState<Filtro>('todas');
@@ -84,12 +86,14 @@ export function CotizacionesPage() {
         title="Cotizaciones"
         description="Cotizaciones emitidas a clientes y su estado."
         actions={
-          <Button
-            leftSection={<Icon name="plus" />}
-            onClick={() => void navigate('/cotizaciones/nueva')}
-          >
-            Nueva cotización
-          </Button>
+          puede('registrarCotizacion') && (
+            <Button
+              leftSection={<Icon name="plus" />}
+              onClick={() => void navigate('/cotizaciones/nueva')}
+            >
+              Nueva cotización
+            </Button>
+          )
         }
       />
       <Stack gap="md">

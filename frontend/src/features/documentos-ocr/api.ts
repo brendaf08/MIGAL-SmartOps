@@ -212,6 +212,8 @@ const procesarDocumentoReal = async (archivo: File, tipo: TipoDocumento): Promis
   const registrado = await api.subir<DocumentoResumenApi>('/documentos', formulario);
   const documento = await esperarProcesamiento(registrado.id);
   if (documento.codigoError === 'DOCUMENTO_ILEGIBLE') throw new Error('Documento ilegible.');
+  if (documento.codigoError === 'SERVICIO_NO_DISPONIBLE')
+    throw new Error('El servicio de OCR no respondió. Intentar de nuevo en unos minutos.');
   if (documento.codigoError) throw new Error('No se pudo procesar el documento.');
   return aDocumento(documento, documento.detalles);
 };

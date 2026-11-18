@@ -253,6 +253,8 @@ function FormularioProveedor({ proveedor }: { proveedor?: Proveedor }) {
               placeholder="Buscar por SKU o nombre"
               data={opciones}
               searchable
+              // El catálogo real tiene cientos de productos: se listan las 50 primeras coincidencias.
+              limit={50}
               searchValue={busqueda}
               onSearchChange={setBusqueda}
               nothingFoundMessage={sinCoincidencia ? undefined : 'Sin coincidencias'}

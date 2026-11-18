@@ -22,8 +22,9 @@ export default defineConfig({
     headless: true,
     actionTimeout: 12_000,
     navigationTimeout: 20_000,
-    trace: 'off',
+    // Ante un fallo se conservan la traza y la captura para diagnosticarlo sin repetir la ejecución.
+    trace: 'retain-on-failure',
     video: 'off',
-    screenshot: 'off',
+    screenshot: 'only-on-failure',
   },
 });

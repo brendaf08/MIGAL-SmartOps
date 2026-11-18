@@ -46,9 +46,7 @@ El diagrama de Nivel 1 descompone el proceso general de MIGAL SmartOps en sus pr
 
 Esta descomposición permite distinguir las operaciones comerciales, el control de existencias, las reservas de stock y los movimientos físicos de Kardex, evitando que el registro de una venta sea interpretado como una salida inmediata de mercadería.
 
-![Diagrama de flujo de datos de nivel 1: Descomposición de MIGAL SmartOps](imagenes/MIGAL-DFD-N1-descomposicion.png)
-
-**Figura 2. Diagrama de descomposición funcional de MIGAL SmartOps.**
+> **Pendiente:** la imagen del diagrama de nivel 1 (`imagenes/MIGAL-DFD-N1-descomposicion.png`) todavía no se ha elaborado. La descomposición se describe en las secciones siguientes.
 
 ### Procesos principales
 

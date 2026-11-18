@@ -27,8 +27,20 @@ const EXISTENCIAS_CEM = {
 };
 
 const ALMACENES = [
-  { id: '101', nombre: 'Tienda principal', tipoUbicacion: 'tienda', direccionReferencia: null, estadoActivo: true },
-  { id: '102', nombre: 'Almacén 1', tipoUbicacion: 'almacen', direccionReferencia: null, estadoActivo: true },
+  {
+    id: '101',
+    nombre: 'Tienda principal',
+    tipoUbicacion: 'tienda',
+    direccionReferencia: null,
+    estadoActivo: true,
+  },
+  {
+    id: '102',
+    nombre: 'Almacén 1',
+    tipoUbicacion: 'almacen',
+    direccionReferencia: null,
+    estadoActivo: true,
+  },
 ];
 
 const MOVIMIENTO_AJUSTE = {
@@ -67,7 +79,12 @@ describe('inventario, disponibilidad (rama de la API real)', () => {
     });
     const { consultarDisponibilidad } = await cargarModulo(() => import('./api'));
 
-    const respuesta = await consultarDisponibilidad({ q: ' cem ', soloAlerta: true, page: 1, pageSize: 20 });
+    const respuesta = await consultarDisponibilidad({
+      q: ' cem ',
+      soloAlerta: true,
+      page: 1,
+      pageSize: 20,
+    });
 
     const llamada = llamadas[0]!;
     expect(llamada.metodo).toBe('GET');
@@ -124,7 +141,16 @@ describe('inventario, alertas (rama de la API real)', () => {
               faltante: 80,
               nivelAlerta: 'minimo',
             },
-            { productoId: '50', sku: 'LAD-002', nombre: 'Ladrillo', unidad: 'unidad', stockMinimo: 800, libre: 900, faltante: -100, nivelAlerta: 'normal' },
+            {
+              productoId: '50',
+              sku: 'LAD-002',
+              nombre: 'Ladrillo',
+              unidad: 'unidad',
+              stockMinimo: 800,
+              libre: 900,
+              faltante: -100,
+              nivelAlerta: 'normal',
+            },
           ],
           total: 3,
           page: 1,
@@ -134,7 +160,19 @@ describe('inventario, alertas (rama de la API real)', () => {
         json({
           items: [
             EXISTENCIAS_CEM,
-            { ...EXISTENCIAS_CEM, productoId: '44', sku: 'AGR-004', nombre: 'Arena gruesa, metro cúbico', unidad: 'm³', stockMinimo: 10, fisico: 0, reservado: 0, libre: 0, nivelAlerta: 'critico', ubicaciones: [] },
+            {
+              ...EXISTENCIAS_CEM,
+              productoId: '44',
+              sku: 'AGR-004',
+              nombre: 'Arena gruesa, metro cúbico',
+              unidad: 'm³',
+              stockMinimo: 10,
+              fisico: 0,
+              reservado: 0,
+              libre: 0,
+              nivelAlerta: 'critico',
+              ubicaciones: [],
+            },
           ],
           total: 2,
           page: 1,
@@ -168,7 +206,12 @@ describe('inventario, alertas (rama de la API real)', () => {
       'GET /api/v1/inventario/alertas': (llamada) =>
         llamada.consulta.get('page') === '1'
           ? json({ items: primera, total: 101, page: 1, pageSize: 100 })
-          : json({ items: [{ ...primera[0], sku: 'ULT-999' }], total: 101, page: 2, pageSize: 100 }),
+          : json({
+              items: [{ ...primera[0], sku: 'ULT-999' }],
+              total: 101,
+              page: 2,
+              pageSize: 100,
+            }),
       'GET /api/v1/inventario/disponibilidad': () =>
         json({ items: [], total: 0, page: 1, pageSize: 100, enAlerta: 0, totalGeneral: 0 }),
     });
@@ -189,7 +232,10 @@ describe('inventario, alertas (rama de la API real)', () => {
     });
     const { listarAlertas } = await cargarModulo(() => import('./api'));
 
-    await expect(listarAlertas()).rejects.toMatchObject({ codigo: 'PERMISO_INSUFICIENTE', estado: 403 });
+    await expect(listarAlertas()).rejects.toMatchObject({
+      codigo: 'PERMISO_INSUFICIENTE',
+      estado: 403,
+    });
   });
 });
 
@@ -237,7 +283,10 @@ describe('inventario, Kardex (rama de la API real)', () => {
     const llamadas = simularServidor({ 'GET /api/v1/almacenes': () => json(ALMACENES) });
     const { listarMovimientosFiltrados } = await cargarModulo(() => import('./api'));
 
-    const movimientos = await listarMovimientosFiltrados({ ...SIN_FILTROS_KARDEX, ubicacion: 'Almacén 9' });
+    const movimientos = await listarMovimientosFiltrados({
+      ...SIN_FILTROS_KARDEX,
+      ubicacion: 'Almacén 9',
+    });
 
     expect(movimientos).toEqual([]);
     expect(llamadas.some((l) => l.ruta === '/api/v1/inventario/movimientos')).toBe(false);
@@ -245,7 +294,10 @@ describe('inventario, Kardex (rama de la API real)', () => {
 
   it('omite los filtros vacíos y recorre todas las páginas del Kardex', async () => {
     const lote = (inicio: number, cantidad: number) =>
-      Array.from({ length: cantidad }, (_, i) => ({ ...MOVIMIENTO_AJUSTE, id: String(inicio + i) }));
+      Array.from({ length: cantidad }, (_, i) => ({
+        ...MOVIMIENTO_AJUSTE,
+        id: String(inicio + i),
+      }));
     const llamadas = simularServidor({
       'GET /api/v1/almacenes': () => json(ALMACENES),
       'GET /api/v1/inventario/movimientos': (llamada) =>
@@ -253,7 +305,9 @@ describe('inventario, Kardex (rama de la API real)', () => {
           ? json({ items: lote(1, 100), total: 102, page: 1, pageSize: 100 })
           : json({ items: lote(101, 2), total: 102, page: 2, pageSize: 100 }),
     });
-    const { listarMovimientosFiltrados, SIN_FILTROS_KARDEX: sinFiltros } = await cargarModulo(() => import('./api'));
+    const { listarMovimientosFiltrados, SIN_FILTROS_KARDEX: sinFiltros } = await cargarModulo(
+      () => import('./api'),
+    );
 
     const movimientos = await listarMovimientosFiltrados(sinFiltros);
 

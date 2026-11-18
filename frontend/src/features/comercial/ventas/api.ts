@@ -82,7 +82,12 @@ export interface VentaApi {
   cotizacionId: string;
   clienteId: string;
   clienteNombre: string;
-  estado: 'pendiente_abastecimiento' | 'pendiente_despacho' | 'lista_para_despacho' | 'despachada' | 'cancelada';
+  estado:
+    | 'pendiente_abastecimiento'
+    | 'pendiente_despacho'
+    | 'lista_para_despacho'
+    | 'despachada'
+    | 'cancelada';
   descuento: number;
   subtotal: number;
   total: number;
@@ -170,22 +175,39 @@ async function listarVentasReal(): Promise<Venta[]> {
   return Promise.all(resumenes.map((r) => obtenerVentaApi(r.id)));
 }
 
-async function completarVentaReal(id: string, claveIdempotencia: string): Promise<ResultadoCompletar> {
+async function completarVentaReal(
+  id: string,
+  claveIdempotencia: string,
+): Promise<ResultadoCompletar> {
   const antes = await obtenerVentaApi(id);
   const despues = ventaDesde(
-    await api.post<VentaApi>(`/ventas/${encodeURIComponent(id)}/cobertura`, undefined, claveIdempotencia),
+    await api.post<VentaApi>(
+      `/ventas/${encodeURIComponent(id)}/cobertura`,
+      undefined,
+      claveIdempotencia,
+    ),
   );
   const atencion = antes.lineas
     .filter((l) => pendienteDe(l) > 0)
     .map((l): LineaAtencion => {
       const atendida = despues.lineas.find((x) => x.sku === l.sku)?.atendida ?? l.atendida;
       const atendible = atendida - l.atendida;
-      return { sku: l.sku, nombre: l.nombre, pendiente: pendienteDe(l), libre: atendible, atendible };
+      return {
+        sku: l.sku,
+        nombre: l.nombre,
+        pendiente: pendienteDe(l),
+        libre: atendible,
+        atendible,
+      };
     });
   return { venta: despues, atencion };
 }
 
-async function cancelarVentaReal(id: string, motivo: string, claveIdempotencia: string): Promise<Venta> {
+async function cancelarVentaReal(
+  id: string,
+  motivo: string,
+  claveIdempotencia: string,
+): Promise<Venta> {
   const texto = motivo.trim();
   if (!texto) throw new Error('Indicar el motivo de la cancelación.');
   return ventaDesde(
@@ -220,7 +242,10 @@ export interface ResultadoCompletar {
  * ya no tiene pendientes, y en otro caso conserva su estado. La clave de idempotencia identifica la intención
  * del usuario y se reutiliza en sus reintentos.
  */
-export const completarVenta = (id: string, claveIdempotencia: string): Promise<ResultadoCompletar> =>
+export const completarVenta = (
+  id: string,
+  claveIdempotencia: string,
+): Promise<ResultadoCompletar> =>
   API_REAL
     ? completarVentaReal(id, claveIdempotencia)
     : mockRequest<ResultadoCompletar>(() => {
@@ -243,7 +268,11 @@ export const completarVenta = (id: string, claveIdempotencia: string): Promise<R
       });
 
 /** Cancela una venta activa y libera las unidades que tenía atendidas. El motivo es obligatorio en la API. */
-export const cancelarVenta = (id: string, motivo: string, claveIdempotencia: string): Promise<Venta> =>
+export const cancelarVenta = (
+  id: string,
+  motivo: string,
+  claveIdempotencia: string,
+): Promise<Venta> =>
   API_REAL
     ? cancelarVentaReal(id, motivo, claveIdempotencia)
     : mockRequest(() => {

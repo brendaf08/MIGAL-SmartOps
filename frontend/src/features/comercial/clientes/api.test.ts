@@ -78,7 +78,16 @@ describe('clientes (API real)', () => {
       )
       .mockResolvedValueOnce(
         respuesta({
-          items: [clienteApi({ id: '58', tipoDocumento: 'dni', numeroDocumento: '41234567', telefonoContacto: null, estadoActivo: false, nombreRazonSocial: 'Juan Pérez' })],
+          items: [
+            clienteApi({
+              id: '58',
+              tipoDocumento: 'dni',
+              numeroDocumento: '41234567',
+              telefonoContacto: null,
+              estadoActivo: false,
+              nombreRazonSocial: 'Juan Pérez',
+            }),
+          ],
           total: 2,
           page: 2,
           pageSize: 100,
@@ -182,11 +191,19 @@ describe('clientes (API real)', () => {
   it('propaga los demás errores de la API sin traducirlos', async () => {
     const api = await cargarApiReal();
     fetchMock.mockResolvedValueOnce(
-      problema(422, 'VALIDACION_FALLIDA', { errores: [{ campo: 'nombreRazonSocial', codigo: 'min', mensaje: 'Obligatorio.' }] }),
+      problema(422, 'VALIDACION_FALLIDA', {
+        errores: [{ campo: 'nombreRazonSocial', codigo: 'min', mensaje: 'Obligatorio.' }],
+      }),
     );
 
     await expect(
-      api.registrarCliente({ tipoDocumento: 'DNI', documento: '12345678', nombre: '', telefono: '', correo: '' }),
+      api.registrarCliente({
+        tipoDocumento: 'DNI',
+        documento: '12345678',
+        nombre: '',
+        telefono: '',
+        correo: '',
+      }),
     ).rejects.toMatchObject({ codigo: 'VALIDACION_FALLIDA', estado: 422 });
   });
 

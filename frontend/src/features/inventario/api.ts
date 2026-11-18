@@ -75,7 +75,10 @@ export const consultarDisponibilidad = (consulta: ConsultaDisponibilidad) =>
             (!term || `${p.sku} ${p.nombre}`.toLowerCase().includes(term)),
         );
         return {
-          items: found.slice((consulta.page - 1) * consulta.pageSize, consulta.page * consulta.pageSize),
+          items: found.slice(
+            (consulta.page - 1) * consulta.pageSize,
+            consulta.page * consulta.pageSize,
+          ),
           total: found.length,
           enAlerta: PRODUCTOS.filter((p) => enAlerta(resumen(p).nivel)).length,
           totalGeneral: PRODUCTOS.length,
@@ -130,7 +133,9 @@ export const listarMovimientosFiltrados = (filtros: FiltrosKardex): Promise<Movi
 const listarMovimientosFiltradosReal = async (filtros: FiltrosKardex): Promise<Movimiento[]> => {
   const almacenes = await listarAlmacenes();
   // La interfaz filtra por el nombre de la ubicación; el contrato filtra por identificador.
-  const ubicacionId = filtros.ubicacion ? almacenes.find((a) => a.nombre === filtros.ubicacion)?.id : undefined;
+  const ubicacionId = filtros.ubicacion
+    ? almacenes.find((a) => a.nombre === filtros.ubicacion)?.id
+    : undefined;
   if (filtros.ubicacion && !ubicacionId) return [];
   const nombres = new Map(almacenes.map((a) => [a.id, a.nombre]));
   const movimientos = await todosLosElementos((page, pageSize) =>
@@ -149,13 +154,19 @@ const listarMovimientosFiltradosReal = async (filtros: FiltrosKardex): Promise<M
 };
 
 /** Existencias de un producto por SKU para el formulario de movimientos, o `null` si no existe. */
-export const obtenerDisponibilidadProducto = (sku: string): Promise<ProductoDisponibilidad | null> =>
+export const obtenerDisponibilidadProducto = (
+  sku: string,
+): Promise<ProductoDisponibilidad | null> =>
   API_REAL
     ? buscarIdProducto(sku).then(async (id) => {
         if (!id) return null;
-        return aDisponibilidad(await api.get<ProductoExistenciasDto>(`/productos/${encodeURIComponent(id)}/existencias`));
+        return aDisponibilidad(
+          await api.get<ProductoExistenciasDto>(`/productos/${encodeURIComponent(id)}/existencias`),
+        );
       })
-    : mockRequest<ProductoDisponibilidad | null>(() => PRODUCTOS.find((p) => p.sku === sku) ?? null);
+    : mockRequest<ProductoDisponibilidad | null>(
+        () => PRODUCTOS.find((p) => p.sku === sku) ?? null,
+      );
 
 /** Producto en alerta: nivel según el stock libre y cantidad que falta para llegar al mínimo (P12). */
 export interface Alerta extends ProductoDisponibilidad {
@@ -175,7 +186,11 @@ const listarAlertasReal = async (): Promise<Alerta[]> => {
       api.get<PaginaApi<AlertaStockDto>>('/inventario/alertas', { page, pageSize }),
     ),
     todosLosElementos((page, pageSize) =>
-      api.get<DisponibilidadPaginaDto>('/inventario/disponibilidad', { soloAlerta: true, page, pageSize }),
+      api.get<DisponibilidadPaginaDto>('/inventario/disponibilidad', {
+        soloAlerta: true,
+        page,
+        pageSize,
+      }),
     ),
   ]);
   const porSku = new Map(disponibles.map((d) => [d.sku, aDisponibilidad(d)]));

@@ -83,7 +83,10 @@ const ORIGEN_DE_API: Record<MovimientoKardexDto['origenMovimiento'], Movimiento[
 };
 
 /** Movimiento de Kardex a la forma de la interfaz. La ubicación y el responsable se muestran por su nombre o identificador. */
-export const aMovimiento = (dto: MovimientoKardexDto, nombresUbicacion: Map<string, string>): Movimiento => ({
+export const aMovimiento = (
+  dto: MovimientoKardexDto,
+  nombresUbicacion: Map<string, string>,
+): Movimiento => ({
   id: dto.id,
   fecha: dto.fechaHora.slice(0, 10),
   sku: dto.sku,

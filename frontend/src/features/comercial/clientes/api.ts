@@ -110,7 +110,10 @@ async function registrarClienteReal(datos: ClienteDatos): Promise<Cliente> {
 async function actualizarClienteReal(id: string, datos: ClienteDatos): Promise<Cliente> {
   try {
     return clienteDesdeApi(
-      await api.put<ClienteRegistradoApi>(`/clientes/${encodeURIComponent(id)}`, cuerpoDesde(datos)),
+      await api.put<ClienteRegistradoApi>(
+        `/clientes/${encodeURIComponent(id)}`,
+        cuerpoDesde(datos),
+      ),
     );
   } catch (error) {
     return fallarConError(error);

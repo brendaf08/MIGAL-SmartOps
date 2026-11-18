@@ -32,6 +32,7 @@ import {
 } from './api';
 import type { LineaVenta } from './tipos';
 import { useCatalogoVigente } from '@/features/catalogo/catalogoVigente';
+import { usePermisos } from '@/features/seguridad/permisos';
 
 const unidadDe = (sku: string) => PRODUCTOS.find((p) => p.sku === sku)?.unidad ?? 'unidad';
 
@@ -64,6 +65,7 @@ const columns: Column<LineaVenta>[] = [
  * con el stock libre; cancelar exige confirmación y no está disponible en ventas despachadas.
  */
 export function VentaDetallePage() {
+  const puede = usePermisos();
   const { id = '' } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -224,7 +226,7 @@ export function VentaDetallePage() {
           ))}
         </Alert>
       )}
-      {activa && (
+      {activa && (puede('cancelarVenta') || puede('completarVenta')) && (
         <ActionBar
           aria-label="Acciones de la venta"
           summary={
@@ -236,15 +238,17 @@ export function VentaDetallePage() {
           }
           reason={sinStock ? 'Sin stock disponible para las unidades pendientes.' : null}
         >
-          <Button
-            variant="outline"
-            color="danger"
-            leftSection={<Icon name="status-danger" />}
-            onClick={() => abrir('cancelar')}
-          >
-            Cancelar venta
-          </Button>
-          {completable && (
+          {puede('cancelarVenta') && (
+            <Button
+              variant="outline"
+              color="danger"
+              leftSection={<Icon name="status-danger" />}
+              onClick={() => abrir('cancelar')}
+            >
+              Cancelar venta
+            </Button>
+          )}
+          {completable && puede('completarVenta') && (
             <Button
               leftSection={<Icon name="check" />}
               disabled={sinStock}

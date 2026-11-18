@@ -15,6 +15,7 @@ import { ConfirmDialog } from '@/components/ui/Modal/ConfirmDialog';
 import { formatNumber } from '@/lib/format';
 import { confirmarSalida, obtenerOrden, reservaCompleta } from './api';
 import type { LineaDespacho } from './types';
+import { usePermisos } from '@/features/seguridad/permisos';
 
 const columns: Column<LineaDespacho>[] = [
   { key: 'sku', header: 'SKU', mono: true },
@@ -35,6 +36,7 @@ const columns: Column<LineaDespacho>[] = [
 
 /** CU-06: confirmación de la salida física. El foco inicial queda en "Volver" para evitar confirmaciones accidentales. */
 export function DespachoPage() {
+  const puede = usePermisos();
   const { id = '' } = useParams();
   const queryClient = useQueryClient();
   const [confirming, setConfirming] = useState(false);
@@ -141,7 +143,7 @@ export function DespachoPage() {
           rowKey="sku"
         />
       </Card>
-      {pendiente && (
+      {pendiente && puede('operarDespacho') && (
         <ActionBar
           aria-label="Resumen y confirmación de la salida"
           summary={

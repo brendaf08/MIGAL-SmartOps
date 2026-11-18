@@ -101,10 +101,16 @@ describe('Cobertura de la navegación', () => {
         'Despachos',
         'Recepciones',
         'Documentos OCR',
+        'Ventas',
+        'Agente de IA',
+      ],
+      Reponedor: [
+        'Disponibilidad',
+        'Alertas de stock',
+        'Proveedores',
         'Órdenes de compra',
         'Agente de IA',
       ],
-      Reponedor: ['Alertas de stock', 'Proveedores', 'Órdenes de compra', 'Agente de IA'],
     };
     for (const [rol, etiquetas] of Object.entries(esperados) as [Role, string[]][]) {
       const visibles = NAV.flatMap((g) => g.items)

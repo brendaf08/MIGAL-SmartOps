@@ -57,7 +57,7 @@ describe('Rutas y roles', () => {
     renderApp('/', 'Reponedor');
 
     expect(
-      await screen.findByRole('heading', { level: 1, name: 'Alertas de stock' }),
+      await screen.findByRole('heading', { level: 1, name: 'Disponibilidad' }),
     ).toBeInTheDocument();
   });
 });

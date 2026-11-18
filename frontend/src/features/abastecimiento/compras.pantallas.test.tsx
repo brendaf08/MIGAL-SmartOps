@@ -145,7 +145,7 @@ describe('Órdenes de compra, flujo completo y detalle (P25, P26)', () => {
   }, 20000);
 
   it('muestra recibida y pendiente por línea en el detalle', async () => {
-    renderApp('/compras/OC-0086', 'Almacenero');
+    renderApp('/compras/OC-0086', 'Reponedor');
 
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Orden de compra OC-0086' }),
@@ -153,7 +153,6 @@ describe('Órdenes de compra, flujo completo y detalle (P25, P26)', () => {
     const tabla = screen.getByRole('table', { name: 'Líneas de la orden OC-0086' });
     expect(within(tabla).getByText('180')).toBeInTheDocument();
     expect(within(tabla).getByText('120')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Registrar recepción' })).toBeInTheDocument();
   });
 
   it('una orden completada no ofrece la recepción', async () => {

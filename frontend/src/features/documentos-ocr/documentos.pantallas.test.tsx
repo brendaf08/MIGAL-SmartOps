@@ -127,9 +127,9 @@ describe('Documentos OCR', () => {
   it('un Reponedor no accede a los documentos', async () => {
     renderApp('/documentos/procesar', 'Reponedor');
 
-    // Redirige al primer módulo visible para el rol: Alertas de stock.
+    // Redirige al primer módulo visible para el rol: Disponibilidad.
     expect(
-      await screen.findByRole('heading', { level: 1, name: 'Alertas de stock' }),
+      await screen.findByRole('heading', { level: 1, name: 'Disponibilidad' }),
     ).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Procesar documento' })).not.toBeInTheDocument();
   });

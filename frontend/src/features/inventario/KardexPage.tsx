@@ -25,6 +25,7 @@ import { formatDate } from '@/lib/format';
 import { UBICACIONES } from './movimientos/esquema';
 import { listarMovimientosFiltrados, SIN_FILTROS_KARDEX, type FiltrosKardex } from './api';
 import type { Movimiento } from './types';
+import { usePermisos } from '@/features/seguridad/permisos';
 
 const PAGE_SIZE = 20;
 
@@ -98,6 +99,7 @@ function etiquetasDe(f: FiltrosKardex) {
 
 /** P14. Kardex con filtros combinables; en teléfono los filtros se agrupan en una hoja. */
 export function KardexPage() {
+  const puede = usePermisos();
   const navigate = useNavigate();
   const location = useLocation();
   const enHoja = useMatches({ base: true, sm: false });
@@ -192,9 +194,14 @@ export function KardexPage() {
         title="Movimientos y Kardex"
         description="Entradas y salidas de mercadería por producto y ubicación."
         actions={
-          <Button leftSection={<Icon name="plus" />} onClick={() => void navigate('/kardex/nuevo')}>
-            Registrar movimiento
-          </Button>
+          puede('registrarMovimiento') && (
+            <Button
+              leftSection={<Icon name="plus" />}
+              onClick={() => void navigate('/kardex/nuevo')}
+            >
+              Registrar movimiento
+            </Button>
+          )
         }
       />
       {enHoja ? (

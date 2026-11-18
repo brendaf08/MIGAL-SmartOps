@@ -53,10 +53,9 @@ describe('Alertas de stock hacia órdenes de compra', () => {
 });
 
 describe('Órdenes de compra hacia recepciones', () => {
-  it('el Almacenero registra la recepción desde el detalle de una orden pendiente', async () => {
-    renderApp('/compras/OC-0087', 'Almacenero');
-
-    await userEvent.click(await screen.findByRole('button', { name: 'Registrar recepción' }));
+  it('el Almacenero registra la recepción de una orden pendiente desde Recepciones', async () => {
+    // GET /ordenes-compra y GET /proveedores no admiten al Almacenero: recibe desde las órdenes recepcionables.
+    renderApp('/recepciones/nueva?oc=OC-0087', 'Almacenero');
 
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Nueva recepción' }),

@@ -65,6 +65,18 @@ describe('Proveedores: lista', () => {
       await axe(container, { rules: { 'color-contrast': { enabled: false } } }),
     ).toHaveNoViolations();
   });
+
+  it('navega al formulario de registro al pulsar Registrar proveedor', async () => {
+    const user = userEvent.setup();
+    renderApp('/proveedores', 'Reponedor');
+
+    await user.click(await screen.findByRole('button', { name: 'Registrar proveedor' }));
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Registrar proveedor' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Proveedor no encontrado')).not.toBeInTheDocument();
+  });
 });
 
 const llenarDatosValidos = async (

@@ -53,7 +53,20 @@ export interface CambioExistenciaDto {
 export interface AlmacenDto {
   id: string;
   nombre: string;
+  /** Clasificación de la ubicación (`tienda` o `almacen`); la base de datos no restringe sus valores. */
+  tipoUbicacion?: string;
 }
+
+/**
+ * Identificador de la ubicación que la interfaz nombra. Primero por nombre exacto; si no existe, la tienda se reconoce
+ * por su tipo, porque la interfaz la llama "Tienda principal" y los datos de demostración la crean como "Tienda".
+ */
+export const idDeUbicacion = (
+  almacenes: readonly AlmacenDto[],
+  nombre: string,
+): string | undefined =>
+  almacenes.find((a) => a.nombre === nombre)?.id ??
+  (/^tienda/i.test(nombre) ? almacenes.find((a) => a.tipoUbicacion === 'tienda')?.id : undefined);
 
 /**
  * Convierte las existencias de la API al formato de disponibilidad de la interfaz. La interfaz muestra tres ubicaciones

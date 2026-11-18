@@ -5,6 +5,7 @@ import { buscarIdProducto } from '@/api/productos';
 import {
   aDisponibilidad,
   aMovimiento,
+  idDeUbicacion,
   type AlmacenDto,
   type MovimientoKardexDto,
   type ProductoExistenciasDto,
@@ -133,9 +134,7 @@ export const listarMovimientosFiltrados = (filtros: FiltrosKardex): Promise<Movi
 const listarMovimientosFiltradosReal = async (filtros: FiltrosKardex): Promise<Movimiento[]> => {
   const almacenes = await listarAlmacenes();
   // La interfaz filtra por el nombre de la ubicación; el contrato filtra por identificador.
-  const ubicacionId = filtros.ubicacion
-    ? almacenes.find((a) => a.nombre === filtros.ubicacion)?.id
-    : undefined;
+  const ubicacionId = filtros.ubicacion ? idDeUbicacion(almacenes, filtros.ubicacion) : undefined;
   if (filtros.ubicacion && !ubicacionId) return [];
   const nombres = new Map(almacenes.map((a) => [a.id, a.nombre]));
   const movimientos = await todosLosElementos((page, pageSize) =>
@@ -173,9 +172,7 @@ export const consultarKardex = async (
     return { items: todos.slice((page - 1) * pageSize, page * pageSize), total: todos.length };
   }
   const almacenes = await listarAlmacenes();
-  const ubicacionId = filtros.ubicacion
-    ? almacenes.find((a) => a.nombre === filtros.ubicacion)?.id
-    : undefined;
+  const ubicacionId = filtros.ubicacion ? idDeUbicacion(almacenes, filtros.ubicacion) : undefined;
   if (filtros.ubicacion && !ubicacionId) return { items: [], total: 0 };
   const nombres = new Map(almacenes.map((a) => [a.id, a.nombre]));
   const pagina = await api.get<PaginaApi<MovimientoKardexDto>>('/inventario/movimientos', {

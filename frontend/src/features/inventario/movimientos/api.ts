@@ -7,6 +7,7 @@ import type { OpcionProducto } from '@/components/ui/ProductoSelect/ProductoSele
 import {
   aCambioStock,
   aMovimiento,
+  idDeUbicacion,
   type CambioExistenciaDto,
   type MovimientoKardexDto,
 } from '../adaptadores';
@@ -62,7 +63,7 @@ const registrarMovimientoReal = async (datos: DatosMovimiento): Promise<Resultad
     listarAlmacenes(),
   ]);
   const idDe = (nombre: string) => {
-    const id = almacenes.find((a) => a.nombre === nombre)?.id;
+    const id = idDeUbicacion(almacenes, nombre);
     if (!id) throw new Error('La ubicación seleccionada no existe.');
     return id;
   };

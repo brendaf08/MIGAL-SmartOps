@@ -116,7 +116,7 @@ function FormularioProducto({ inicial, categorias }: FormularioProductoProps) {
             label="SKU"
             placeholder="CEM-049"
             description={editando ? 'El SKU no puede modificarse.' : 'Formato AAA-000.'}
-            readOnly={editando}
+            disabled={editando}
             required
             {...form.getInputProps('sku')}
           />

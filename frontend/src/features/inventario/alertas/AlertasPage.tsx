@@ -108,7 +108,11 @@ export function AlertasPage() {
       header: 'Acciones',
       render: (a) => (
         <div className={classes.acciones}>
-          <Button variant="default" size="compact-sm" onClick={() => navigate('/disponibilidad')}>
+          <Button
+            variant="default"
+            size="compact-sm"
+            onClick={() => navigate(`/disponibilidad?sku=${encodeURIComponent(a.sku)}`)}
+          >
             Ver disponibilidad
           </Button>
           {reponedor && (

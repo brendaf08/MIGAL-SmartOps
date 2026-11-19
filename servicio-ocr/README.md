@@ -45,7 +45,7 @@ El backend usa el servicio con `MIGAL_OCR_PROVEEDOR=http` y `MIGAL_OCR_URL=http:
 | Variable | Uso | Valor por defecto |
 | --- | --- | --- |
 | `GEMINI_API_KEY` | Clave de la API de Gemini, de un proyecto con facturación habilitada. | Sin valor |
-| `MIGAL_OCR_GEMINI_MODELO` | Modelo Gemini Flash estable. | `gemini-3.8-flash` |
+| `MIGAL_OCR_GEMINI_MODELO` | Modelos Gemini estables separados por coma, por orden de preferencia; pasa al siguiente si uno agota su cuota. | `gemini-3.5-flash-lite,gemini-3.1-flash-lite,gemini-3.6-flash` |
 | `BACKEND_URL` | Dirección del backend. | `http://localhost:8080` |
 
 ## Verificar

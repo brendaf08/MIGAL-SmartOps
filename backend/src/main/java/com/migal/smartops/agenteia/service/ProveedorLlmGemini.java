@@ -4,12 +4,14 @@ import com.migal.smartops.agenteia.config.PropiedadesAgenteGemini;
 import com.migal.smartops.comun.errores.CodigoError;
 import com.migal.smartops.comun.errores.ErrorDeNegocio;
 import java.net.http.HttpClient;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,12 +54,15 @@ public class ProveedorLlmGemini implements ProveedorLlm {
 
 	/** Mensajes previos de la conversación que se envían como contexto (tres preguntas con sus respuestas). */
 	static final int TURNOS_HISTORIAL = 6;
+	/** Tiempo que un modelo con la cuota agotada o inexistente se omite antes de volver a probarlo. */
+	private static final java.time.Duration ESPERA_MODELO_AGOTADO = java.time.Duration.ofMinutes(5);
 	private static final int TOKENS_PLANIFICACION = 512;
 	private static final int TOKENS_REDACCION = 1024;
 
 	private final RestClient cliente;
 	private final PropiedadesAgenteGemini propiedades;
 	private final ObjectMapper json = JsonMapper.builder().build();
+	private final Map<String, Instant> modelosAgotados = new ConcurrentHashMap<>();
 
 	public ProveedorLlmGemini(RestClient cliente, PropiedadesAgenteGemini propiedades) {
 		this.cliente = cliente;
@@ -196,31 +201,56 @@ public class ProveedorLlmGemini implements ProveedorLlm {
 		return valores;
 	}
 
+	/**
+	 * Llama al primer modelo disponible y pasa al siguiente de la lista si agotó su cuota (429), no existe (404), está
+	 * saturado (503) o no responde. Un modelo con cuota agotada se omite unos minutos. Con un solo modelo, la
+	 * saturación se reintenta una vez tras una breve pausa.
+	 */
 	private JsonNode generar(Map<String, Object> cuerpo) {
-		try {
-			return solicitar(cuerpo);
-		} catch (HttpServerErrorException.ServiceUnavailable | HttpClientErrorException.TooManyRequests e) {
-			// La API informa saturación pasajera: un único reintento tras una breve pausa.
-			REGISTRO.warn("La API de Gemini está saturada ({}); se reintenta una vez.", e.getStatusCode());
-			pausar();
-			try {
-				return solicitar(cuerpo);
-			} catch (RestClientException segundo) {
-				REGISTRO.warn("La API de Gemini sigue saturada: {}", segundo.getMessage());
-				throw noDisponible("El modelo de IA está saturado en este momento. Intente de nuevo en unos minutos.");
-			}
-		} catch (ResourceAccessException e) {
-			REGISTRO.warn("La API de Gemini no respondió a tiempo: {}", e.getMessage());
-			throw noDisponible("El modelo de IA tardó demasiado en responder. Intente de nuevo.");
-		} catch (RestClientException e) {
-			REGISTRO.warn("La API de Gemini no respondió: {}", e.getMessage());
-			throw noDisponible("El agente de IA no está disponible en este momento. Intente más tarde.");
+		List<String> intentos = new ArrayList<>(candidatos());
+		if (intentos.size() == 1) {
+			intentos.add(intentos.get(0));
 		}
+		ErrorDeNegocio ultimo = null;
+		for (int i = 0; i < intentos.size(); i++) {
+			String modelo = intentos.get(i);
+			try {
+				return solicitar(modelo, cuerpo);
+			} catch (HttpServerErrorException.ServiceUnavailable | HttpClientErrorException.TooManyRequests
+					| HttpClientErrorException.NotFound e) {
+				REGISTRO.warn("El modelo {} no está disponible ({}).", modelo, e.getStatusCode());
+				if (!(e instanceof HttpServerErrorException)) {
+					modelosAgotados.put(modelo, Instant.now().plus(ESPERA_MODELO_AGOTADO));
+				}
+				ultimo = noDisponible("El modelo de IA está saturado en este momento. Intente de nuevo en unos minutos.");
+				if (i + 1 < intentos.size() && intentos.get(i + 1).equals(modelo)) {
+					pausar();
+				}
+			} catch (ResourceAccessException e) {
+				REGISTRO.warn("El modelo {} no respondió a tiempo: {}", modelo, e.getMessage());
+				ultimo = noDisponible("El modelo de IA tardó demasiado en responder. Intente de nuevo.");
+				if (i + 1 < intentos.size() && intentos.get(i + 1).equals(modelo)) {
+					break;
+				}
+			} catch (RestClientException e) {
+				REGISTRO.warn("La API de Gemini no respondió: {}", e.getMessage());
+				throw noDisponible("El agente de IA no está disponible en este momento. Intente más tarde.");
+			}
+		}
+		throw ultimo;
 	}
 
-	private JsonNode solicitar(Map<String, Object> cuerpo) {
+	/** Modelos en orden de preferencia sin los de cuota agotada; si todos lo están, se prueban todos. */
+	private List<String> candidatos() {
+		Instant ahora = Instant.now();
+		List<String> libres = propiedades.modelos().stream()
+				.filter(m -> modelosAgotados.getOrDefault(m, Instant.MIN).isBefore(ahora)).toList();
+		return libres.isEmpty() ? propiedades.modelos() : libres;
+	}
+
+	private JsonNode solicitar(String modelo, Map<String, Object> cuerpo) {
 		JsonNode respuesta = cliente.post()
-				.uri("/v1beta/models/{modelo}:generateContent", propiedades.modelo())
+				.uri("/v1beta/models/{modelo}:generateContent", modelo)
 				.header("x-goog-api-key", propiedades.apiKey())
 				.contentType(MediaType.APPLICATION_JSON)
 				.body(cuerpo)
@@ -250,6 +280,14 @@ public class ProveedorLlmGemini implements ProveedorLlm {
 		return Map.of("parts", List.of(Map.of("text", instrucciones)));
 	}
 
+	/** Turno de la conversación con las claves en orden fijo, para que el cuerpo enviado sea reproducible. */
+	private static Map<String, Object> contenido(String rol, String texto) {
+		Map<String, Object> contenido = new LinkedHashMap<>();
+		contenido.put("role", rol);
+		contenido.put("parts", List.of(Map.of("text", texto)));
+		return contenido;
+	}
+
 	private static ErrorDeNegocio noDisponible(String detalle) {
 		return new ErrorDeNegocio(CodigoError.SERVICIO_NO_DISPONIBLE, detalle);
 	}
@@ -264,10 +302,9 @@ public class ProveedorLlmGemini implements ProveedorLlm {
 		List<Map<String, Object>> contenidos = new ArrayList<>();
 		List<TurnoAgente> recientes = historial.subList(Math.max(0, historial.size() - TURNOS_HISTORIAL), historial.size());
 		for (TurnoAgente turno : recientes) {
-			contenidos.add(Map.of("role", turno.delUsuario() ? "user" : "model", "parts",
-					List.of(Map.of("text", turno.texto()))));
+			contenidos.add(contenido(turno.delUsuario() ? "user" : "model", turno.texto()));
 		}
-		contenidos.add(Map.of("role", "user", "parts", List.of(Map.of("text", actual))));
+		contenidos.add(contenido("user", actual));
 		return contenidos;
 	}
 }

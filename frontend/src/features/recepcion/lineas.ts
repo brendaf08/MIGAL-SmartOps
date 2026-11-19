@@ -36,3 +36,20 @@ export function construirLineas(
 
   return [...deOrden, ...sobrantes];
 }
+
+/** Líneas de la guía (con producto asociado) que la orden aún espera recibir. */
+export function coincidenciasConGuia(orden: OrdenRecepcionable, ocr: LineaOcr[]): number {
+  const esperados = new Set(
+    orden.lineas.filter((l) => l.cantidad - l.recibido > 0).map((l) => l.sku),
+  );
+  return new Set(ocr.filter((l) => l.sku && esperados.has(l.sku)).map((l) => l.sku)).size;
+}
+
+/** Orden que mejor coincide con la guía: la de más productos en común, solo si ninguna otra empata. */
+export function ordenSugerida(ordenes: OrdenRecepcionable[], ocr: LineaOcr[]): string | null {
+  const puntajes = ordenes
+    .map((o) => ({ id: o.id, n: coincidenciasConGuia(o, ocr) }))
+    .sort((a, b) => b.n - a.n);
+  const [mejor, segundo] = puntajes;
+  return mejor && mejor.n > 0 && mejor.n !== segundo?.n ? mejor.id : null;
+}

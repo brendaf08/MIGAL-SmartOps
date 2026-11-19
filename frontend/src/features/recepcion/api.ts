@@ -5,12 +5,11 @@ import type { CambioStock } from '@/components/domain/Constancia/Constancia';
 import { ORDENES_COMPRA, PROVEEDORES } from '@/features/abastecimiento/fixtures';
 import type { LineaOrdenCompra, OrdenCompra } from '@/features/abastecimiento/tipos';
 import { PRODUCTOS } from '@/features/inventario/fixtures';
+import { repartoDe, totalesPorUbicacion } from './reparto';
 import type { LineaRecepcion, Recepcion, RecepcionListada } from './types';
 
 /** Almacén que recibe las entradas; la API indicará el almacén de cada orden. */
 export const ALMACEN = 'Almacén 1';
-/** Segunda ubicación que sugiere la recepción para repartir lo recibido. */
-export const SEGUNDO_ALMACEN = 'Almacén 2';
 
 /** Recepciones de prueba hasta contar con la API. Se modifican en memoria. */
 export const RECEPCIONES: Recepcion[] = [
@@ -251,39 +250,45 @@ export const listarAlmacenesRecepcion = (): Promise<string[]> =>
         .then((almacenes) => almacenes.filter((a) => a.estadoActivo !== false).map((a) => a.nombre))
     : mockRequest(() => ['Tienda', 'Almacén 1', 'Almacén 2']);
 
-const ubicacionDeRecepcion = async (nombre: string): Promise<string> => {
+const idsDeUbicaciones = async (nombres: string[]): Promise<Map<string, string>> => {
   const almacenes = await api.get<{ id: string; nombre: string }[]>('/almacenes');
-  const almacen = almacenes.find((a) => a.nombre === nombre);
-  if (!almacen) throw new Error('ALMACEN_NO_ENCONTRADO');
-  return almacen.id;
+  return new Map(
+    nombres.map((nombre) => {
+      const almacen = almacenes.find((a) => a.nombre === nombre);
+      if (!almacen) throw new Error('ALMACEN_NO_ENCONTRADO');
+      return [nombre, almacen.id];
+    }),
+  );
 };
 
-/** Líneas de la solicitud: una por producto en la ubicación que recibe. Las líneas de un mismo SKU se suman. */
+/**
+ * Líneas de la solicitud: una por producto y ubicación con unidades recibidas, según el reparto de cada línea. Las líneas
+ * de un mismo SKU en una misma ubicación se suman. Un producto sin unidades recibidas se envía con cantidad 0.
+ */
 const lineasSolicitud = (
   lineas: LineaRecepcion[],
   productos: Map<string, string>,
-  ubicacionId: string,
-  segundaId?: string,
+  ubicaciones: Map<string, string>,
+  porDefecto: string,
 ) => {
-  const principal = new Map<string, number>();
-  const segunda = new Map<string, number>();
-  lineas.forEach((l) => {
-    const aSegunda = segundaId ? Math.min(l.enSegunda ?? 0, l.recibido) : 0;
-    principal.set(l.sku, (principal.get(l.sku) ?? 0) + l.recibido - aSegunda);
-    segunda.set(l.sku, (segunda.get(l.sku) ?? 0) + aSegunda);
-  });
-  return [...principal].flatMap(([sku, cantidadPrincipal]) => {
+  const cantidades = new Map<string, Map<string, number>>();
+  for (const l of lineas) {
+    const porUbicacion = cantidades.get(l.sku) ?? new Map<string, number>();
+    for (const [ubicacion, cantidad] of Object.entries(repartoDe(l, porDefecto))) {
+      porUbicacion.set(ubicacion, (porUbicacion.get(ubicacion) ?? 0) + cantidad);
+    }
+    cantidades.set(l.sku, porUbicacion);
+  }
+  return [...cantidades].flatMap(([sku, porUbicacion]) => {
     const productoId = productos.get(sku);
     if (!productoId) throw new Error('PRODUCTO_NO_ENCONTRADO');
-    const cantidadSegunda = segunda.get(sku) ?? 0;
-    return [
-      ...(cantidadPrincipal > 0 || cantidadSegunda === 0
-        ? [{ productoId, ubicacionId, cantidadRecibida: cantidadPrincipal }]
-        : []),
-      ...(segundaId && cantidadSegunda > 0
-        ? [{ productoId, ubicacionId: segundaId, cantidadRecibida: cantidadSegunda }]
-        : []),
-    ];
+    const conCantidad = [...porUbicacion].filter(([, cantidad]) => cantidad > 0);
+    const destinos = conCantidad.length > 0 ? conCantidad : [[porDefecto, 0] as [string, number]];
+    return destinos.map(([ubicacion, cantidadRecibida]) => ({
+      productoId,
+      ubicacionId: ubicaciones.get(ubicacion) ?? '',
+      cantidadRecibida,
+    }));
   });
 };
 
@@ -297,28 +302,28 @@ const confirmarRecepcionReal = async (
   lineas: LineaRecepcion[],
   nota: string,
   almacen: string,
-  segundoAlmacen?: string,
 ): Promise<ResultadoRecepcion> => {
   const observaciones = nota.trim();
   const huella = JSON.stringify([
     orden.id,
-    lineas.map((l) => [l.sku, l.recibido, l.enSegunda ?? 0]),
+    lineas.map((l) => [l.sku, l.recibido, repartoDe(l, almacen)]),
     observaciones,
     almacen,
-    segundoAlmacen ?? null,
   ]);
   const clave = clavesPorIntencion.get(huella) ?? crypto.randomUUID();
   clavesPorIntencion.set(huella, clave);
 
-  const [productos, ubicacionId, segundaId] = await Promise.all([
+  const nombresDeUbicaciones = [
+    ...new Set([almacen, ...lineas.flatMap((l) => Object.keys(repartoDe(l, almacen)))]),
+  ];
+  const [productos, ubicaciones] = await Promise.all([
     productosPorSku(lineas),
-    ubicacionDeRecepcion(almacen),
-    segundoAlmacen ? ubicacionDeRecepcion(segundoAlmacen) : Promise.resolve(undefined),
+    idsDeUbicaciones(nombresDeUbicaciones),
   ]);
   const solicitud = {
     fechaRecepcion: hoy(),
     observaciones: observaciones || null,
-    lineas: lineasSolicitud(lineas, productos, ubicacionId, segundaId),
+    lineas: lineasSolicitud(lineas, productos, ubicaciones, almacen),
   };
 
   let recepcionId = pendientesPorOrden.get(orden.id);
@@ -382,10 +387,9 @@ export const confirmarRecepcion = (
   lineas: LineaRecepcion[],
   nota: string,
   almacen: string = ALMACEN,
-  segundoAlmacen?: string,
 ): Promise<ResultadoRecepcion> =>
   API_REAL
-    ? confirmarRecepcionReal(orden, lineas, nota, almacen, segundoAlmacen)
+    ? confirmarRecepcionReal(orden, lineas, nota, almacen)
     : mockRequest<ResultadoRecepcion>(() => {
         const ordenCompra = ORDENES_COMPRA.find((o) => o.id === orden.id);
         if (!ordenCompra || ordenCompra.estado === 'Completada') {
@@ -410,9 +414,9 @@ export const confirmarRecepcion = (
           orden: ordenCompra.id,
           proveedor: nombreProveedor(ordenCompra),
           almacen:
-            segundoAlmacen && lineas.some((l) => (l.enSegunda ?? 0) > 0)
-              ? `${almacen} y ${segundoAlmacen}`
-              : almacen,
+            totalesPorUbicacion(lineas, almacen)
+              .map(([ubicacion]) => ubicacion)
+              .join(', ') || almacen,
           fecha: new Date().toISOString().slice(0, 10),
           estado: 'Validada',
           ...(nota.trim() ? { nota: nota.trim() } : {}),

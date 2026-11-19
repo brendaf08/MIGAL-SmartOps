@@ -17,7 +17,7 @@ async function continuar() {
 
 /** Reemplaza la cantidad recibida de una línea del conteo. */
 async function recibir(linea: string, cantidad: number) {
-  const campo = screen.getByRole('textbox', { name: `Cantidad recibida de ${linea}` });
+  const campo = screen.getByRole('textbox', { name: `Cantidad recibida en Almacén 1 de ${linea}` });
   await userEvent.clear(campo);
   await userEvent.type(campo, String(cantidad));
 }

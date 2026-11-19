@@ -14,8 +14,8 @@ export interface LineaRecepcion {
   /** Cantidad pendiente en la orden; 0 para los sobrantes. */
   pedido: number;
   recibido: number;
-  /** Parte de lo recibido que va a la segunda ubicación; el resto ingresa a la principal. */
-  enSegunda?: number;
+  /** Lo recibido en cada ubicación (nombre → cantidad); `recibido` es su suma. Ausente hasta repartir. */
+  reparto?: Record<string, number>;
 }
 
 export interface Recepcion {

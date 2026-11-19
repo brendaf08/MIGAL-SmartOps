@@ -174,7 +174,15 @@ export function VentaDetallePage() {
         title={`Venta ${venta.id}`}
         breadcrumbs={[{ label: 'Ventas', href: '/ventas' }, { label: venta.id }]}
         status={<StatusBadge entity="venta" value={venta.estado} variant="sello" />}
-        description={`${cliente}, ${formatDate(venta.fecha)}`}
+        description={[
+          `${cliente}, ${formatDate(venta.fecha)}`,
+          venta.entregaRequerida
+            ? `entrega requerida el ${formatDate(venta.entregaRequerida)}`
+            : null,
+          venta.cotizacionId ? `cotización ${venta.cotizacionId}` : null,
+        ]
+          .filter(Boolean)
+          .join(', ')}
       />
       {resultado && (
         <Constancia

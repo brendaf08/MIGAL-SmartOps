@@ -277,6 +277,21 @@ export interface FaltanteVenta {
   /** Lo que aún no tiene orden de compra. */
   porCubrir: number;
   ventas: number;
+  /** Ventas que originan el faltante, de la fecha de entrega más próxima a la más lejana. */
+  origenes: OrigenFaltante[];
+}
+
+/** Venta que origina parte del faltante de un producto, con su trazabilidad a la cotización de origen. */
+export interface OrigenFaltante {
+  ventaId: string;
+  ventaCodigo: string;
+  cotizacionId: string;
+  cotizacionCodigo: string;
+  cliente: string;
+  fechaVenta: string;
+  /** Fecha (AAAA-MM-DD) en que el cliente requiere la entrega; nula si no se indicó. */
+  fechaEntregaRequerida: string | null;
+  faltante: number;
 }
 
 /** Productos que faltan para las ventas pendientes de abastecimiento. Con datos simulados no hay ventas de este tipo. */

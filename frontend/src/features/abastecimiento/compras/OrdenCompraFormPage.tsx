@@ -21,7 +21,7 @@ import {
   precioReferencia,
 } from './api';
 import { esquemaOrden, hoyISO, type ValoresOrden } from './esquema';
-import { FaltantesVentasCard } from './FaltantesVentasCard';
+import { FaltantesVentasPanel } from './FaltantesVentasPanel';
 import { useCatalogoVigente } from '@/features/catalogo/catalogoVigente';
 
 /** Línea precargada desde una alerta de stock crítico (`?sku=`): cantidad para superar el mínimo. */
@@ -137,7 +137,7 @@ export function OrdenCompraFormPage() {
             />
           </Stack>
         </Card>
-        <FaltantesVentasCard />
+        <FaltantesVentasPanel />
         <Card
           title="Productos"
           description="Los productos que suministra el proveedor aparecen primero."

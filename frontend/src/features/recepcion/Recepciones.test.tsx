@@ -49,6 +49,31 @@ describe('Recepciones', () => {
     ).toBeInTheDocument();
   });
 
+  it('no ofrece escanear una guía desde el listado: el OCR se usa dentro de una orden', async () => {
+    renderApp('/recepciones', 'Almacenero');
+
+    expect(await screen.findByText('R-0012')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Escanear guía/ })).not.toBeInTheDocument();
+  });
+
+  it('desde el detalle de una orden la deja asociada, sin lista para elegir otra', async () => {
+    renderApp('/recepciones/nueva?oc=OC-0087', 'Almacenero');
+
+    expect(await screen.findByText('Orden asociada')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('table', { name: 'Órdenes de compra para recibir' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('desde Nueva recepción muestra todas las órdenes para elegir', async () => {
+    renderApp('/recepciones/nueva', 'Almacenero');
+
+    expect(
+      await screen.findByRole('table', { name: 'Órdenes de compra para recibir' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Orden asociada')).not.toBeInTheDocument();
+  });
+
   it('precarga las líneas de la guía y bloquea el uso de los datos hasta asociar la sin coincidencia', async () => {
     await cargarDocumento();
 

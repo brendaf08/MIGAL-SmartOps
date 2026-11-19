@@ -88,6 +88,7 @@ export function totalesVenta(venta: Venta) {
 export interface VentaApi {
   id: string;
   fechaVenta: string;
+  fechaEntregaRequerida?: string | null;
   cotizacionId: string;
   clienteId: string;
   clienteNombre: string;
@@ -117,6 +118,7 @@ export interface VentaApi {
 export interface VentaResumenApi {
   id: string;
   fechaVenta: string;
+  fechaEntregaRequerida?: string | null;
   cotizacionId: string;
   clienteId: string;
   clienteNombre: string;
@@ -144,6 +146,7 @@ export const ventaDesdeResumen = (r: VentaResumenApi): Venta => ({
   clienteId: r.clienteId,
   clienteNombre: r.clienteNombre,
   cotizacionId: r.cotizacionId,
+  entregaRequerida: r.fechaEntregaRequerida ?? undefined,
   estado: ESTADO_DE_API[r.estado],
   entrega: r.unidadesPendientes > 0 ? 'Parcial' : 'Completa',
   descuento: 0,
@@ -158,6 +161,7 @@ export function ventaDesde(v: VentaApi): Venta {
     clienteId: v.clienteId,
     clienteNombre: v.clienteNombre,
     cotizacionId: v.cotizacionId,
+    entregaRequerida: v.fechaEntregaRequerida ?? undefined,
     estado: ESTADO_DE_API[v.estado],
     entrega: v.lineas.some((l) => l.cantidadPendienteAbastecimiento > 0) ? 'Parcial' : 'Completa',
     descuento: v.descuento,

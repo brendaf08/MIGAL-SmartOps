@@ -13,6 +13,7 @@ import { SearchInput } from '@/components/ui/SearchInput/SearchInput';
 import { Tabs } from '@/components/ui/Tabs/Tabs';
 import { formatCurrency, formatDate, formatNumber } from '@/lib/format';
 import { listarOrdenesCompra, type FilaOrdenCompra } from './api';
+import { FaltantesVentasPanel } from './FaltantesVentasPanel';
 import classes from './Compras.module.css';
 
 type Filtro = 'Todas' | FilaOrdenCompra['estado'];
@@ -96,6 +97,7 @@ export function ComprasPage() {
           )
         }
       />
+      <FaltantesVentasPanel />
       <Tabs
         aria-label="Filtrar órdenes por estado"
         value={filtro}

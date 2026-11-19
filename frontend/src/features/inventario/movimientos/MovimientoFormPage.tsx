@@ -13,7 +13,7 @@ import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { zod4Resolver } from 'mantine-form-zod-resolver';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { Constancia } from '@/components/domain/Constancia/Constancia';
 import { StockLocations } from '@/components/domain/StockLocations/StockLocations';
@@ -27,13 +27,10 @@ import { ApiError } from '@/api/cliente';
 import { ubicacionesDe } from '../calculos';
 import {
   bloqueoDeExistencia,
-  CAMPO_UBICACION,
-  existenciaEn,
   movimientoSchema,
   TIPOS_MOVIMIENTO,
   UBICACIONES,
   type TipoMovimiento,
-  type Ubicacion,
 } from './esquema';
 import { listarProductosMovibles, registrarMovimiento, type ResultadoMovimiento } from './api';
 import { obtenerDisponibilidadProducto } from '../api';
@@ -141,33 +138,6 @@ export function MovimientoFormPage() {
     tipo === 'entrada'
       ? null
       : bloqueoDeExistencia(producto, tipo === 'traslado' ? origen : ubicacion, cantidad);
-
-  /** Al elegir producto y almacén se autocompleta la cantidad con su existencia física; el usuario la sube o baja. */
-  const almacenOrigen = tipo === 'traslado' ? origen : ubicacion;
-  const existenciaOrigen =
-    producto && almacenOrigen in CAMPO_UBICACION
-      ? existenciaEn(producto, almacenOrigen as Ubicacion)
-      : null;
-  const claveSugerencia = existenciaOrigen !== null ? `${tipo}|${sku}|${almacenOrigen}` : null;
-  const ultimaSugerencia = useRef<string | null>(null);
-  const ultimoAutocompletado = useRef<number | null>(null);
-  useEffect(() => {
-    if (claveSugerencia === ultimaSugerencia.current) return;
-    ultimaSugerencia.current = claveSugerencia;
-    // Una cantidad que el usuario ya escribió no se pisa.
-    const sinEditar =
-      form.values.cantidad === '' || form.values.cantidad === ultimoAutocompletado.current;
-    if (
-      sinEditar &&
-      claveSugerencia !== null &&
-      existenciaOrigen !== null &&
-      existenciaOrigen > 0
-    ) {
-      ultimoAutocompletado.current = existenciaOrigen;
-      form.setFieldValue('cantidad', existenciaOrigen);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [claveSugerencia]);
 
   if (resultado) {
     return (

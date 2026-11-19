@@ -118,11 +118,7 @@ async function llenarMovimiento(datos: {
   if (datos.origen) await elegir(/Almacén de origen/, datos.origen);
   if (datos.destino) await elegir(/Almacén de destino/, datos.destino);
   if (datos.almacen) await elegir(/^Almacén/, datos.almacen);
-  // Las existencias llegan de forma asíncrona y autocompletan la cantidad: se espera antes de escribir.
-  await screen.findByLabelText('Existencias del producto por ubicación');
-  const campoCantidad = screen.getByRole('textbox', { name: /Cantidad/ });
-  await userEvent.clear(campoCantidad);
-  await userEvent.type(campoCantidad, String(datos.cantidad));
+  await userEvent.type(screen.getByRole('textbox', { name: /Cantidad/ }), String(datos.cantidad));
   await userEvent.type(
     screen.getByRole('textbox', { name: /Motivo/ }),
     datos.motivo ?? 'Ajuste por conteo físico del almacén',
@@ -166,19 +162,6 @@ describe('Registrar movimiento (P13)', { timeout: 30000 }, () => {
     expect(within(constancia).getByText(/dos movimientos vinculados/)).toBeInTheDocument();
     const tabla = within(constancia).getByRole('table', { name: 'Existencia antes y después' });
     expect(within(tabla).getAllByRole('row')).toHaveLength(3);
-  });
-
-  it('autocompleta la cantidad con la existencia física del almacén elegido', async () => {
-    renderApp('/kardex/nuevo', 'Almacenero');
-
-    await elegir(/Producto/, PRODUCTO.sku);
-    await elegir(/^Almacén/, 'Almacén 1');
-
-    await waitFor(() =>
-      expect(screen.getByRole('textbox', { name: /Cantidad/ })).toHaveValue(
-        String(PRODUCTO.almacen1),
-      ),
-    );
   });
 
   it('bloquea una salida que supera la existencia del almacén con el motivo visible', async () => {

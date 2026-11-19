@@ -247,7 +247,7 @@ components:
     FaltanteVenta:
       type: object
       description: Producto que falta para atender ventas pendientes de abastecimiento.
-      required: [productoId, sku, nombre, unidad, faltante, planificado, porCubrir, ventas]
+      required: [productoId, sku, nombre, unidad, faltante, planificado, porCubrir, ventas, origenes]
       properties:
         productoId:
           $ref: ../componentes/esquemas-comunes.yaml#/Identificador
@@ -270,6 +270,37 @@ components:
           type: integer
           minimum: 1
           description: Cantidad de ventas pendientes que incluyen el producto.
+        origenes:
+          type: array
+          description: Ventas que originan el faltante, de la fecha requerida más próxima a la más lejana.
+          items:
+            $ref: '#/components/schemas/FaltanteOrigen'
+    FaltanteOrigen:
+      type: object
+      description: Venta que origina parte del faltante de un producto.
+      required: [ventaId, ventaCodigo, cotizacionId, cotizacionCodigo, cliente, fechaVenta, fechaEntregaRequerida, faltante]
+      properties:
+        ventaId:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        ventaCodigo:
+          type: string
+          description: Código de negocio de la venta (V-0001).
+        cotizacionId:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        cotizacionCodigo:
+          type: string
+          description: Código de negocio de la cotización de la que procede la venta (COT-0001).
+        cliente:
+          type: string
+        fechaVenta:
+          $ref: ../componentes/esquemas-comunes.yaml#/FechaHora
+        fechaEntregaRequerida:
+          description: Fecha en que el cliente requiere la entrega; nula si no se indicó.
+          anyOf:
+            - $ref: ../componentes/esquemas-comunes.yaml#/Fecha
+            - type: 'null'
+        faltante:
+          $ref: ../componentes/esquemas-comunes.yaml#/CantidadNoNegativa
     FaltantesVentasPagina:
       description: Productos faltantes para las ventas pendientes de abastecimiento.
       allOf:

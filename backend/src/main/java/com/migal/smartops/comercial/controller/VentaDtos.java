@@ -8,6 +8,7 @@ import com.migal.smartops.comercial.service.VentaService.ReservaVista;
 import com.migal.smartops.comercial.service.VentaService.VentaDetalle;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 
 /** Respuestas del módulo de ventas, según los esquemas del contrato. Los identificadores se expresan como texto. */
@@ -42,16 +43,17 @@ public final class VentaDtos {
 	}
 
 	/** {@code VentaDetalle}: venta con sus líneas, su cobertura, sus reservas y sus totales. */
-	public record VentaDto(String id, Instant fechaVenta, String cotizacionId, String clienteId, String clienteNombre,
-			String usuarioResponsableId, String estado, BigDecimal descuento, BigDecimal subtotal, BigDecimal total,
+	public record VentaDto(String id, Instant fechaVenta, LocalDate fechaEntregaRequerida, String cotizacionId,
+			String clienteId, String clienteNombre, String usuarioResponsableId, String estado, BigDecimal descuento, BigDecimal subtotal, BigDecimal total,
 			Instant fechaCancelacion, String motivoCancelacion, String usuarioAutorizanteId,
 			List<LineaVentaDto> lineas, List<ReservaVentaDto> reservas) {
 
 		public static VentaDto de(VentaDetalle detalle) {
 			Venta venta = detalle.venta();
 			return new VentaDto(String.valueOf(venta.getId()), venta.getFechaVenta(),
-					String.valueOf(venta.getCotizacion().getId()), String.valueOf(venta.getCliente().getId()),
-					venta.getCliente().getNombreRazonSocial(), String.valueOf(venta.getUsuarioResponsable().getId()),
+					venta.getFechaEntregaRequerida(), String.valueOf(venta.getCotizacion().getId()),
+					String.valueOf(venta.getCliente().getId()), venta.getCliente().getNombreRazonSocial(),
+					String.valueOf(venta.getUsuarioResponsable().getId()),
 					venta.getEstado().valor(), venta.getDescuento(), venta.subtotal(), venta.total(),
 					venta.getFechaCancelacion(), venta.getMotivoCancelacion(),
 					venta.getUsuarioAutorizante() == null ? null : String.valueOf(venta.getUsuarioAutorizante().getId()),
@@ -62,13 +64,14 @@ public final class VentaDtos {
 	}
 
 	/** {@code VentaResumen}: venta del listado, sin líneas ni reservas. */
-	public record VentaResumenDto(String id, Instant fechaVenta, String cotizacionId, String clienteId,
-			String clienteNombre, String estado, BigDecimal total, BigDecimal unidadesPendientes) {
+	public record VentaResumenDto(String id, Instant fechaVenta, LocalDate fechaEntregaRequerida, String cotizacionId,
+			String clienteId, String clienteNombre, String estado, BigDecimal total, BigDecimal unidadesPendientes) {
 
 		public static VentaResumenDto de(VentaService.VentaResumen resumen) {
 			Venta venta = resumen.venta();
 			return new VentaResumenDto(String.valueOf(venta.getId()), venta.getFechaVenta(),
-					String.valueOf(venta.getCotizacion().getId()), String.valueOf(venta.getCliente().getId()),
+					venta.getFechaEntregaRequerida(), String.valueOf(venta.getCotizacion().getId()),
+					String.valueOf(venta.getCliente().getId()),
 					venta.getCliente().getNombreRazonSocial(), venta.getEstado().valor(), venta.total(),
 					resumen.unidadesPendientes());
 		}

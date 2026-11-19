@@ -30,6 +30,20 @@ afterEach(() => {
 });
 
 describe('agente IA con la API real', () => {
+  it('deja de esperar y avisa cuando el servidor no responde en el tiempo máximo', async () => {
+    vi.useFakeTimers();
+    try {
+      const { consultarAgente, TIEMPO_MAXIMO_AGENTE_MS } = await import('./api');
+      vi.stubGlobal('fetch', () => new Promise(() => {}));
+
+      const consulta = expect(consultarAgente('cemento')).rejects.toThrow(/tardó demasiado/);
+      await vi.advanceTimersByTimeAsync(TIEMPO_MAXIMO_AGENTE_MS + 1);
+      await consulta;
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('envía la pregunta como mensaje y devuelve el texto, la incertidumbre y las consultas realizadas', async () => {
     const { consultarAgente } = await import('./api');
     const llamadas: PeticionSimulada[] = [];

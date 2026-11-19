@@ -156,8 +156,30 @@ class ProveedorLlmGeminiTest {
 	}
 
 	@Test
-	void unaApiNoDisponibleRespondeServicioNoDisponible() {
+	void unaApiSaturadaSeReintentaUnaVezAntesDeRendirse() {
+		servidor.expect(requestTo(URL)).andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE));
 		servidor.expect(requestTo(URL)).andRespond(withStatus(HttpStatus.TOO_MANY_REQUESTS));
+
+		ErrorDeNegocio error = assertThrows(ErrorDeNegocio.class,
+				() -> proveedor.planificar("alertas", List.of(herramienta("listarAlertasStock"))));
+		assertEquals(CodigoError.SERVICIO_NO_DISPONIBLE, error.codigo());
+		assertTrue(error.getMessage().contains("saturado"));
+		servidor.verify();
+	}
+
+	@Test
+	void unaSaturacionPasajeraSeRecuperaConElReintento() {
+		servidor.expect(requestTo(URL)).andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE));
+		servidor.expect(requestTo(URL)).andRespond(withSuccess(respuesta("{\"text\":\"Sin llamadas\"}"),
+				MediaType.APPLICATION_JSON));
+
+		assertTrue(proveedor.planificar("alertas", List.of(herramienta("listarAlertasStock"))).isEmpty());
+		servidor.verify();
+	}
+
+	@Test
+	void unaApiNoDisponibleRespondeServicioNoDisponible() {
+		servidor.expect(requestTo(URL)).andRespond(withStatus(HttpStatus.BAD_GATEWAY));
 
 		ErrorDeNegocio error = assertThrows(ErrorDeNegocio.class,
 				() -> proveedor.planificar("alertas", List.of(herramienta("listarAlertasStock"))));

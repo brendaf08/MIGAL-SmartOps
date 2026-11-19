@@ -6,6 +6,7 @@ import { ChatMessage, type ChatMessageProps } from '@/components/domain/ChatMess
 import { PageHeader } from '@/components/layout/PageHeader/PageHeader';
 import { Icon } from '@/components/ui/Icon/Icon';
 import { useSession } from '@/features/seguridad/session';
+import { ApiError } from '@/api/cliente';
 import { consultarAgente } from './api';
 import classes from './AgenteIAPage.module.css';
 
@@ -33,10 +34,15 @@ export function AgenteIAPage() {
     mutationFn: consultarAgente,
     onSuccess: (r) =>
       add({ author: 'agent', text: r.texto, consultas: r.consultas, incierta: r.incierta }),
-    onError: () =>
+    onError: (error) =>
       add({
         author: 'agent',
-        text: 'No se pudo completar la consulta. Intentar de nuevo.',
+        text:
+          error instanceof ApiError && error.codigo === 'SERVICIO_NO_DISPONIBLE'
+            ? error.message
+            : error instanceof Error && error.message.startsWith('El agente tardó')
+              ? error.message
+              : 'No se pudo completar la consulta. Intentar de nuevo.',
         incierta: true,
       }),
   });

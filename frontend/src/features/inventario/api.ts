@@ -100,6 +100,8 @@ export interface FiltrosKardex {
   desde: string;
   /** Fecha `aaaa-mm-dd`, inclusiva. */
   hasta: string;
+  /** Identificador de una recepción: limita el listado a sus movimientos de entrada. */
+  recepcionId: string;
 }
 
 export const SIN_FILTROS_KARDEX: FiltrosKardex = {
@@ -109,6 +111,7 @@ export const SIN_FILTROS_KARDEX: FiltrosKardex = {
   ubicacion: '',
   desde: '',
   hasta: '',
+  recepcionId: '',
 };
 
 /**
@@ -182,6 +185,7 @@ export const consultarKardex = async (
     origen: filtros.origen ? filtros.origen.toLowerCase() : undefined,
     desde: filtros.desde,
     hasta: filtros.hasta,
+    recepcionId: filtros.recepcionId || undefined,
     page,
     pageSize,
   });

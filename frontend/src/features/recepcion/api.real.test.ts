@@ -110,6 +110,7 @@ describe('recepciones con la API real', () => {
     expect(filas).toEqual([
       {
         id: 'R-0012',
+        idApi: '12',
         orden: 'OC-0087',
         proveedor: 'Distribuidora Andina S.A.C.',
         almacen: 'Almacén 1',

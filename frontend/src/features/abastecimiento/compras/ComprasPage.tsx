@@ -13,16 +13,20 @@ import { SearchInput } from '@/components/ui/SearchInput/SearchInput';
 import { Tabs } from '@/components/ui/Tabs/Tabs';
 import { formatCurrency, formatDate, formatNumber } from '@/lib/format';
 import { listarOrdenesCompra, type FilaOrdenCompra } from './api';
+import { hoyIso } from '@/features/comercial/calculos';
+import { listarFaltantesVentas } from '@/features/inventario/api';
+import { agruparPorVenta } from './faltantes';
 import { FaltantesVentasPanel } from './FaltantesVentasPanel';
 import classes from './Compras.module.css';
 
-type Filtro = 'Todas' | FilaOrdenCompra['estado'];
+type Filtro = 'Todas' | FilaOrdenCompra['estado'] | 'Faltantes';
 
 const FILTROS: { value: Filtro; label: string }[] = [
   { value: 'Todas', label: 'Todas' },
   { value: 'Pendiente', label: 'Pendientes' },
   { value: 'Parcial', label: 'Recepción parcial' },
   { value: 'Completada', label: 'Completadas' },
+  { value: 'Faltantes', label: 'Faltantes de ventas' },
 ];
 
 const columns: Column<FilaOrdenCompra>[] = [
@@ -68,6 +72,8 @@ export function ComprasPage() {
   const query = useQuery({ queryKey: ['ordenes-compra'], queryFn: listarOrdenesCompra });
   const [filtro, setFiltro] = useState<Filtro>('Todas');
   const [busqueda, setBusqueda] = useState('');
+  const faltantes = useQuery({ queryKey: ['faltantes-ventas'], queryFn: listarFaltantesVentas });
+  const ventasConFaltantes = agruparPorVenta(faltantes.data ?? [], 'todas', hoyIso()).length;
 
   const todas = query.data ?? [];
   const termino = busqueda.trim().toLocaleLowerCase('es-PE');
@@ -79,7 +85,11 @@ export function ComprasPage() {
         o.proveedor.toLocaleLowerCase('es-PE').includes(termino)),
   );
   const conteo = (estado: Filtro) =>
-    estado === 'Todas' ? todas.length : todas.filter((o) => o.estado === estado).length;
+    estado === 'Faltantes'
+      ? ventasConFaltantes
+      : estado === 'Todas'
+        ? todas.length
+        : todas.filter((o) => o.estado === estado).length;
 
   return (
     <>
@@ -97,30 +107,35 @@ export function ComprasPage() {
           )
         }
       />
-      <FaltantesVentasPanel />
       <Tabs
         aria-label="Filtrar órdenes por estado"
         value={filtro}
         onChange={(v) => setFiltro(v as Filtro)}
         items={FILTROS.map((f) => ({ value: f.value, label: f.label, count: conteo(f.value) }))}
       />
-      <div className={classes.busqueda}>
-        <SearchInput
-          aria-label="Buscar orden o proveedor"
-          placeholder="Buscar por orden o proveedor"
-          value={busqueda}
-          onChange={setBusqueda}
-        />
-      </div>
-      <QueryTable
-        query={{ ...query, data: visibles }}
-        errorTitle="No se pudieron cargar las órdenes de compra"
-        caption="Órdenes de compra"
-        columns={columns}
-        rowKey="id"
-        empty={<p>No hay órdenes que coincidan con el filtro.</p>}
-        onRowClick={(o) => void navigate(`/compras/${o.id}`)}
-      />
+      {filtro === 'Faltantes' ? (
+        <FaltantesVentasPanel />
+      ) : (
+        <>
+          <div className={classes.busqueda}>
+            <SearchInput
+              aria-label="Buscar orden o proveedor"
+              placeholder="Buscar por orden o proveedor"
+              value={busqueda}
+              onChange={setBusqueda}
+            />
+          </div>
+          <QueryTable
+            query={{ ...query, data: visibles }}
+            errorTitle="No se pudieron cargar las órdenes de compra"
+            caption="Órdenes de compra"
+            columns={columns}
+            rowKey="id"
+            empty={<p>No hay órdenes que coincidan con el filtro.</p>}
+            onRowClick={(o) => void navigate(`/compras/${o.id}`)}
+          />
+        </>
+      )}
     </>
   );
 }

@@ -14,10 +14,14 @@ export interface LineaRecepcion {
   /** Cantidad pendiente en la orden; 0 para los sobrantes. */
   pedido: number;
   recibido: number;
+  /** Parte de lo recibido que va a la segunda ubicación; el resto ingresa a la principal. */
+  enSegunda?: number;
 }
 
 export interface Recepcion {
   id: string;
+  /** Identificador técnico de la recepción en la API; con datos simulados no existe. */
+  idApi?: string;
   orden: string;
   proveedor: string;
   almacen: string;

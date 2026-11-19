@@ -240,6 +240,19 @@ describe('Registro de venta', () => {
     );
   });
 
+  it('desde una cotización fija el origen, el cliente y los productos: no se pueden cambiar', async () => {
+    renderApp('/ventas/nueva?cotizacion=COT-0230', 'Vendedor');
+
+    const producto = await screen.findByRole('combobox', { name: 'Producto de la línea 1' });
+    expect(producto).toBeDisabled();
+    expect(screen.getByRole('radio', { name: 'Manual' })).toBeDisabled();
+    expect(screen.getByRole('radio', { name: 'Desde un documento' })).toBeDisabled();
+    expect(screen.getByRole('combobox', { name: 'Cotización aceptada' })).toBeDisabled();
+    expect(screen.getByRole('combobox', { name: 'Cliente' })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'Agregar producto' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Quitar la línea/ })).not.toBeInTheDocument();
+  });
+
   it('no ofrece una cotización que no está aceptada', async () => {
     renderApp('/ventas/nueva?cotizacion=COT-0231', 'Vendedor');
 

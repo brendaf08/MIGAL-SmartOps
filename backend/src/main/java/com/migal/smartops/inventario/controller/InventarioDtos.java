@@ -32,12 +32,12 @@ public final class InventarioDtos {
 
 	/** {@code ProductoExistencias}. */
 	public record ProductoExistenciasDto(String productoId, String sku, String nombre, String categoria, String unidad,
-			BigDecimal stockMinimo, BigDecimal fisico, BigDecimal reservado, BigDecimal libre, String nivelAlerta,
-			List<ExistenciaUbicacionDto> ubicaciones) {
+			BigDecimal stockMinimo, BigDecimal fisico, BigDecimal reservado, BigDecimal libre, BigDecimal planificado,
+			String nivelAlerta, List<ExistenciaUbicacionDto> ubicaciones) {
 
 		static ProductoExistenciasDto de(ProductoExistencias p) {
 			return new ProductoExistenciasDto(texto(p.productoId()), p.sku(), p.nombre(), p.categoria(), p.unidad(),
-					p.stockMinimo(), p.fisico(), p.reservado(), p.libre(), p.nivelAlerta(),
+					p.stockMinimo(), p.fisico(), p.reservado(), p.libre(), p.planificado(), p.nivelAlerta(),
 					p.ubicaciones().stream().map(ExistenciaUbicacionDto::de).toList());
 		}
 	}

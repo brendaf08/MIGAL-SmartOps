@@ -23,7 +23,7 @@ const PAGE_SIZE = 20;
 
 /** Columna numérica de una ubicación; en teléfono se omite y se consulta en el detalle. */
 const cantidad = (
-  key: 'tienda' | 'almacen1' | 'almacen2' | 'reservado',
+  key: 'tienda' | 'almacen1' | 'almacen2' | 'reservado' | 'planificado',
   header: string,
 ): Column<ProductoDisponibilidad> => ({
   key,
@@ -51,6 +51,7 @@ const columns: Column<ProductoDisponibilidad>[] = [
   cantidad('almacen1', 'Almacén 1'),
   cantidad('almacen2', 'Almacén 2'),
   cantidad('reservado', 'Reservado'),
+  cantidad('planificado', 'Previsto'),
   {
     key: 'reparto',
     header: 'Reparto',
@@ -115,7 +116,7 @@ export function DisponibilidadPage() {
     <>
       <PageHeader
         title="Disponibilidad"
-        description="Existencias físicas, reservadas y libres por ubicación."
+        description="Existencias físicas, reservadas y libres por ubicación. Previsto es lo que falta recibir de órdenes de compra y aún no cuenta como stock."
       />
       <div className={classes.toolbar}>
         <Tabs

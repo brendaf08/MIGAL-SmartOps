@@ -8,6 +8,8 @@ export interface ProductoDisponibilidad {
   almacen1: number;
   almacen2: number;
   reservado: number;
+  /** Pendiente de recibir en órdenes de compra; no es existencia física ni libre. */
+  planificado: number;
   minimo: number;
 }
 

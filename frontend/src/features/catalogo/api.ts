@@ -256,6 +256,7 @@ export const registrarProducto = (datos: DatosProducto): Promise<ProductoCatalog
           almacen1: 0,
           almacen2: 0,
           reservado: 0,
+          planificado: 0,
           minimo: datos.minimo,
         });
         DATOS_EXTRA.set(datos.sku, { descripcion: datos.descripcion, estado: datos.estado });

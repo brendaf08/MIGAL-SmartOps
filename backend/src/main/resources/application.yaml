@@ -84,4 +84,4 @@ migal:
       # Modelo Gemini Flash estable. Vacío usa el valor por defecto de PropiedadesAgenteGemini.
       modelo: ${MIGAL_AGENTE_GEMINI_MODELO:}
       # Plazo de cada llamada al modelo; una consulta hace dos (planificar y redactar). Gemini suele tardar más de 10 s.
-      tiempo-lectura: ${MIGAL_AGENTE_GEMINI_TIEMPO_LECTURA:PT25S}
+      tiempo-lectura: ${MIGAL_AGENTE_GEMINI_TIEMPO_LECTURA:PT35S}

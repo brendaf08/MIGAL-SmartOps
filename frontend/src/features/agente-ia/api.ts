@@ -48,7 +48,7 @@ const enviarMensaje = (mensaje: string, conversacionId?: string) =>
   );
 
 /** Tiempo máximo de espera de una consulta: cubre los reintentos del backend y evita una espera sin fin. */
-export const TIEMPO_MAXIMO_AGENTE_MS = 70_000;
+export const TIEMPO_MAXIMO_AGENTE_MS = 110_000;
 
 const conTiempoMaximo = <T>(promesa: Promise<T>): Promise<T> =>
   new Promise<T>((resolve, reject) => {

@@ -103,57 +103,55 @@ describe('Recepciones', () => {
     ).toHaveNoViolations();
   });
 
-  it('iguala lo recibido al pedido de una línea con su botón', async () => {
+  it('completa lo pedido de una línea con su botón y no admite lo que no se pidió', async () => {
     await cargarDocumento();
     await asociarAlambre(/CLA-008/);
     await userEvent.click(screen.getByRole('button', { name: 'Usar datos de la guía' }));
 
-    // Pendiente: PIN-005 (60) sin recibir; FIE-003 no está en la orden y sobra 40.
+    // Pendiente: PIN-005 (60) sin recibir; FIE-003 no está en la orden y no se puede recibir.
     expect(screen.getByText('Faltan 60')).toBeInTheDocument();
-    expect(screen.getByText('Sobran 40')).toBeInTheDocument();
-    expect(screen.getAllByText('Completa')).toHaveLength(2);
+    expect(screen.queryByText(/Sobran/)).not.toBeInTheDocument();
 
     await userEvent.click(
       screen.getByRole('button', { name: 'Igual al pedido, Pintura látex blanco, balde 4 L' }),
     );
 
     expect(screen.queryByText('Faltan 60')).not.toBeInTheDocument();
-    expect(screen.getAllByText('Completa')).toHaveLength(3);
   });
 
-  it('al cambiar la ubicación el conteo muestra lo ubicado allí y bloquea la que no tiene cupo', async () => {
+  it('cada ubicación guarda su propio recibido, con tope: lo que ya llegó a una reduce el cupo de la otra', async () => {
     await cargarDocumento();
     await asociarAlambre(/CLA-008/);
     await userEvent.click(screen.getByRole('button', { name: 'Usar datos de la guía' }));
 
     const nombre = 'Pintura látex blanco, balde 4 L';
-    await userEvent.click(screen.getByRole('button', { name: `Igual al pedido, ${nombre}` }));
-    const deAlmacen = (ubicacion: string) =>
-      screen.getByLabelText(`Cantidad a ${ubicacion} de ${nombre}`) as HTMLInputElement;
-    const total = Number(
-      (screen.getByLabelText(`Cantidad recibida de ${nombre}`) as HTMLInputElement).value,
-    );
-    expect(total).toBeGreaterThan(10);
-    expect(deAlmacen('Almacén 1').value).toBe('0');
-    expect(screen.getByRole('button', { name: 'Confirmar recepción' })).toBeDisabled();
+    const en = (ubicacion: string) =>
+      screen.getByLabelText(`Cantidad recibida en ${ubicacion} de ${nombre}`) as HTMLInputElement;
+    const cambiarA = async (ubicacion: string) => {
+      await userEvent.click(screen.getByRole('combobox', { name: /Ubicación que recibe/ }));
+      await userEvent.click(await screen.findByRole('option', { name: ubicacion, hidden: true }));
+    };
 
-    // Se envían 10 unidades a Almacén 1; el resto queda por ubicar.
-    await userEvent.type(deAlmacen('Almacén 1'), '10');
+    // Pendiente 60. En Almacén 1 se reciben 20.
+    await userEvent.clear(en('Almacén 1'));
+    await userEvent.type(en('Almacén 1'), '20');
 
-    // En Almacén 2 el máximo es la diferencia y se puede ubicar todo lo que queda.
-    await userEvent.click(screen.getByRole('combobox', { name: /Ubicación que recibe/ }));
-    await userEvent.click(await screen.findByRole('option', { name: 'Almacén 2', hidden: true }));
-    expect(deAlmacen('Almacén 2')).not.toBeDisabled();
-    await userEvent.type(deAlmacen('Almacén 2'), String(total));
-    expect(deAlmacen('Almacén 2').value).toBe(String(total - 10));
+    // En Almacén 2 el máximo es la diferencia: pedir 500 deja 40, y la vista parte de 0.
+    await cambiarA('Almacén 2');
+    expect(en('Almacén 2').value).toBe('0');
+    await userEvent.type(en('Almacén 2'), '99');
+    expect(Number(en('Almacén 2').value)).toBeLessThanOrEqual(40);
+    await userEvent.clear(en('Almacén 2'));
+    await userEvent.type(en('Almacén 2'), '40');
+    expect(en('Almacén 2').value).toBe('40');
+    expect(await screen.findByRole('columnheader', { name: 'Total recibido' })).toBeInTheDocument();
 
-    // Ya no queda nada por ubicar en esta línea: Almacén 1 sigue editable y Tienda queda bloqueada.
-    await userEvent.click(screen.getByRole('combobox', { name: /Ubicación que recibe/ }));
-    await userEvent.click(await screen.findByRole('option', { name: 'Tienda', hidden: true }));
-    expect(deAlmacen('Tienda')).toBeDisabled();
-    expect(
-      screen.getByText(/Recibido por ubicación:.*Almacén 1 10.*Almacén 2/),
-    ).toBeInTheDocument();
+    // Ya llegó todo lo pedido: Tienda queda gris y bloqueada, y Almacén 1 conserva su 20.
+    await cambiarA('Tienda');
+    expect(en('Tienda')).toBeDisabled();
+    await cambiarA('Almacén 1');
+    expect(en('Almacén 1').value).toBe('20');
+    expect(screen.getByText(/Recibido por ubicación:.*Almacén 2 40/)).toBeInTheDocument();
   });
 
   it('confirma la recepción tras asociar el producto, anotar el sobrante y aceptar las consecuencias', async () => {
@@ -162,17 +160,10 @@ describe('Recepciones', () => {
 
     await asociarAlambre(/CLA-008/);
     await userEvent.click(screen.getByRole('button', { name: 'Usar datos de la guía' }));
-    await userEvent.type(
-      screen.getByRole('textbox', { name: 'Nota del sobrante' }),
-      'Material de otra obra',
-    );
-    // Sin ubicar lo recibido no se puede confirmar.
-    expect(screen.getByRole('button', { name: 'Confirmar recepción' })).toBeDisabled();
-    await userEvent.click(screen.getByRole('button', { name: 'Ubicar lo que falta en Almacén 1' }));
     await userEvent.click(screen.getByRole('button', { name: 'Confirmar recepción' }));
 
     const dialog = await screen.findByRole('dialog', { name: 'Confirmar recepción OC-0087' });
-    expect(dialog).toHaveTextContent('3 movimientos de entrada en el Kardex de Almacén 1');
+    expect(dialog).toHaveTextContent('2 movimientos de entrada en el Kardex de Almacén 1');
     expect(dialog).toHaveTextContent('recepción parcial');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Confirmar recepción' }));
 

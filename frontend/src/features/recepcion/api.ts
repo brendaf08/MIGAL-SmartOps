@@ -273,6 +273,8 @@ const lineasSolicitud = (
 ) => {
   const cantidades = new Map<string, Map<string, number>>();
   for (const l of lineas) {
+    // Un producto que no está en la orden no se recibe: no se envía.
+    if (l.pedido === 0 && l.recibido === 0) continue;
     const porUbicacion = cantidades.get(l.sku) ?? new Map<string, number>();
     for (const [ubicacion, cantidad] of Object.entries(repartoDe(l, porDefecto))) {
       porUbicacion.set(ubicacion, (porUbicacion.get(ubicacion) ?? 0) + cantidad);

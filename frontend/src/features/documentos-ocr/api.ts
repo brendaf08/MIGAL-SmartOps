@@ -193,7 +193,7 @@ const aDocumento = (documento: DocumentoResumenApi, detalles: DetalleApi[] = [])
 const productosPorSku = idsDeProductosPorSku;
 
 const INTERVALO_SONDEO_MS = 1500;
-const MAXIMO_SONDEOS = 40;
+const MAXIMO_SONDEOS = 100;
 
 /** Consulta el documento hasta que el OCR termine o registre un error de procesamiento. */
 async function esperarProcesamiento(id: string): Promise<DocumentoApi> {

@@ -142,19 +142,28 @@ export function MovimientoFormPage() {
       ? null
       : bloqueoDeExistencia(producto, tipo === 'traslado' ? origen : ubicacion, cantidad);
 
-  /** En salidas y traslados se propone la existencia física del almacén de origen; el usuario puede ajustarla. */
+  /** Al elegir producto y almacén se autocompleta la cantidad con su existencia física; el usuario la sube o baja. */
   const almacenOrigen = tipo === 'traslado' ? origen : ubicacion;
   const existenciaOrigen =
     producto && almacenOrigen in CAMPO_UBICACION
       ? existenciaEn(producto, almacenOrigen as Ubicacion)
       : null;
-  const claveSugerencia =
-    tipo !== 'entrada' && existenciaOrigen !== null ? `${tipo}|${sku}|${almacenOrigen}` : null;
+  const claveSugerencia = existenciaOrigen !== null ? `${tipo}|${sku}|${almacenOrigen}` : null;
   const ultimaSugerencia = useRef<string | null>(null);
+  const ultimoAutocompletado = useRef<number | null>(null);
   useEffect(() => {
     if (claveSugerencia === ultimaSugerencia.current) return;
     ultimaSugerencia.current = claveSugerencia;
-    if (claveSugerencia !== null && existenciaOrigen !== null && existenciaOrigen > 0) {
+    // Una cantidad que el usuario ya escribió no se pisa.
+    const sinEditar =
+      form.values.cantidad === '' || form.values.cantidad === ultimoAutocompletado.current;
+    if (
+      sinEditar &&
+      claveSugerencia !== null &&
+      existenciaOrigen !== null &&
+      existenciaOrigen > 0
+    ) {
+      ultimoAutocompletado.current = existenciaOrigen;
       form.setFieldValue('cantidad', existenciaOrigen);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

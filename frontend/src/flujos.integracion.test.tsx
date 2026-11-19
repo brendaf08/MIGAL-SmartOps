@@ -28,22 +28,8 @@ async function asociarLineaSinProducto() {
 }
 
 describe('Alertas de stock hacia órdenes de compra', () => {
-  it('Crear orden de compra abre el formulario con el producto de la alerta', async () => {
+  it('las alertas no ofrecen crear órdenes de compra, ni siquiera al Reponedor', async () => {
     renderApp('/alertas', 'Reponedor');
-
-    const [primero] = await screen.findAllByRole('button', { name: 'Crear orden de compra' });
-    await userEvent.click(primero!);
-
-    expect(
-      await screen.findByRole('heading', { level: 1, name: 'Nueva orden de compra' }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole('combobox', { name: 'Producto de la línea 1' })).toHaveDisplayValue(
-      /^[A-Z]{3}-\d{3}/,
-    );
-  });
-
-  it('un Almacenero ve las alertas pero no puede crear órdenes de compra', async () => {
-    renderApp('/alertas', 'Almacenero');
 
     expect(await screen.findAllByRole('button', { name: 'Ver disponibilidad' })).not.toHaveLength(
       0,

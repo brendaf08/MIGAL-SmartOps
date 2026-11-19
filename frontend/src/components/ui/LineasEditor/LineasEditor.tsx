@@ -1,4 +1,5 @@
 import { Button, NumberInput } from '@mantine/core';
+import { useEffect, useRef } from 'react';
 import { formatCurrency } from '@/lib/format';
 import { ProductoSelect, type OpcionProducto } from '../ProductoSelect/ProductoSelect';
 import { DataTable, type Column } from '../DataTable/DataTable';
@@ -16,7 +17,9 @@ import classes from './LineasEditor.module.css';
 export interface LineasEditorProps {
   lineas: LineaEditable[];
   onChange: (lineas: LineaEditable[]) => void;
-  productos: readonly OpcionProducto[];
+  productos: readonly (OpcionProducto & { precio?: number })[];
+  /** Completa el precio de cada línea con el de referencia del producto cuando está en 0 o al elegir el producto. */
+  precargarPrecio?: boolean;
   /** Muestra el precio unitario, el subtotal por línea y los totales. */
   conPrecio?: boolean;
   /** Muestra el descuento global en soles; requiere `conPrecio`. */
@@ -38,14 +41,34 @@ export function LineasEditor({
   onChange,
   productos,
   conPrecio = false,
+  precargarPrecio = false,
   conDescuento = false,
   descuento = 0,
   onDescuentoChange,
   error,
   sugeridos,
 }: LineasEditorProps) {
+  const precioDe = (sku: string) => productos.find((p) => p.sku === sku)?.precio ?? 0;
   const actualizar = (id: number, cambio: Partial<LineaEditable>) =>
     onChange(lineas.map((l) => (l.id === id ? { ...l, ...cambio } : l)));
+
+  // Las líneas que llegan sin precio (por ejemplo, desde el OCR) toman el precio de referencia del producto una sola
+  // vez; si después el usuario borra el precio para escribir otro, no se vuelve a completar.
+  const completadas = useRef(new Set<string>());
+  useEffect(() => {
+    if (!precargarPrecio) return;
+    let cambio = false;
+    const nuevas = lineas.map((l) => {
+      const clave = `${l.id}:${l.sku}`;
+      if (!l.sku || l.precio !== 0 || completadas.current.has(clave) || precioDe(l.sku) <= 0)
+        return l;
+      completadas.current.add(clave);
+      cambio = true;
+      return { ...l, precio: precioDe(l.sku) };
+    });
+    if (cambio) onChange(nuevas);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lineas, productos, precargarPrecio]);
   const quitar = (id: number) => onChange(lineas.filter((l) => l.id !== id));
   const agregar = () =>
     onChange([...lineas, { id: siguienteIdLinea(lineas), sku: '', cantidad: 1, precio: 0 }]);
@@ -63,7 +86,14 @@ export function LineasEditor({
           sugeridos={sugeridos}
           miw={200}
           value={l.sku || null}
-          onChange={(sku) => actualizar(l.id, { sku: sku ?? '' })}
+          onChange={(sku) => {
+            const conPrecioDeReferencia = precargarPrecio && !!sku && precioDe(sku) > 0;
+            if (sku) completadas.current.add(`${l.id}:${sku}`);
+            actualizar(l.id, {
+              sku: sku ?? '',
+              ...(conPrecioDeReferencia && sku ? { precio: precioDe(sku) } : {}),
+            });
+          }}
         />
       ),
     },

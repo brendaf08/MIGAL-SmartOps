@@ -234,6 +234,7 @@ function CotizacionForm({ cotizacion }: CotizacionFormProps) {
                   onChange={(lineas) => form.setFieldValue('lineas', lineas)}
                   productos={opcionesProducto()}
                   conPrecio
+                  precargarPrecio
                   conDescuento
                   descuento={values.descuento}
                   onDescuentoChange={(d) => form.setFieldValue('descuento', d)}

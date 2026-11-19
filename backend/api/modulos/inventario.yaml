@@ -118,7 +118,7 @@ components:
     ProductoExistencias:
       type: object
       description: Existencias de un producto consolidadas y por ubicación. Es el elemento de la disponibilidad y la respuesta de la consulta de existencias.
-      required: [productoId, sku, nombre, categoria, unidad, stockMinimo, fisico, reservado, libre, planificado, nivelAlerta, ubicaciones]
+      required: [productoId, sku, nombre, categoria, unidad, stockMinimo, fisico, reservado, libre, planificado, precioReferencial, nivelAlerta, ubicaciones]
       properties:
         productoId:
           $ref: ../componentes/esquemas-comunes.yaml#/Identificador
@@ -154,6 +154,10 @@ components:
             física ni libre; al recepcionar la orden baja y la existencia física aumenta.
           $ref: ../componentes/esquemas-comunes.yaml#/Cantidad
           minimum: 0
+        precioReferencial:
+          description: Precio de venta de referencia del producto, usado como precio inicial de las líneas de cotizaciones y ventas.
+          $ref: ../componentes/esquemas-comunes.yaml#/Cantidad
+          minimum: 0
         nivelAlerta:
           $ref: '#/components/schemas/NivelAlerta'
         ubicaciones:
@@ -172,6 +176,7 @@ components:
         reservado: 40
         libre: 120
         planificado: 300
+        precioReferencial: 29.9
         nivelAlerta: normal
         ubicaciones:
           - ubicacionId: "101"

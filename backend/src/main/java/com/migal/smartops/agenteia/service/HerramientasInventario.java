@@ -98,7 +98,10 @@ public class HerramientasInventario implements ProveedorDeHerramientas {
 		resumen.append("\nDetalle:");
 		pagina.getContent().forEach(producto -> resumen.append("\n• ").append(producto.nombre()).append(" (")
 				.append(producto.sku()).append("): ").append(cantidad(producto.libre())).append(' ')
-				.append(producto.unidad()).append(" libres, nivel ").append(producto.nivelAlerta()));
+				.append(producto.unidad()).append(" libres, nivel ").append(producto.nivelAlerta())
+				.append(producto.planificado().signum() > 0
+						? ", por recibir " + cantidad(producto.planificado()) + " en órdenes de compra"
+						: ""));
 		if (pagina.getTotalElements() > pagina.getNumberOfElements()) {
 			resumen.append("\n… y ").append(pagina.getTotalElements() - pagina.getNumberOfElements())
 					.append(" productos más; precise el nombre para verlos.");
@@ -117,15 +120,16 @@ public class HerramientasInventario implements ProveedorDeHerramientas {
 		Map<String, BigDecimal[]> porUnidad = new LinkedHashMap<>();
 		for (ProductoExistencias producto : todos) {
 			BigDecimal[] suma = porUnidad.computeIfAbsent(producto.unidad(),
-					unidad -> new BigDecimal[] { BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO });
+					unidad -> new BigDecimal[] { BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO });
 			suma[0] = suma[0].add(producto.fisico());
 			suma[1] = suma[1].add(producto.reservado());
 			suma[2] = suma[2].add(producto.libre());
+			suma[3] = suma[3].add(producto.planificado());
 		}
 		StringBuilder texto = new StringBuilder();
 		porUnidad.forEach((unidad, suma) -> texto.append("\n• ").append(unidad).append(": físico ")
 				.append(cantidad(suma[0])).append(", reservado ").append(cantidad(suma[1])).append(", libre ")
-				.append(cantidad(suma[2])));
+				.append(cantidad(suma[2])).append(", por recibir (órdenes de compra) ").append(cantidad(suma[3])));
 		return texto.toString();
 	}
 
@@ -139,8 +143,8 @@ public class HerramientasInventario implements ProveedorDeHerramientas {
 		ProductoExistencias producto = consultas.existencias(requerido(parametros, "id"));
 		String resumen = "Existencias de " + producto.nombre() + " (" + producto.sku() + "): física "
 				+ producto.fisico().toPlainString() + ", reservada " + producto.reservado().toPlainString()
-				+ ", libre " + producto.libre().toPlainString() + " " + producto.unidad() + ", nivel "
-				+ producto.nivelAlerta() + ".";
+				+ ", libre " + producto.libre().toPlainString() + " " + producto.unidad() + ", por recibir en órdenes de compra "
+				+ producto.planificado().toPlainString() + ", nivel " + producto.nivelAlerta() + ".";
 		return new ResultadoHerramienta(resumen, List.of(new ReferenciaAgente(ReferenciaAgente.PRODUCTO,
 				String.valueOf(producto.productoId()), producto.sku())));
 	}

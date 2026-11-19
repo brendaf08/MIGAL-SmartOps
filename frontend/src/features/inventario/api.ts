@@ -242,6 +242,7 @@ const listarAlertasReal = async (): Promise<Alerta[]> => {
       almacen1: 0,
       almacen2: 0,
       reservado: 0,
+      planificado: 0,
       minimo: a.stockMinimo,
     };
     return [{ ...base, libre: a.libre, nivel, faltante: a.faltante }];

@@ -30,6 +30,7 @@ export const PRODUCTOS: ProductoDisponibilidad[] = Array.from({ length: 48 }, (_
     almacen1,
     almacen2,
     reservado: Math.round((tienda + almacen1 + almacen2) * [0.2, 0.6, 0.95, 1][(i * 3) % 4]!),
+    planificado: i % 3 === 0 ? minimo * 2 : 0,
     minimo,
   };
 });

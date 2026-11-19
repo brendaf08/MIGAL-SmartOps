@@ -39,8 +39,8 @@ public class ConsultaInventarioService {
 
 	/** Existencias de un producto, consolidadas y por ubicación. */
 	public record ProductoExistencias(long productoId, String sku, String nombre, String categoria, String unidad,
-			BigDecimal stockMinimo, BigDecimal fisico, BigDecimal reservado, BigDecimal libre, String nivelAlerta,
-			List<ExistenciaUbicacion> ubicaciones) {
+			BigDecimal stockMinimo, BigDecimal fisico, BigDecimal reservado, BigDecimal libre, BigDecimal planificado,
+			String nivelAlerta, List<ExistenciaUbicacion> ubicaciones) {
 	}
 
 	/** Producto en nivel crítico o mínimo, con lo que falta para alcanzar el stock mínimo. */
@@ -57,7 +57,18 @@ public class ConsultaInventarioService {
 			    SELECT p.id_producto, p.sku, p.nombre_oficial, c.id_categoria, c.id_categoria_padre,
 			           c.nombre AS categoria, p.unidad_medida, p.stock_minimo,
 			           COALESCE(SUM(v.cantidad_fisica), 0)    AS fisico,
-			           COALESCE(SUM(v.cantidad_reservada), 0) AS reservado
+			           COALESCE(SUM(v.cantidad_reservada), 0) AS reservado,
+			           -- Planificado: lo pendiente de recibir en las órdenes de compra pendientes o parciales.
+			           COALESCE((SELECT SUM(GREATEST(dc.cantidad_comprada - COALESCE((
+			                         SELECT SUM(dr.cantidad_recibida)
+			                           FROM detalle_recepcion dr
+			                           JOIN orden_recepcion orr ON orr.id_recepcion = dr.id_recepcion
+			                          WHERE orr.id_orden = dc.id_orden AND dr.id_producto = dc.id_producto
+			                            AND orr.estado = 'validada'), 0), 0))
+			                       FROM detalle_compra dc
+			                       JOIN orden_compra oc ON oc.id_orden = dc.id_orden
+			                      WHERE dc.id_producto = p.id_producto
+			                        AND oc.estado IN ('pendiente', 'parcial')), 0) AS planificado
 			      FROM producto p
 			      JOIN categoria c ON c.id_categoria = p.id_categoria
 			      LEFT JOIN inventario i ON i.id_producto = p.id_producto
@@ -110,7 +121,7 @@ public class ConsultaInventarioService {
 				.query((rs, n) -> new ProductoExistencias(rs.getLong("id_producto"), rs.getString("sku"),
 						rs.getString("nombre_oficial"), rs.getString("categoria"), rs.getString("unidad_medida"),
 						rs.getBigDecimal("stock_minimo"), rs.getBigDecimal("fisico"), rs.getBigDecimal("reservado"),
-						rs.getBigDecimal("libre"), rs.getString("nivel"), List.of()))
+						rs.getBigDecimal("libre"), rs.getBigDecimal("planificado"), rs.getString("nivel"), List.of()))
 				.list();
 		Map<Long, List<ExistenciaUbicacion>> ubicaciones = ubicaciones(items.stream().map(ProductoExistencias::productoId).toList());
 		List<ProductoExistencias> completos = items.stream().map(p -> conUbicaciones(p, ubicaciones)).toList();
@@ -128,7 +139,7 @@ public class ConsultaInventarioService {
 				.query((rs, n) -> new ProductoExistencias(rs.getLong("id_producto"), rs.getString("sku"),
 						rs.getString("nombre_oficial"), rs.getString("categoria"), rs.getString("unidad_medida"),
 						rs.getBigDecimal("stock_minimo"), rs.getBigDecimal("fisico"), rs.getBigDecimal("reservado"),
-						rs.getBigDecimal("libre"), rs.getString("nivel"), List.of()))
+						rs.getBigDecimal("libre"), rs.getBigDecimal("planificado"), rs.getString("nivel"), List.of()))
 				.optional()
 				.orElseThrow(() -> new ErrorDeNegocio(CodigoError.RECURSO_NO_ENCONTRADO, "El producto no existe."));
 		return conUbicaciones(producto, ubicaciones(List.of(idProducto)));
@@ -252,6 +263,7 @@ public class ConsultaInventarioService {
 
 	private static ProductoExistencias conUbicaciones(ProductoExistencias p, Map<Long, List<ExistenciaUbicacion>> mapa) {
 		return new ProductoExistencias(p.productoId(), p.sku(), p.nombre(), p.categoria(), p.unidad(), p.stockMinimo(),
-				p.fisico(), p.reservado(), p.libre(), p.nivelAlerta(), mapa.getOrDefault(p.productoId(), List.of()));
+				p.fisico(), p.reservado(), p.libre(), p.planificado(), p.nivelAlerta(),
+				mapa.getOrDefault(p.productoId(), List.of()));
 	}
 }

@@ -22,3 +22,14 @@ describe('sugerencias del OCR', () => {
     expect(coincideBusqueda('00064, CEMENTO SOL', 'clavo')).toBe(false);
   });
 });
+
+describe('símbolo de diámetro', () => {
+  const FIERROS = [
+    { sku: '00763', nombre: 'FIERRO CORRUGADO 1/4 SIDERPERU' },
+    { sku: '00064', nombre: 'CEMENTO SOL TIPO I - 42.5 KG' },
+  ];
+
+  it.each(['fi 1/4', 'Ø 1/4', 'phi 1/4', 'φ1/4'])('«%s» se relaciona con los fierros', (texto) => {
+    expect(sugerirSkus(texto, FIERROS)).toEqual(['00763']);
+  });
+});

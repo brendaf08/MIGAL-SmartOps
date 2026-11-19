@@ -47,6 +47,18 @@ const enviarMensaje = (mensaje: string, conversacionId?: string) =>
     conversacionId ? { mensaje, conversacionId } : { mensaje },
   );
 
+/** Tiempo máximo de espera de una consulta: cubre los reintentos del backend y evita una espera sin fin. */
+export const TIEMPO_MAXIMO_AGENTE_MS = 45_000;
+
+const conTiempoMaximo = <T>(promesa: Promise<T>): Promise<T> =>
+  new Promise<T>((resolve, reject) => {
+    const temporizador = setTimeout(
+      () => reject(new Error('El agente tardó demasiado en responder. Intentar de nuevo.')),
+      TIEMPO_MAXIMO_AGENTE_MS,
+    );
+    promesa.then(resolve, reject).finally(() => clearTimeout(temporizador));
+  });
+
 const consultarAgenteReal = async (pregunta: string): Promise<RespuestaAgente> => {
   let respuesta: RespuestaAgenteApi;
   try {
@@ -78,7 +90,7 @@ const consultarAgenteReal = async (pregunta: string): Promise<RespuestaAgente> =
  */
 export const consultarAgente = (pregunta: string): Promise<RespuestaAgente> =>
   API_REAL
-    ? consultarAgenteReal(pregunta)
+    ? conTiempoMaximo(consultarAgenteReal(pregunta))
     : mockRequest<RespuestaAgente>(() => {
         const q = normalizar(pregunta);
 

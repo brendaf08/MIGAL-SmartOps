@@ -15,6 +15,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import tools.jackson.core.JacksonException;
@@ -195,20 +198,45 @@ public class ProveedorLlmGemini implements ProveedorLlm {
 
 	private JsonNode generar(Map<String, Object> cuerpo) {
 		try {
-			JsonNode respuesta = cliente.post()
-					.uri("/v1beta/models/{modelo}:generateContent", propiedades.modelo())
-					.header("x-goog-api-key", propiedades.apiKey())
-					.contentType(MediaType.APPLICATION_JSON)
-					.body(cuerpo)
-					.retrieve()
-					.body(JsonNode.class);
-			if (respuesta == null) {
-				throw noDisponible("La API del modelo no devolvió contenido.");
+			return solicitar(cuerpo);
+		} catch (HttpServerErrorException.ServiceUnavailable | HttpClientErrorException.TooManyRequests e) {
+			// La API informa saturación pasajera: un único reintento tras una breve pausa.
+			REGISTRO.warn("La API de Gemini está saturada ({}); se reintenta una vez.", e.getStatusCode());
+			pausar();
+			try {
+				return solicitar(cuerpo);
+			} catch (RestClientException segundo) {
+				REGISTRO.warn("La API de Gemini sigue saturada: {}", segundo.getMessage());
+				throw noDisponible("El modelo de IA está saturado en este momento. Intente de nuevo en unos minutos.");
 			}
-			return respuesta;
+		} catch (ResourceAccessException e) {
+			REGISTRO.warn("La API de Gemini no respondió a tiempo: {}", e.getMessage());
+			throw noDisponible("El modelo de IA tardó demasiado en responder. Intente de nuevo.");
 		} catch (RestClientException e) {
 			REGISTRO.warn("La API de Gemini no respondió: {}", e.getMessage());
 			throw noDisponible("El agente de IA no está disponible en este momento. Intente más tarde.");
+		}
+	}
+
+	private JsonNode solicitar(Map<String, Object> cuerpo) {
+		JsonNode respuesta = cliente.post()
+				.uri("/v1beta/models/{modelo}:generateContent", propiedades.modelo())
+				.header("x-goog-api-key", propiedades.apiKey())
+				.contentType(MediaType.APPLICATION_JSON)
+				.body(cuerpo)
+				.retrieve()
+				.body(JsonNode.class);
+		if (respuesta == null) {
+			throw noDisponible("La API del modelo no devolvió contenido.");
+		}
+		return respuesta;
+	}
+
+	private static void pausar() {
+		try {
+			Thread.sleep(1000);
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
 		}
 	}
 

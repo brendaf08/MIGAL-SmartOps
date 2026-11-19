@@ -138,7 +138,7 @@ describe('Recepciones', () => {
 
     // En Almacén 2 el máximo es la diferencia: pedir 500 deja 40, y la vista parte de 0.
     await cambiarA('Almacén 2');
-    expect(en('Almacén 2').value).toBe('0');
+    expect(en('Almacén 2').value).toBe('');
     await userEvent.type(en('Almacén 2'), '99');
     expect(Number(en('Almacén 2').value)).toBeLessThanOrEqual(40);
     await userEvent.clear(en('Almacén 2'));

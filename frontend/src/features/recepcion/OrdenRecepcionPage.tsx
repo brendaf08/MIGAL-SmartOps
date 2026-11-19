@@ -260,7 +260,7 @@ export function OrdenRecepcionPage() {
           miw={80}
           maw={110}
           hideControls
-          value={l.cantidad}
+          value={l.cantidad || ''}
           onChange={(v) => actualizarOcr(l.id, { cantidad: Number(v) || 0 })}
         />
       ),
@@ -284,7 +284,8 @@ export function OrdenRecepcionPage() {
           allowDecimal={false}
           clampBehavior="strict"
           disabled={maximoEn(l, almacen) === 0}
-          value={cantidadEn(l, almacen)}
+          // El vacío equivale a 0: al borrar no aparece un 0 que estorbe al escribir la nueva cantidad.
+          value={cantidadEn(l, almacen) || ''}
           onChange={(v) => recibirLinea(l.id, Number(v) || 0)}
         />
       ),

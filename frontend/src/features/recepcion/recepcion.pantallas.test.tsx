@@ -112,7 +112,8 @@ describe('Recepción desde una orden de compra', () => {
     const campo = screen.getByRole('textbox', {
       name: 'Cantidad recibida en Almacén 1 de Cable THW 12 AWG, rollo 100 m',
     }) as HTMLInputElement;
-    expect(campo.value).toBe('0');
+    // El vacío equivale a 0: no se muestra un 0 que estorbe al escribir.
+    expect(campo.value).toBe('');
     await userEvent.click(screen.getByRole('button', { name: 'Todo lo pedido llegó a Almacén 1' }));
     expect(Number(campo.value)).toBeGreaterThan(0);
   });

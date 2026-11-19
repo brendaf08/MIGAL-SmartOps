@@ -17,11 +17,9 @@ async function continuar() {
 
 /** Reemplaza la cantidad recibida de una línea del conteo. */
 async function recibir(linea: string, cantidad: number) {
-  const campo = screen.getByRole('textbox', { name: `Cantidad recibida de ${linea}` });
+  const campo = screen.getByRole('textbox', { name: `Cantidad recibida en Almacén 1 de ${linea}` });
   await userEvent.clear(campo);
   await userEvent.type(campo, String(cantidad));
-  // Lo recibido debe ubicarse en alguna ubicación antes de confirmar.
-  await userEvent.click(screen.getByRole('button', { name: 'Ubicar lo que falta en Almacén 1' }));
 }
 
 describe('Recepción desde una orden de compra', () => {
@@ -80,26 +78,43 @@ describe('Recepción desde una orden de compra', () => {
     ).not.toBeInTheDocument();
   }, 15000);
 
-  it('el sobrante exige una nota antes de confirmar', async () => {
+  it('no deja recibir más de lo pendiente: el tope es duro y no hay sobrantes', async () => {
     renderApp('/recepciones/nueva?oc=OC-0090', 'Almacenero');
     await continuar();
     await userEvent.click(await screen.findByRole('button', { name: 'Registrar sin documento' }));
 
+    // Se pide 20 y se intenta recibir 25: el sistema deja el máximo permitido.
     await recibir('Cable THW 12 AWG, rollo 100 m', 25);
-    expect(screen.getByText('Sobran 5')).toBeInTheDocument();
 
-    const barra = screen.getByRole('region', { name: 'Resumen y confirmación de la recepción' });
-    expect(within(barra).getByRole('status')).toHaveTextContent(
-      'Registrar una nota para explicar el sobrante.',
-    );
-    expect(within(barra).getByRole('button', { name: 'Confirmar recepción' })).toBeDisabled();
+    const campo = screen.getByRole('textbox', {
+      name: 'Cantidad recibida en Almacén 1 de Cable THW 12 AWG, rollo 100 m',
+    }) as HTMLInputElement;
+    expect(Number(campo.value)).toBeLessThanOrEqual(20);
+    expect(screen.queryByText(/Sobran/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('textbox', { name: 'Nota del sobrante' })).not.toBeInTheDocument();
+  });
 
-    await userEvent.type(
-      screen.getByRole('textbox', { name: 'Nota del sobrante' }),
-      'Caja adicional',
-    );
-    expect(within(barra).queryByRole('status')).not.toBeInTheDocument();
-    expect(within(barra).getByRole('button', { name: 'Confirmar recepción' })).toBeEnabled();
+  it('sin documento el conteo muestra solo el producto del catálogo, fijo y sin coincidencia', async () => {
+    renderApp('/recepciones/nueva?oc=OC-0090', 'Almacenero');
+    await continuar();
+    await userEvent.click(await screen.findByRole('button', { name: 'Registrar sin documento' }));
+
+    const tabla = await screen.findByRole('table', { name: 'Conteo de la recepción' });
+    expect(within(tabla).getByRole('columnheader', { name: 'Producto' })).toBeInTheDocument();
+    expect(
+      within(tabla).queryByRole('columnheader', { name: 'Texto extraído' }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(tabla).queryByRole('columnheader', { name: 'Coincidencia' }),
+    ).not.toBeInTheDocument();
+    expect(within(tabla).queryByRole('combobox')).not.toBeInTheDocument();
+    // Sin documento nada llega precargado: todo parte en 0 y el botón completa lo pedido.
+    const campo = screen.getByRole('textbox', {
+      name: 'Cantidad recibida en Almacén 1 de Cable THW 12 AWG, rollo 100 m',
+    }) as HTMLInputElement;
+    expect(campo.value).toBe('0');
+    await userEvent.click(screen.getByRole('button', { name: 'Todo lo pedido llegó a Almacén 1' }));
+    expect(Number(campo.value)).toBeGreaterThan(0);
   });
 
   it('cada paso de la recepción no tiene violaciones de accesibilidad', async () => {

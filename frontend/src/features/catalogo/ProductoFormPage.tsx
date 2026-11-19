@@ -26,7 +26,7 @@ import {
   type DatosProducto,
   type ProductoCatalogo,
 } from './api';
-import { productoSchema, UNIDADES } from './esquema';
+import { productoSchema, productoSchemaEdicion, UNIDADES } from './esquema';
 
 /** Vista previa del efecto del stock mínimo sobre las alertas. */
 function efectoMinimo(minimo: number | string) {
@@ -55,7 +55,7 @@ function FormularioProducto({ inicial, categorias }: FormularioProductoProps) {
       precioReferencial: inicial?.precioReferencial ?? 0,
       activo: inicial ? inicial.estado === 'Activo' : true,
     },
-    validate: zod4Resolver(productoSchema),
+    validate: zod4Resolver(editando ? productoSchemaEdicion : productoSchema),
   });
 
   const mutation = useMutation({
@@ -114,8 +114,12 @@ function FormularioProducto({ inicial, categorias }: FormularioProductoProps) {
         <Stack gap="md">
           <TextInput
             label="SKU"
-            placeholder="CEM-049"
-            description={editando ? 'El SKU no puede modificarse.' : 'Formato AAA-000.'}
+            placeholder="CEM-049 o 00123"
+            description={
+              editando
+                ? 'El SKU no puede modificarse.'
+                : 'Formato AAA-000 (por ejemplo CEM-049) o código de 5 dígitos (por ejemplo 00123).'
+            }
             disabled={editando}
             required
             {...form.getInputProps('sku')}

@@ -24,3 +24,28 @@ export const descuentoValido = (lineas: readonly LineaEditable[], descuento: num
 /** Siguiente identificador de línea dentro de la lista. */
 export const siguienteIdLinea = (lineas: readonly LineaEditable[]) =>
   lineas.reduce((mayor, l) => Math.max(mayor, l.id), 0) + 1;
+
+/**
+ * Suma las cantidades de los productos repetidos (conserva la primera fila de cada producto y su precio) y devuelve los
+ * SKU que estaban repetidos. Las filas sin producto se dejan como están.
+ */
+export function consolidarLineas(lineas: readonly LineaEditable[]): {
+  lineas: LineaEditable[];
+  repetidos: string[];
+} {
+  const porSku = new Map<string, LineaEditable>();
+  const repetidos = new Set<string>();
+  const resultado: LineaEditable[] = [];
+  for (const l of lineas) {
+    const previa = l.sku ? porSku.get(l.sku) : undefined;
+    if (previa) {
+      previa.cantidad = Math.round((previa.cantidad + l.cantidad) * 1000) / 1000;
+      repetidos.add(l.sku);
+      continue;
+    }
+    const copia = { ...l };
+    if (copia.sku) porSku.set(copia.sku, copia);
+    resultado.push(copia);
+  }
+  return { lineas: resultado, repetidos: [...repetidos] };
+}

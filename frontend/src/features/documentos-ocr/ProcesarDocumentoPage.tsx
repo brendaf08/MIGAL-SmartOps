@@ -23,7 +23,10 @@ export function ProcesarDocumentoPage() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const destino = leerDestino(params.get('destino'));
-  const [tipo, setTipo] = useState<TipoDocumento>('Guía de proveedor');
+  // El flujo de origen fija el tipo: una nota de venta o cotización de cliente no se lee como guía de proveedor.
+  const [tipo, setTipo] = useState<TipoDocumento>(
+    destino === 'cotizacion' || destino === 'venta' ? 'Cotización de cliente' : 'Guía de proveedor',
+  );
   const [archivo, setArchivo] = useState<File | null>(null);
 
   const procesar = useMutation({

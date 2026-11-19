@@ -11,7 +11,11 @@ import { Alert } from '@/components/ui/Alert/Alert';
 import { Card } from '@/components/ui/Card/Card';
 import { FormPage } from '@/components/ui/FormPage/FormPage';
 import { Icon } from '@/components/ui/Icon/Icon';
-import { subtotalLineas, totalLineas } from '@/components/ui/LineasEditor/calculos';
+import {
+  consolidarLineas,
+  subtotalLineas,
+  totalLineas,
+} from '@/components/ui/LineasEditor/calculos';
 import { LineasEditor } from '@/components/ui/LineasEditor/LineasEditor';
 import { ConfirmDialog } from '@/components/ui/Modal/ConfirmDialog';
 import { opcionesProducto } from '@/features/catalogo/opciones';
@@ -32,6 +36,7 @@ import {
   VALIDEZ,
   type ValoresCotizacion,
 } from './esquema';
+import { avisarRepetidos } from '@/features/documentos-ocr/avisos';
 import { usePrecargaDocumento } from '@/features/documentos-ocr/usePrecargaDocumento';
 import classes from './CotizacionForm.module.css';
 import { useCatalogoVigente } from '@/features/catalogo/catalogoVigente';
@@ -66,6 +71,7 @@ function valoresIniciales(cotizacion?: Cotizacion): ValoresCotizacion {
 
 /** Convierte los valores del formulario a los datos de la cotización: el descuento pasa de soles a fracción. */
 function datosDesde(valores: ValoresCotizacion): DatosCotizacion {
+  valores = { ...valores, lineas: consolidarLineas(valores.lineas).lineas };
   const subtotal = subtotalLineas(valores.lineas);
   return {
     clienteId: valores.clienteId === SIN_CLIENTE ? undefined : valores.clienteId,
@@ -99,7 +105,10 @@ function CotizacionForm({ cotizacion }: CotizacionFormProps) {
     validate: zod4Resolver(esquemaCotizacion),
   });
   const { values } = form;
-  const precarga = usePrecargaDocumento((lineas) => form.setFieldValue('lineas', lineas));
+  const precarga = usePrecargaDocumento((lineas, repetidos) => {
+    form.setFieldValue('lineas', lineas);
+    avisarRepetidos(repetidos);
+  });
 
   const total = totalLineas(values.lineas, values.descuento);
   const numeroProductos = values.lineas.length;

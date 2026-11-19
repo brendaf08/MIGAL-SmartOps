@@ -16,6 +16,7 @@ import { FormPage } from '@/components/ui/FormPage/FormPage';
 import { Icon } from '@/components/ui/Icon/Icon';
 import { LineasEditor } from '@/components/ui/LineasEditor/LineasEditor';
 import {
+  consolidarLineas,
   subtotalLineas,
   totalLineas,
   type LineaEditable,
@@ -36,6 +37,7 @@ import {
 } from './api';
 import { calcularAtencion, MODALIDADES, type ModalidadAtencion } from './atencion';
 import { crearEsquemaVenta } from './esquema';
+import { avisarRepetidos } from '@/features/documentos-ocr/avisos';
 import { usePrecargaDocumento } from '@/features/documentos-ocr/usePrecargaDocumento';
 import classes from './VentaForm.module.css';
 import { useCatalogoVigente } from '@/features/catalogo/catalogoVigente';
@@ -113,8 +115,9 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
       modalidad: null,
     });
   }, [cotizacionParam, cotizaciones.data, cotizaciones.isSuccess, form]);
-  const precarga = usePrecargaDocumento((lineas) => {
+  const precarga = usePrecargaDocumento((lineas, repetidos) => {
     form.setFieldValue('lineas', lineas);
+    avisarRepetidos(repetidos);
     setOrigen('documento');
   });
 
@@ -185,7 +188,7 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
       descuento: values.descuento,
       modalidad: values.modalidad as ModalidadAtencion | null,
       claveIdempotencia: claveRegistro,
-      lineas: values.lineas.map((l) => ({
+      lineas: consolidarLineas(values.lineas).lineas.map((l) => ({
         sku: l.sku,
         nombre: PRODUCTOS.find((p) => p.sku === l.sku)?.nombre ?? l.sku,
         cantidad: l.cantidad,

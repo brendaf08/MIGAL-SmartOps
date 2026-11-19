@@ -64,7 +64,7 @@ migal:
       # Dirección del servicio de OCR. Obligatoria con el proveedor http.
       url: ${MIGAL_OCR_URL:}
       # Sin resultado dentro de este plazo, el documento registra SERVICIO_NO_DISPONIBLE y puede reprocesarse.
-      plazo-resultado: ${MIGAL_OCR_PLAZO_RESULTADO:PT60S}
+      plazo-resultado: ${MIGAL_OCR_PLAZO_RESULTADO:PT150S}
       intervalo-vigilancia: PT30S
       tiempo-conexion: PT2S
       tiempo-lectura: PT5S

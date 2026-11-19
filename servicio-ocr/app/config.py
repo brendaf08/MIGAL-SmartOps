@@ -16,8 +16,9 @@ class Configuracion(BaseSettings):
     gemini_api_key: str = ""
     """Clave de la API de Gemini, de un proyecto con facturación habilitada."""
 
-    migal_ocr_gemini_modelo: str = "gemini-3.8-flash"
-    """Modelo Gemini Flash estable; se revisa cuando Google anuncie su retiro."""
+    migal_ocr_gemini_modelo: str = "gemini-3.5-flash-lite,gemini-3.1-flash-lite,gemini-3.6-flash"
+    """Modelos Gemini estables separados por coma, por orden de preferencia; si el primero agota su cuota se usa el
+    siguiente. Se revisan cuando Google anuncie su retiro."""
 
     tiempo_modelo_segundos: float = 20.0
     """Tiempo máximo de una llamada a la API del modelo."""

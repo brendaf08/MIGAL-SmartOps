@@ -1,7 +1,7 @@
 import { Badge, Button, NumberInput, Select, Stack, Text, Textarea } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { Constancia } from '@/components/domain/Constancia/Constancia';
 import { StatusBadge } from '@/components/domain/StatusBadge/StatusBadge';
@@ -25,7 +25,7 @@ import {
   listarOrdenesRecepcionables,
   type ResultadoRecepcion,
 } from './api';
-import { construirLineas } from './lineas';
+import { coincidenciasConGuia, construirLineas, ordenSugerida } from './lineas';
 import { SeleccionOrdenCompra } from './SeleccionOrdenCompra';
 import {
   diferenciaLinea,
@@ -104,6 +104,19 @@ export function OrdenRecepcionPage() {
     queryFn: listarOrdenesRecepcionables,
   });
   const orden = ordenes.data?.find((o) => o.id === ordenId) ?? null;
+  const coincidencias =
+    ocr && ordenes.data
+      ? Object.fromEntries(ordenes.data.map((o) => [o.id, coincidenciasConGuia(o, ocr)]))
+      : undefined;
+  const sugerida = ocr && ordenes.data ? ordenSugerida(ordenes.data, ocr) : null;
+  /** Con la guía ya leída, la orden que más coincide queda elegida de entrada; el usuario puede cambiarla. */
+  const preseleccionada = useRef(false);
+  useEffect(() => {
+    if (sugerida && !ordenId && !preseleccionada.current) {
+      preseleccionada.current = true;
+      setOrdenId(sugerida);
+    }
+  }, [sugerida, ordenId]);
 
   const procesar = useMutation({
     mutationFn: (file: File) => procesarDocumento(file, 'Guía de proveedor'),
@@ -309,6 +322,8 @@ export function OrdenRecepcionPage() {
             ordenes={ordenes.data ?? []}
             seleccionada={ordenId}
             onSeleccionar={setOrdenId}
+            coincidencias={coincidencias}
+            sugerida={sugerida}
           />
         )}
 

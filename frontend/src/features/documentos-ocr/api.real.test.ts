@@ -88,7 +88,14 @@ describe('documentos OCR con la API real', () => {
 
     expect((llamadas[0] as PeticionSimulada).url.pathname).toBe('/api/v1/documentos/31');
     expect(documento.lineas).toEqual([
-      { id: '48', texto: 'CEMENTO SOL TIPO 1 42.5KG', sku: 'CEM-049', score: 0.94, cantidad: 100 },
+      {
+        id: '48',
+        texto: 'CEMENTO SOL TIPO 1 42.5KG',
+        sku: 'CEM-049',
+        score: 0.94,
+        cantidad: 100,
+        candidatos: ['CEM-049'],
+      },
     ]);
   });
 

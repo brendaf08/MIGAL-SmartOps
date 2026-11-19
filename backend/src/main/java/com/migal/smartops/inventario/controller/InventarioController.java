@@ -6,6 +6,7 @@ import com.migal.smartops.comun.idempotencia.ServicioIdempotencia.Resultado;
 import com.migal.smartops.comun.web.PaginaDto;
 import com.migal.smartops.inventario.controller.InventarioDtos.AlertaStockDto;
 import com.migal.smartops.inventario.controller.InventarioDtos.DisponibilidadPaginaDto;
+import com.migal.smartops.inventario.controller.InventarioDtos.FaltanteVentaDto;
 import com.migal.smartops.inventario.controller.InventarioDtos.MovimientoKardexDto;
 import com.migal.smartops.inventario.controller.InventarioDtos.ProductoExistenciasDto;
 import com.migal.smartops.inventario.controller.InventarioDtos.ResultadoMovimientoDto;
@@ -20,6 +21,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import java.time.LocalDate;
+import java.util.List;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -86,6 +88,13 @@ public class InventarioController {
 			@RequestParam(defaultValue = "1") @Min(1) int page,
 			@RequestParam(defaultValue = "20") @Min(1) @Max(100) int pageSize) {
 		return PaginaDto.de(consultas.alertas(nivel, page, pageSize), AlertaStockDto::de);
+	}
+
+	@GetMapping("/inventario/faltantes")
+	@PreAuthorize(ROLES_ALERTAS)
+	public PaginaDto<FaltanteVentaDto> faltantes() {
+		List<FaltanteVentaDto> items = consultas.faltantesDeVentas().stream().map(FaltanteVentaDto::de).toList();
+		return new PaginaDto<>(items, items.size(), 1, Math.max(items.size(), 1));
 	}
 
 	@GetMapping("/inventario/movimientos")

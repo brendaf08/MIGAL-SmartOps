@@ -16,6 +16,7 @@ import argparse
 import json
 import mimetypes
 import os
+import re
 import sys
 import time
 import urllib.error
@@ -26,7 +27,12 @@ from datetime import date
 from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parent.parent
-MARCA = "[DEMO]"
+
+
+def natural(texto):
+    """Texto para guardar: sin nombres de archivo entre paréntesis."""
+    return re.sub(r"\s*\([^)]*\)", "", texto).strip()
+
 
 CLIENTES = [
     ("20600100011", "Constructora Andina del Perú S.A.C.", "999000011", "Av. Los Constructores 120, Lima"),
@@ -272,7 +278,7 @@ class Sembrador:
         self.api.post("/inventario/movimientos", {
             "tipoOperacion": "entrada", "productoId": self.producto(sku)["id"],
             "ubicacionId": self.ubicaciones["Almacén 1"], "cantidad": cantidad,
-            "motivo": f"{MARCA} Ajuste por carga inicial de stock para la demostración"})
+            "motivo": "Ajuste por carga inicial de inventario"})
         self.contar("ajustes de stock inicial")
 
     def lineas_api(self, lineas):
@@ -330,7 +336,7 @@ class Sembrador:
                 continue
             cuerpo = {"clienteId": self.clientes[CLIENTES[indice][0]], "lineas": self.lineas_api(validas),
                       "descuento": 0, "validezDias": 30,
-                      "condicionesComerciales": f"{MARCA} {descripcion}. Pago a 7 días, entrega en obra."}
+                      "condicionesComerciales": f"Según {natural(descripcion)[0].lower() + natural(descripcion)[1:]}. Pago a 7 días, entrega en obra."}
             cotizacion = self.api.post("/cotizaciones", cuerpo)
             self.contar("cotizaciones")
             cid = cotizacion["id"]
@@ -403,7 +409,7 @@ class Sembrador:
                 recibidas = [(validas[0][0], validas[0][1]), (validas[1][0], max(1, validas[1][1] // 2))]
             recepcion = self.api.post("/recepciones", {
                 "ordenCompraId": orden["id"], "fechaRecepcion": date.today().isoformat(),
-                "observaciones": f"{MARCA} {descripcion}",
+                "observaciones": f"Recepción conforme de {natural(descripcion)[0].lower() + natural(descripcion)[1:]}",
                 "lineas": [{"productoId": self.producto(s)["id"], "ubicacionId": self.ubicaciones["Almacén 1"],
                             "cantidadRecibida": c} for s, c in recibidas]})
             self.api.post(f"/recepciones/{recepcion['id']}/validacion")
@@ -438,7 +444,6 @@ class Sembrador:
             if not producto:
                 self.aviso(f"SKU {sku} no está en el catálogo; se omite el movimiento.")
                 continue
-            motivo = f"{MARCA} {motivo}"
             try:
                 if tipo == "traslado":
                     self.api.post("/inventario/traslados", {

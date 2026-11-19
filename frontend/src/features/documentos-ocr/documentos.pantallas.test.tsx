@@ -73,7 +73,9 @@ describe('Documentos OCR', () => {
     expect(within(barra).getByRole('button', { name: 'Usar estos datos' })).toBeDisabled();
 
     const select = screen.getByRole('combobox', { name: 'Producto para ALAMBRE REC. N16' });
+    // Sin escribir solo se ofrecen los productos relacionados; para otro producto se busca por su código.
     await userEvent.click(select);
+    await userEvent.type(select, 'CLA-008');
     const lista = document.getElementById(select.getAttribute('aria-controls')!)!;
     await userEvent.click(
       await within(lista).findByRole('option', { name: /CLA-008/, hidden: true }),

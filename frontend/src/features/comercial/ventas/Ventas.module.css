@@ -29,3 +29,55 @@
     width: 100%;
   }
 }
+
+/* Detalle de lo pendiente: tabla con espacio suficiente y colores que se heredan del aviso, en modo claro y oscuro. */
+.faltantesWrap {
+  margin-top: var(--space-3);
+  overflow-x: auto;
+}
+
+.faltantes {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--mantine-font-size-sm);
+  color: inherit;
+
+  & th,
+  & td {
+    padding: var(--space-3) var(--space-4);
+    text-align: right;
+    border-bottom: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+    font-variant-numeric: tabular-nums;
+  }
+
+  & thead th {
+    font-weight: 600;
+  }
+
+  & th:first-child {
+    text-align: left;
+  }
+
+  & tbody th {
+    font-weight: 500;
+
+    & small {
+      display: block;
+      font-family: var(--mantine-font-family-monospace);
+      opacity: 0.8;
+    }
+  }
+
+  & tbody tr:last-child th,
+  & tbody tr:last-child td {
+    border-bottom: 0;
+  }
+}
+
+.soloLectores {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}

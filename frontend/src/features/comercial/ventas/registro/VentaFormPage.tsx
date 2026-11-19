@@ -160,9 +160,17 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
     },
   });
 
+  /** Cambiar el origen descarta lo cargado (cliente, productos y descuento) para no mezclar datos de otro origen. */
   const cambiarOrigen = (valor: string) => {
     setOrigen(valor as Origen);
-    form.setFieldValue('cotizacionId', null);
+    form.setValues({
+      cliente: null,
+      cotizacionId: null,
+      lineas: [],
+      descuento: 0,
+      modalidad: null,
+    });
+    form.clearErrors();
   };
 
   const elegirCotizacion = (id: string | null) => {
@@ -242,6 +250,14 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
       };
     });
 
+  /** Detalle de lo que falta: solo los productos con cantidad pendiente, con su nombre y unidad. */
+  const faltantes = vista.lineas
+    .filter((l) => l.pendiente > 0)
+    .map((l) => {
+      const p = PRODUCTOS.find((x) => x.sku === l.sku);
+      return { ...l, nombre: p?.nombre ?? l.sku, unidad: p?.unidad ?? '' };
+    });
+
   const columnas: Column<(typeof filas)[number]>[] = [
     { key: 'nombre', header: 'Producto', primary: true },
     {
@@ -302,6 +318,7 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
               value={values.cliente}
               onChange={(v) => form.setFieldValue('cliente', v)}
               error={form.errors.cliente as string | undefined}
+              bloqueado={origen === 'cotizacion' && values.cotizacionId !== null}
             />
             <Radio.Group label="Origen de los productos" value={origen} onChange={cambiarOrigen}>
               <Stack gap="xs" mt="xs">
@@ -394,7 +411,16 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
         consequences={[
           `Se reservará el stock de ${plural(vista.lineas.filter((l) => l.atendida > 0).length, 'producto', 'productos')}. La salida del Kardex se registra al confirmar el despacho.`,
           ...(vista.totalPendiente > 0
-            ? [`Quedan ${formatNumber(vista.totalPendiente)} unidades pendientes.`]
+            ? [
+                `Quedan ${formatNumber(vista.totalPendiente)} unidades pendientes en ${plural(faltantes.length, 'producto', 'productos')}:`,
+                ...faltantes
+                  .slice(0, 8)
+                  .map(
+                    (f) =>
+                      `• ${f.nombre}: faltan ${formatNumber(f.pendiente)} de ${formatNumber(f.solicitada)} ${f.unidad}`,
+                  ),
+                ...(faltantes.length > 8 ? [`… y ${faltantes.length - 8} productos más.`] : []),
+              ]
             : []),
         ]}
         confirmLabel="Confirmar venta"

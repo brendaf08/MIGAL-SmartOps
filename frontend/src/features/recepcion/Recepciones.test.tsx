@@ -121,38 +121,39 @@ describe('Recepciones', () => {
     expect(screen.getAllByText('Completa')).toHaveLength(3);
   });
 
-  it('al cambiar la ubicación que recibe, el conteo muestra y suma lo recibido en cada una', async () => {
+  it('al cambiar la ubicación el conteo muestra lo ubicado allí y bloquea la que no tiene cupo', async () => {
     await cargarDocumento();
     await asociarAlambre(/CLA-008/);
     await userEvent.click(screen.getByRole('button', { name: 'Usar datos de la guía' }));
 
     const nombre = 'Pintura látex blanco, balde 4 L';
     await userEvent.click(screen.getByRole('button', { name: `Igual al pedido, ${nombre}` }));
-    const enAlmacen1 = screen.getByLabelText(
-      `Cantidad recibida en Almacén 1 de ${nombre}`,
-    ) as HTMLInputElement;
-    expect(Number(enAlmacen1.value)).toBeGreaterThan(0);
-    expect(screen.queryByRole('columnheader', { name: 'Total recibido' })).not.toBeInTheDocument();
+    const deAlmacen = (ubicacion: string) =>
+      screen.getByLabelText(`Cantidad a ${ubicacion} de ${nombre}`) as HTMLInputElement;
+    const total = Number(
+      (screen.getByLabelText(`Cantidad recibida de ${nombre}`) as HTMLInputElement).value,
+    );
+    expect(total).toBeGreaterThan(10);
+    expect(deAlmacen('Almacén 1').value).toBe('0');
+    expect(screen.getByRole('button', { name: 'Confirmar recepción' })).toBeDisabled();
 
-    // La vista pasa a Almacén 2: arranca en 0 y lo que se registre allí se suma al total de la línea.
+    // Se envían 10 unidades a Almacén 1; el resto queda por ubicar.
+    await userEvent.type(deAlmacen('Almacén 1'), '10');
+
+    // En Almacén 2 el máximo es la diferencia y se puede ubicar todo lo que queda.
     await userEvent.click(screen.getByRole('combobox', { name: /Ubicación que recibe/ }));
     await userEvent.click(await screen.findByRole('option', { name: 'Almacén 2', hidden: true }));
-    const enAlmacen2 = screen.getByLabelText(
-      `Cantidad recibida en Almacén 2 de ${nombre}`,
-    ) as HTMLInputElement;
-    expect(enAlmacen2.value).toBe('0');
-    await userEvent.type(enAlmacen2, '15');
+    expect(deAlmacen('Almacén 2')).not.toBeDisabled();
+    await userEvent.type(deAlmacen('Almacén 2'), String(total));
+    expect(deAlmacen('Almacén 2').value).toBe(String(total - 10));
 
-    expect(await screen.findByRole('columnheader', { name: 'Total recibido' })).toBeInTheDocument();
-    expect(screen.getByText(/Recibido por ubicación:.*Almacén 2 15/)).toBeInTheDocument();
-
-    // Al volver a Almacén 1 se conserva lo registrado allí.
+    // Ya no queda nada por ubicar en esta línea: Almacén 1 sigue editable y Tienda queda bloqueada.
     await userEvent.click(screen.getByRole('combobox', { name: /Ubicación que recibe/ }));
-    await userEvent.click(await screen.findByRole('option', { name: 'Almacén 1', hidden: true }));
+    await userEvent.click(await screen.findByRole('option', { name: 'Tienda', hidden: true }));
+    expect(deAlmacen('Tienda')).toBeDisabled();
     expect(
-      (screen.getByLabelText(`Cantidad recibida en Almacén 1 de ${nombre}`) as HTMLInputElement)
-        .value,
-    ).toBe(enAlmacen1.value);
+      screen.getByText(/Recibido por ubicación:.*Almacén 1 10.*Almacén 2/),
+    ).toBeInTheDocument();
   });
 
   it('confirma la recepción tras asociar el producto, anotar el sobrante y aceptar las consecuencias', async () => {
@@ -165,6 +166,9 @@ describe('Recepciones', () => {
       screen.getByRole('textbox', { name: 'Nota del sobrante' }),
       'Material de otra obra',
     );
+    // Sin ubicar lo recibido no se puede confirmar.
+    expect(screen.getByRole('button', { name: 'Confirmar recepción' })).toBeDisabled();
+    await userEvent.click(screen.getByRole('button', { name: 'Ubicar lo que falta en Almacén 1' }));
     await userEvent.click(screen.getByRole('button', { name: 'Confirmar recepción' }));
 
     const dialog = await screen.findByRole('dialog', { name: 'Confirmar recepción OC-0087' });

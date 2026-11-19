@@ -3,42 +3,74 @@ import type { LineaRecepcion } from './types';
 const suma = (reparto: Record<string, number>) =>
   Object.values(reparto).reduce((total, cantidad) => total + cantidad, 0);
 
-/** Lo recibido de una línea en una ubicación; sin reparto, todo se toma como recibido en `porDefecto`. */
-export const cantidadEn = (linea: LineaRecepcion, ubicacion: string, porDefecto: string): number =>
-  linea.reparto ? (linea.reparto[ubicacion] ?? 0) : ubicacion === porDefecto ? linea.recibido : 0;
-
-/** Reparto de una línea, con lo recibido en `porDefecto` si aún no se repartió. */
+/**
+ * Reparto de una línea por ubicación. Una línea que aún no se repartió (`reparto` ausente) cuenta como recibida
+ * entera en `porDefecto`; una con reparto vacío tiene todo su recibido sin ubicar.
+ */
 export const repartoDe = (linea: LineaRecepcion, porDefecto: string): Record<string, number> =>
   linea.reparto ?? (linea.recibido > 0 ? { [porDefecto]: linea.recibido } : {});
 
-/** Asigna a una ubicación todo lo recibido de cada línea (punto de partida de un conteo nuevo). */
-export const conRepartoInicial = (lineas: LineaRecepcion[], ubicacion: string): LineaRecepcion[] =>
-  lineas.map((l) => ({ ...l, reparto: l.recibido > 0 ? { [ubicacion]: l.recibido } : {} }));
+/** Unidades de la línea ya ubicadas en alguna ubicación. */
+export const ubicado = (linea: LineaRecepcion): number => suma(linea.reparto ?? {});
 
-/** Registra lo recibido en una ubicación; el total de la línea es la suma de todas sus ubicaciones. */
-export function fijarEnUbicacion(
+/** Unidades recibidas que aún no tienen ubicación. */
+export const sinUbicar = (linea: LineaRecepcion): number =>
+  Math.max(linea.recibido - ubicado(linea), 0);
+
+/** Lo ubicado en una ubicación. */
+export const cantidadEn = (linea: LineaRecepcion, ubicacion: string): number =>
+  linea.reparto?.[ubicacion] ?? 0;
+
+/** Lo máximo que admite una ubicación: lo recibido menos lo ya ubicado en las demás. */
+export const maximoEn = (linea: LineaRecepcion, ubicacion: string): number =>
+  Math.max(linea.recibido - (ubicado(linea) - cantidadEn(linea, ubicacion)), 0);
+
+/** Ubica unidades en una ubicación sin pasar de lo que queda por ubicar; con 0 la quita. */
+export function ubicarEn(
   linea: LineaRecepcion,
   ubicacion: string,
   cantidad: number,
-  porDefecto: string,
 ): LineaRecepcion {
-  const reparto = { ...repartoDe(linea, porDefecto), [ubicacion]: Math.max(cantidad, 0) };
-  return { ...linea, reparto, recibido: suma(reparto) };
+  const valida = Math.min(Math.max(cantidad, 0), maximoEn(linea, ubicacion));
+  return { ...linea, reparto: { ...linea.reparto, [ubicacion]: valida } };
 }
 
-/** Lleva el total recibido de la línea a `total`, ajustando solo la ubicación indicada y respetando las demás. */
-export function fijarTotal(
+/**
+ * Cambia el total recibido de la línea. Si lo ubicado supera el nuevo total, el exceso se quita primero de la
+ * ubicación que se está viendo y luego de las demás.
+ */
+export function recibirTotal(
   linea: LineaRecepcion,
-  ubicacion: string,
   total: number,
-  porDefecto: string,
+  preferida: string,
 ): LineaRecepcion {
-  const reparto = repartoDe(linea, porDefecto);
-  const enOtras = suma(reparto) - (reparto[ubicacion] ?? 0);
-  return fijarEnUbicacion(linea, ubicacion, Math.max(total - enOtras, 0), porDefecto);
+  const recibido = Math.max(total, 0);
+  const reparto = { ...linea.reparto };
+  let exceso = suma(reparto) - recibido;
+  for (const ubicacion of [preferida, ...Object.keys(reparto).filter((u) => u !== preferida)]) {
+    if (exceso <= 0) break;
+    const quitar = Math.min(reparto[ubicacion] ?? 0, exceso);
+    if (quitar > 0) {
+      reparto[ubicacion] = (reparto[ubicacion] ?? 0) - quitar;
+      exceso -= quitar;
+    }
+  }
+  return { ...linea, recibido, reparto };
 }
 
-/** Ubicaciones con mercadería recibida y el total de unidades en cada una, en orden de aparición. */
+/** Ubica en una ubicación todo lo que cada línea tiene sin ubicar. */
+export const ubicarTodoEn = (lineas: LineaRecepcion[], ubicacion: string): LineaRecepcion[] =>
+  lineas.map((l) => ubicarEn(l, ubicacion, maximoEn(l, ubicacion)));
+
+/** Punto de partida de un conteo: nada ubicado todavía. */
+export const sinReparto = (lineas: LineaRecepcion[]): LineaRecepcion[] =>
+  lineas.map((l) => ({ ...l, reparto: {} }));
+
+/** Total de unidades recibidas sin ubicar en todas las líneas. */
+export const totalSinUbicar = (lineas: LineaRecepcion[]): number =>
+  lineas.reduce((total, l) => total + (l.reparto ? sinUbicar(l) : 0), 0);
+
+/** Ubicaciones con mercadería y el total de unidades en cada una, en orden de aparición. */
 export function totalesPorUbicacion(
   lineas: LineaRecepcion[],
   porDefecto: string,
@@ -52,7 +84,7 @@ export function totalesPorUbicacion(
   return [...totales];
 }
 
-/** Cantidad de movimientos de entrada: uno por producto y ubicación con unidades recibidas. */
+/** Cantidad de movimientos de entrada: uno por producto y ubicación con unidades. */
 export const movimientosDeEntrada = (lineas: LineaRecepcion[], porDefecto: string): number =>
   lineas.reduce(
     (total, l) => total + Object.values(repartoDe(l, porDefecto)).filter((c) => c > 0).length,

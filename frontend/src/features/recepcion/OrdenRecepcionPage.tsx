@@ -28,11 +28,15 @@ import {
 import { coincidenciasConGuia, construirLineas, ordenSugerida } from './lineas';
 import {
   cantidadEn,
-  conRepartoInicial,
-  fijarEnUbicacion,
-  fijarTotal,
+  maximoEn,
   movimientosDeEntrada,
+  recibirTotal,
+  sinReparto,
+  sinUbicar,
   totalesPorUbicacion,
+  totalSinUbicar,
+  ubicarEn,
+  ubicarTodoEn,
 } from './reparto';
 import { SeleccionOrdenCompra } from './SeleccionOrdenCompra';
 import {
@@ -182,15 +186,14 @@ export function OrdenRecepcionPage() {
     );
   const actualizarConteo = (id: number, patch: Partial<LineaRecepcion>) =>
     setLineas((prev) => prev.map((l) => (l.id === id ? { ...l, ...patch } : l)));
-  /** Lo recibido se registra en la ubicación elegida; el total de la línea suma todas las ubicaciones usadas. */
-  const recibirEn = (id: number, cantidad: number) =>
-    setLineas((prev) =>
-      prev.map((l) => (l.id === id ? fijarEnUbicacion(l, almacen, cantidad, almacen) : l)),
-    );
+  /** Total recibido de la línea; lo ubicado que lo supere se quita, empezando por la ubicación que se está viendo. */
+  const recibirTotalLinea = (id: number, total: number) =>
+    setLineas((prev) => prev.map((l) => (l.id === id ? recibirTotal(l, total, almacen) : l)));
+  /** Cantidad de la línea que va a la ubicación elegida, hasta lo que queda por ubicar. */
+  const ubicarLinea = (id: number, cantidad: number) =>
+    setLineas((prev) => prev.map((l) => (l.id === id ? ubicarEn(l, almacen, cantidad) : l)));
   const igualarAlPedido = (id: number) =>
-    setLineas((prev) =>
-      prev.map((l) => (l.id === id ? fijarTotal(l, almacen, l.pedido, almacen) : l)),
-    );
+    setLineas((prev) => prev.map((l) => (l.id === id ? recibirTotal(l, l.pedido, almacen) : l)));
 
   if (cerrada) {
     const { recepcion, cambios } = cerrada;
@@ -247,8 +250,12 @@ export function OrdenRecepcionPage() {
         : null;
 
   const resumen = resumirRecepcion(lineas);
+  const faltaUbicar = totalSinUbicar(lineas);
   const motivoPaso2 =
     resumen.motivoBloqueo ??
+    (faltaUbicar > 0
+      ? `Ubicar ${formatNumber(faltaUbicar)} unidades recibidas: reparte entre las ubicaciones o usa «Ubicar lo que falta en ${almacen}».`
+      : null) ??
     (resumen.sobrantes > 0 && !nota.trim()
       ? 'Registrar una nota para explicar el sobrante.'
       : null);
@@ -278,30 +285,45 @@ export function OrdenRecepcionPage() {
     { key: 'pedido', header: 'Pendiente', numeric: true },
     {
       key: 'recibido',
-      header: `Recibido en ${almacen}`,
+      header: 'Recibido',
       block: true,
       render: (l) => (
         <NumberInput
-          aria-label={`Cantidad recibida en ${almacen} de ${l.texto}`}
+          aria-label={`Cantidad recibida de ${l.texto}`}
           min={0}
           miw={80}
           maw={110}
           hideControls
-          value={cantidadEn(l, almacen, almacen)}
-          onChange={(v) => recibirEn(l.id, Number(v) || 0)}
+          value={l.recibido}
+          onChange={(v) => recibirTotalLinea(l.id, Number(v) || 0)}
         />
       ),
     },
-    ...(totales.length > 1
-      ? ([
-          {
-            key: 'total',
-            header: 'Total recibido',
-            numeric: true,
-            render: (l) => formatNumber(l.recibido),
-          },
-        ] satisfies Column<LineaRecepcion>[])
-      : []),
+    {
+      key: 'enUbicacion',
+      header: `A ${almacen}`,
+      block: true,
+      render: (l) => (
+        <NumberInput
+          aria-label={`Cantidad a ${almacen} de ${l.texto}`}
+          min={0}
+          max={maximoEn(l, almacen)}
+          miw={80}
+          maw={110}
+          hideControls
+          allowDecimal={false}
+          disabled={maximoEn(l, almacen) === 0}
+          value={cantidadEn(l, almacen)}
+          onChange={(v) => ubicarLinea(l.id, Number(v) || 0)}
+        />
+      ),
+    },
+    {
+      key: 'porUbicar',
+      header: 'Por ubicar',
+      numeric: true,
+      render: (l) => formatNumber(sinUbicar(l)),
+    },
     {
       key: 'diferencia',
       header: 'Diferencia',
@@ -430,21 +452,30 @@ export function OrdenRecepcionPage() {
               title="Conteo"
               description={`${plural(lineas.length, 'línea', 'líneas')}${resumen.sinAsociar ? `, ${resumen.sinAsociar} sin asociar` : ''}`}
               actions={
-                <Button
-                  variant="default"
-                  leftSection={<Icon name="check" />}
-                  onClick={() =>
-                    setLineas((prev) =>
-                      igualarCoincidenciasAltas(prev).map((l, i) =>
-                        l.recibido === prev[i]!.recibido
-                          ? l
-                          : fijarTotal(prev[i]!, almacen, l.recibido, almacen),
-                      ),
-                    )
-                  }
-                >
-                  Igualar coincidencias altas
-                </Button>
+                <Group gap="xs" wrap="wrap">
+                  <Button
+                    variant="default"
+                    leftSection={<Icon name="check" />}
+                    onClick={() =>
+                      setLineas((prev) =>
+                        igualarCoincidenciasAltas(prev).map((l, i) =>
+                          l.recibido === prev[i]!.recibido
+                            ? l
+                            : recibirTotal(prev[i]!, l.recibido, almacen),
+                        ),
+                      )
+                    }
+                  >
+                    Igualar coincidencias altas
+                  </Button>
+                  <Button
+                    variant="default"
+                    leftSection={<Icon name="arrow-right" />}
+                    onClick={() => setLineas((prev) => ubicarTodoEn(prev, almacen))}
+                  >
+                    {`Ubicar lo que falta en ${almacen}`}
+                  </Button>
+                </Group>
               }
               padded={false}
             >
@@ -516,7 +547,7 @@ export function OrdenRecepcionPage() {
             onClick={() => {
               setLineasOcr(null);
               setUsarPrecargado(false);
-              setLineas(conRepartoInicial(construirLineas(orden, null), almacen));
+              setLineas(sinReparto(construirLineas(orden, null)));
               setPaso(2);
             }}
           >
@@ -526,7 +557,7 @@ export function OrdenRecepcionPage() {
             leftSection={<Icon name="check" />}
             disabled={!ocr || sinAsociarOcr > 0 || procesar.isPending}
             onClick={() => {
-              setLineas(conRepartoInicial(construirLineas(orden, ocr), almacen));
+              setLineas(sinReparto(construirLineas(orden, ocr)));
               setPaso(2);
             }}
           >

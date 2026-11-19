@@ -114,7 +114,7 @@ export function LineasEditor({
           miw={80}
           maw={120}
           disabled={soloLectura}
-          value={l.cantidad}
+          value={l.cantidad || ''}
           onChange={(v) => actualizar(l.id, { cantidad: Number(v) || 0 })}
         />
       ),

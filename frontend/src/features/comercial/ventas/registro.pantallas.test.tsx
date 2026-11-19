@@ -43,16 +43,24 @@ describe('calcularAtencion', () => {
     });
   });
 
-  it.each<ModalidadAtencion>(['pendienteAbastecimiento', 'pendienteCliente'])(
-    'con %s no atiende las líneas sin cobertura, pero sí las cubiertas',
-    (modalidad) => {
-      const r = calcularAtencion([linea('CEM', 40), linea('FIE', 11)], stock, modalidad);
+  it('con pendienteAbastecimiento reserva lo disponible y deja pendiente solo lo que falta', () => {
+    const r = calcularAtencion(
+      [linea('CEM', 40), linea('FIE', 11)],
+      stock,
+      'pendienteAbastecimiento',
+    );
 
-      expect(r.lineas.map((l) => l.atendida)).toEqual([40, 0]);
-      expect(r.lineas[1]!.pendiente).toBe(11);
-      expect(r).toMatchObject({ estado: 'PendienteAbastecimiento', entrega: 'Parcial' });
-    },
-  );
+    expect(r.lineas.map((l) => l.atendida)).toEqual([40, 10]);
+    expect(r.lineas[1]!.pendiente).toBe(1);
+    expect(r).toMatchObject({ estado: 'PendienteAbastecimiento', entrega: 'Parcial' });
+  });
+
+  it('con pendienteCliente no atiende las líneas sin cobertura, pero sí las cubiertas', () => {
+    const r = calcularAtencion([linea('CEM', 40), linea('FIE', 11)], stock, 'pendienteCliente');
+
+    expect(r.lineas.map((l) => l.atendida)).toEqual([40, 0]);
+    expect(r.lineas[1]!.pendiente).toBe(11);
+  });
 
   it('sin modalidad no atiende lo no cubierto', () => {
     expect(calcularAtencion([linea('TUB', 3)], stock, null).lineas[0]!.atendida).toBe(0);
@@ -164,7 +172,10 @@ describe('Registro de venta', () => {
       await userEvent.click(screen.getByRole('radio', { name: 'Atender parcialmente' }));
       await userEvent.click(screen.getByRole('button', { name: 'Confirmar venta' }));
       const dialogo = await screen.findByRole('dialog', { name: 'Confirmar la venta' });
-      expect(within(dialogo).getByText('Quedan 5 unidades pendientes.')).toBeInTheDocument();
+      expect(
+        within(dialogo).getByText(/Quedan 5 unidades pendientes en 1 producto/),
+      ).toBeInTheDocument();
+      expect(within(dialogo).getByText(/faltan 5 de 5/)).toBeInTheDocument();
       await userEvent.click(within(dialogo).getByRole('button', { name: 'Confirmar venta' }));
 
       expect(

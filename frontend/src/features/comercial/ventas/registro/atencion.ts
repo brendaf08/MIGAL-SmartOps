@@ -45,7 +45,9 @@ export function calcularAtencion(
   const resultado = lineas.map((l): LineaAtendida => {
     const disponible = restante.get(l.sku) ?? Math.max(0, stock[l.sku] ?? 0);
     const cubierta = l.cantidad <= disponible;
-    const atendida = cubierta ? l.cantidad : modalidad === 'parcial' ? disponible : 0;
+    // Atender parcialmente y la venta pendiente por abastecimiento reservan lo que hay; solo lo que falta queda pendiente.
+    const reservaLoDisponible = modalidad === 'parcial' || modalidad === 'pendienteAbastecimiento';
+    const atendida = cubierta ? l.cantidad : reservaLoDisponible ? disponible : 0;
     restante.set(l.sku, disponible - atendida);
     return { sku: l.sku, solicitada: l.cantidad, atendida, pendiente: l.cantidad - atendida };
   });

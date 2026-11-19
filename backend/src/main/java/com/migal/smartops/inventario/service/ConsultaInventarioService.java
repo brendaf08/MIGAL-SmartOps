@@ -48,6 +48,14 @@ public class ConsultaInventarioService {
 			BigDecimal libre, BigDecimal faltante, String nivelAlerta) {
 	}
 
+	/**
+	 * Producto que falta para atender las ventas pendientes de abastecimiento: la cantidad vendida menos la reservada,
+	 * lo que ya está pedido en órdenes de compra abiertas y lo que resta por cubrir con una nueva compra.
+	 */
+	public record FaltanteVenta(long productoId, String sku, String nombre, String unidad, BigDecimal faltante,
+			BigDecimal planificado, long ventas) {
+	}
+
 	/** Página de disponibilidad con los totales del catálogo sin filtros. */
 	public record Disponibilidad(Page<ProductoExistencias> pagina, long enAlerta, long totalGeneral) {
 	}
@@ -130,6 +138,41 @@ public class ConsultaInventarioService {
 				.query((rs, n) -> new long[] {rs.getLong("total"), rs.getLong("alerta")}).single();
 		return new Disponibilidad(new PageImpl<>(completos, PageRequest.of(page - 1, pageSize), total), totales[1],
 				totales[0]);
+	}
+
+	/** Productos que faltan para las ventas pendientes de abastecimiento, de mayor a menor faltante. */
+	@Transactional(readOnly = true)
+	public List<FaltanteVenta> faltantesDeVentas() {
+		return jdbc.sql("""
+				SELECT p.id_producto, p.sku, p.nombre_oficial, p.unidad_medida,
+				       SUM(dv.cantidad_vendida - COALESCE(r.reservada, 0)) AS faltante,
+				       COUNT(DISTINCT v.id_venta) AS ventas,
+				       COALESCE((SELECT SUM(GREATEST(dc.cantidad_comprada - COALESCE((
+				                     SELECT SUM(dr.cantidad_recibida)
+				                       FROM detalle_recepcion dr
+				                       JOIN orden_recepcion orr ON orr.id_recepcion = dr.id_recepcion
+				                      WHERE orr.id_orden = dc.id_orden AND dr.id_producto = dc.id_producto
+				                        AND orr.estado = 'validada'), 0), 0))
+				                   FROM detalle_compra dc
+				                   JOIN orden_compra oc ON oc.id_orden = dc.id_orden
+				                  WHERE dc.id_producto = p.id_producto
+				                    AND oc.estado IN ('pendiente', 'parcial')), 0) AS planificado
+				  FROM venta v
+				  JOIN detalle_venta dv ON dv.id_venta = v.id_venta
+				  JOIN producto p ON p.id_producto = dv.id_producto
+				  LEFT JOIN (SELECT id_detalle_venta, SUM(cantidad_reservada) AS reservada
+				               FROM reserva_stock WHERE estado = 'activa' GROUP BY id_detalle_venta) r
+				         ON r.id_detalle_venta = dv.id_detalle_venta
+				 WHERE v.estado = 'pendiente_abastecimiento'
+				 GROUP BY p.id_producto, p.sku, p.nombre_oficial, p.unidad_medida
+				HAVING SUM(dv.cantidad_vendida - COALESCE(r.reservada, 0)) > 0
+				 ORDER BY faltante DESC, p.sku
+				 LIMIT 200
+				""")
+				.query((rs, n) -> new FaltanteVenta(rs.getLong("id_producto"), rs.getString("sku"),
+						rs.getString("nombre_oficial"), rs.getString("unidad_medida"), rs.getBigDecimal("faltante"),
+						rs.getBigDecimal("planificado"), rs.getLong("ventas")))
+				.list();
 	}
 
 	/** Existencias de un producto, activo o no, consolidadas y por ubicación. */

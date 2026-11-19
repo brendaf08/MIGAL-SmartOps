@@ -21,6 +21,7 @@ async function cargarArchivo(nombre: string) {
 async function asociarLineaSinProducto() {
   const select = await screen.findByRole('combobox', { name: 'Producto para ALAMBRE REC. N16' });
   await userEvent.click(select);
+  await userEvent.type(select, 'CLA-008');
   const lista = document.getElementById(select.getAttribute('aria-controls')!)!;
   await userEvent.click(
     await within(lista).findByRole('option', { name: /CLA-008/, hidden: true }),

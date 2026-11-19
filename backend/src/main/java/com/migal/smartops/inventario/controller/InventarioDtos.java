@@ -2,6 +2,7 @@ package com.migal.smartops.inventario.controller;
 
 import com.migal.smartops.inventario.service.ConsultaInventarioService.AlertaStock;
 import com.migal.smartops.inventario.service.ConsultaInventarioService.ExistenciaUbicacion;
+import com.migal.smartops.inventario.service.ConsultaInventarioService.FaltanteVenta;
 import com.migal.smartops.inventario.service.ConsultaInventarioService.ProductoExistencias;
 import com.migal.smartops.inventario.service.MovimientoDetalle;
 import com.migal.smartops.inventario.service.MovimientoInventarioService.CambioExistencia;
@@ -39,6 +40,16 @@ public final class InventarioDtos {
 			return new ProductoExistenciasDto(texto(p.productoId()), p.sku(), p.nombre(), p.categoria(), p.unidad(),
 					p.stockMinimo(), p.fisico(), p.reservado(), p.libre(), p.planificado(), p.precioReferencial(), p.nivelAlerta(),
 					p.ubicaciones().stream().map(ExistenciaUbicacionDto::de).toList());
+		}
+	}
+
+	/** {@code FaltanteVenta}. {@code porCubrir} es lo que falta menos lo ya pedido en órdenes de compra abiertas. */
+	public record FaltanteVentaDto(String productoId, String sku, String nombre, String unidad, BigDecimal faltante,
+			BigDecimal planificado, BigDecimal porCubrir, long ventas) {
+
+		static FaltanteVentaDto de(FaltanteVenta f) {
+			return new FaltanteVentaDto(texto(f.productoId()), f.sku(), f.nombre(), f.unidad(), f.faltante(),
+					f.planificado(), f.faltante().subtract(f.planificado()).max(BigDecimal.ZERO), f.ventas());
 		}
 	}
 

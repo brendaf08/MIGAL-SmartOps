@@ -85,7 +85,8 @@ describe('Detalle de la venta', () => {
     renderApp('/ventas/V-0036', 'Vendedor');
 
     await screen.findByRole('heading', { level: 1, name: 'Venta V-0036' });
-    const fila = screen.getByRole('row', { name: /Tubo PVC/ });
+    const productos = screen.getByRole('table', { name: 'Productos de la venta' });
+    const fila = within(productos).getByRole('row', { name: /Tubo PVC/ });
     expect(within(fila).getByText('80')).toBeInTheDocument();
     expect(within(fila).getByText('50')).toBeInTheDocument();
     expect(within(fila).getByText('30')).toBeInTheDocument();
@@ -100,7 +101,9 @@ describe('Detalle de la venta', () => {
     expect(
       await screen.findByText(/Atención parcial: se atendieron 1,200 de 2,010/),
     ).toBeInTheDocument();
-    expect(screen.getByRole('img', { name: /Disponibilidad de Ladrillo/ })).toBeDefined();
+    const faltantes = screen.getByRole('table', { name: 'Productos con cantidades pendientes' });
+    expect(within(faltantes).getByRole('columnheader', { name: 'Falta abastecer' })).toBeDefined();
+    expect(within(faltantes).getByRole('row', { name: /Ladrillo/ })).toBeDefined();
   });
 
   it('completa una venta con stock suficiente, la deja lista para despacho y muestra la constancia', async () => {

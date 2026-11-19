@@ -59,6 +59,19 @@ const conTiempoMaximo = <T>(promesa: Promise<T>): Promise<T> =>
     promesa.then(resolve, reject).finally(() => clearTimeout(temporizador));
   });
 
+/** Lo que se muestra como consulta realizada: el nombre de la herramienta, no el texto de su resultado. */
+const ETIQUETAS_HERRAMIENTA: Record<string, string> = {
+  consultarDisponibilidad: 'Consultó la disponibilidad de productos',
+  consultarExistenciasProducto: 'Consultó las existencias de un producto',
+  listarAlertasStock: 'Consultó las alertas de stock',
+  consultarKardex: 'Consultó los movimientos del Kardex',
+  listarProductos: 'Consultó el catálogo de productos',
+  listarVentas: 'Consultó las ventas',
+  listarVentasPendientesDespacho: 'Consultó las ventas pendientes de despacho',
+  listarGuiasDespacho: 'Consultó las guías de despacho',
+  listarRecepciones: 'Consultó las recepciones',
+};
+
 const consultarAgenteReal = async (pregunta: string): Promise<RespuestaAgente> => {
   let respuesta: RespuestaAgenteApi;
   try {
@@ -76,9 +89,10 @@ const consultarAgenteReal = async (pregunta: string): Promise<RespuestaAgente> =
   }
   conversacionActual = respuesta.conversacionId;
   return {
-    consultas: respuesta.herramientas.map((h) =>
-      h.codigo ? `${h.nombre}: ${h.codigo}` : h.resumen,
-    ),
+    consultas: respuesta.herramientas.map((h) => {
+      const etiqueta = ETIQUETAS_HERRAMIENTA[h.nombre] ?? 'Consultó el sistema';
+      return h.codigo ? `${etiqueta}: ${h.codigo}` : etiqueta;
+    }),
     texto: respuesta.texto,
     incierta: respuesta.incierta,
   };

@@ -18,6 +18,8 @@ public class ProveedorLlmSimulado implements ProveedorLlm {
 	private static final Set<String> PALABRAS_DESCARTADAS = Set.of("de", "del", "la", "el", "los", "las", "en", "hay",
 			"cuanto", "cuánto", "por", "con", "y", "a", "al", "un", "una", "stock", "disponibilidad", "disponible",
 			"producto", "productos", "movimiento", "movimientos", "kardex", "alerta", "alertas", "venta", "ventas",
+			"total", "totales", "cuantos", "cuántos", "cuantas", "cuántas", "tengo", "tenemos", "existen", "quedan",
+			"queda", "tiene", "tienen", "cual", "cuál", "dame", "dime", "muestra", "todos", "todas", "me",
 			"crítico", "críticos", "critico", "criticos", "mínimo", "minimo", "mínimos", "minimos",
 			"guia", "guía", "guias", "guías", "recepcion", "recepción", "recepciones", "pendientes", "pendiente", "despacho");
 
@@ -45,7 +47,7 @@ public class ProveedorLlmSimulado implements ProveedorLlm {
 	private static final Set<String> HERRAMIENTAS_SEGURAS = Set.of("listarAlertasStock", "consultarDisponibilidad");
 	private static final int TERMINOS_MAXIMOS = 4;
 	private static final java.util.regex.Pattern CONSULTA_COMPLEJA = java.util.regex.Pattern
-			.compile("(\by\b|\bo\b|ayer|semana|mes\b|año|compar|vend|mayor|menor|promedio|cada)");
+			.compile("(\\by\\b|\\bo\\b|ayer|semana|mes\\b|año|compar|vend|mayor|menor|promedio|cada)");
 
 	/**
 	 * Llamada que las reglas resuelven con seguridad, sin consultar al modelo: solo alertas de stock y disponibilidad de
@@ -109,7 +111,18 @@ public class ProveedorLlmSimulado implements ProveedorLlm {
 	private static String terminos(String consulta) {
 		return java.util.Arrays.stream(consulta.split("[\\s,;:?¿!¡]+"))
 				.filter(palabra -> !palabra.isBlank() && !PALABRAS_DESCARTADAS.contains(palabra))
-				.collect(Collectors.joining(" "));
+				.map(ProveedorLlmSimulado::singular).collect(Collectors.joining(" "));
+	}
+
+	/** Singular aproximado ("cementos" -> "cemento", "interruptores" -> "interruptor") para buscar por nombre. */
+	private static String singular(String palabra) {
+		if (palabra.length() <= 4 || !palabra.endsWith("s") || palabra.chars().anyMatch(Character::isDigit)) {
+			return palabra;
+		}
+		if (palabra.endsWith("es") && palabra.length() > 5 && "rlndz".indexOf(palabra.charAt(palabra.length() - 3)) >= 0) {
+			return palabra.substring(0, palabra.length() - 2);
+		}
+		return palabra.substring(0, palabra.length() - 1);
 	}
 
 	private static boolean contieneAlguna(String texto, String... claves) {

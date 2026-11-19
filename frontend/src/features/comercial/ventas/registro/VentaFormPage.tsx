@@ -1,4 +1,4 @@
-import { Button, Radio, Select, Stack, Text } from '@mantine/core';
+import { Button, Radio, Select, Stack, Text, TextInput } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -24,6 +24,7 @@ import {
 import { ConfirmDialog } from '@/components/ui/Modal/ConfirmDialog';
 import { opcionesProducto } from '@/features/catalogo/opciones';
 import { PRODUCTOS } from '@/features/inventario/fixtures';
+import { hoyIso } from '@/features/comercial/calculos';
 import { formatCurrency, formatNumber } from '@/lib/format';
 import { ClientePicker, SIN_CLIENTE } from '../../clientes/ClientePicker';
 import type { Cotizacion } from '../../types';
@@ -99,6 +100,7 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
       cotizacionId: inicial?.id ?? null,
       lineas: carga?.lineas ?? [],
       descuento: carga?.descuento ?? 0,
+      fechaEntrega: '',
       modalidad: null,
     },
     validate: zod4Resolver(crearEsquemaVenta(stock)),
@@ -143,6 +145,8 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
     if (values.cliente === null) return 'Elegir el cliente o continuar sin cliente.';
     if (sinCobertura && values.modalidad === null)
       return 'Elegir cómo atender las líneas sin existencias.';
+    if (values.fechaEntrega && values.fechaEntrega < hoyIso())
+      return 'La fecha de entrega requerida no puede ser anterior a hoy.';
     if (values.descuento < 0 || values.descuento > subtotal)
       return 'El descuento no puede ser negativo ni mayor que el subtotal.';
     return null;
@@ -174,6 +178,7 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
       cotizacionId: null,
       lineas: [],
       descuento: 0,
+      fechaEntrega: '',
       modalidad: null,
     });
     form.clearErrors();
@@ -201,6 +206,7 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
       cotizacionId: origen === 'cotizacion' ? (values.cotizacionId ?? undefined) : undefined,
       descuento: values.descuento,
       modalidad: values.modalidad as ModalidadAtencion | null,
+      fechaEntregaRequerida: values.fechaEntrega || undefined,
       claveIdempotencia: claveRegistro,
       lineas: consolidarLineas(values.lineas).lineas.map((l) => ({
         sku: l.sku,
@@ -362,6 +368,15 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
               </div>
             )}
           </Stack>
+        </Card>
+        <Card title="Entrega">
+          <TextInput
+            label="Fecha de entrega requerida"
+            description="Opcional. Es la fecha en que el cliente necesita los productos; ayuda a planificar el abastecimiento."
+            type="date"
+            min={hoyIso()}
+            {...form.getInputProps('fechaEntrega')}
+          />
         </Card>
         <Card title="Productos">
           {precarga.habilitado && (

@@ -32,6 +32,12 @@ const nombreCliente = (venta: Venta) =>
 const columns: Column<Venta>[] = [
   { key: 'id', header: 'Venta', mono: true, primary: true },
   { key: 'fecha', header: 'Fecha', phone: false, render: (v) => formatDate(v.fecha) },
+  {
+    key: 'entregaRequerida',
+    header: 'Entrega requerida',
+    phone: false,
+    render: (v) => (v.entregaRequerida ? formatDate(v.entregaRequerida) : 'Sin fecha'),
+  },
   { key: 'cliente', header: 'Cliente', render: nombreCliente },
   {
     key: 'entrega',

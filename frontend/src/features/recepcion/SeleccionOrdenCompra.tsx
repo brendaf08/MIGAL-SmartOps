@@ -52,6 +52,8 @@ export interface SeleccionOrdenCompraProps {
   coincidencias?: Record<string, number>;
   /** Orden que mejor coincide con la guía. */
   sugerida?: string | null;
+  /** La orden viene de su detalle: se muestra como orden asociada, sin lista para elegir otra. */
+  bloqueada?: boolean;
 }
 
 /**
@@ -64,6 +66,7 @@ export function SeleccionOrdenCompra({
   onSeleccionar,
   coincidencias,
   sugerida,
+  bloqueada = false,
 }: SeleccionOrdenCompraProps) {
   const filas = coincidencias
     ? [...ordenes].sort((a, b) => (coincidencias[b.id] ?? 0) - (coincidencias[a.id] ?? 0))
@@ -117,18 +120,33 @@ export function SeleccionOrdenCompra({
 
   return (
     <>
-      <Card
-        title="Orden de compra"
-        description="Órdenes pendientes o con recepción parcial."
-        padded={false}
-      >
-        <DataTable
-          caption="Órdenes de compra para recibir"
-          columns={columnas}
-          rows={filas}
-          rowKey="id"
-        />
-      </Card>
+      {bloqueada && elegida ? (
+        <Card
+          title="Orden asociada"
+          description="La recepción se registra contra esta orden de compra."
+        >
+          <Group gap="md" wrap="wrap">
+            <Text fw={700} ff="monospace">
+              {elegida.id}
+            </Text>
+            <Text>{elegida.proveedor}</Text>
+            <StatusBadge entity="compra" value={elegida.estado} />
+          </Group>
+        </Card>
+      ) : (
+        <Card
+          title="Orden de compra"
+          description="Órdenes pendientes o con recepción parcial."
+          padded={false}
+        >
+          <DataTable
+            caption="Órdenes de compra para recibir"
+            columns={columnas}
+            rows={filas}
+            rowKey="id"
+          />
+        </Card>
+      )}
       {elegida && (
         <Card
           title="Productos esperados"

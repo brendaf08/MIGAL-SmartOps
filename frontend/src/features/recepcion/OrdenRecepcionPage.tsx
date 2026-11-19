@@ -324,6 +324,7 @@ export function OrdenRecepcionPage() {
             onSeleccionar={setOrdenId}
             coincidencias={coincidencias}
             sugerida={sugerida}
+            bloqueada={params.has('oc') && orden !== null}
           />
         )}
 

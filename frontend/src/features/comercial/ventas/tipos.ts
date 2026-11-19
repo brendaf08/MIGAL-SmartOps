@@ -22,6 +22,8 @@ export interface Venta {
   clienteNombre?: string;
   /** Cotización aceptada de la que proviene, si corresponde. */
   cotizacionId?: string;
+  /** Fecha (AAAA-MM-DD) en que el cliente requiere la entrega, si se indicó. */
+  entregaRequerida?: string;
   estado: EstadoVenta;
   entrega: 'Completa' | 'Parcial';
   /** Descuento global en soles. */

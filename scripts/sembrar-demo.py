@@ -45,7 +45,7 @@ CLIENTES = [
     ("20600100088", "Carpintería Metálica San José E.I.R.L.", "999000088", "Av. Pachacútec 75, San Juan de Miraflores"),
     ("20600100099", "Minera Pampa Verde S.A.C.", "999000099", "Av. El Sol 400, Arequipa"),
 ]
-CLIENTE_MOSTRADOR = "Cliente de mostrador (demo)"
+CLIENTE_MOSTRADOR = "Cliente de mostrador"
 
 # razón social, contacto, condiciones, catálogo [(sku, precio de compra, plazo en días)]
 PROVEEDORES = {

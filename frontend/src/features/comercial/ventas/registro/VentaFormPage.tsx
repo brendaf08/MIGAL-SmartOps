@@ -83,9 +83,13 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
   // Cada apertura de la confirmación inicia una intención nueva; sus reintentos reutilizan la misma clave.
   const [claveRegistro, setClaveRegistro] = useState(() => crypto.randomUUID());
   const [resultado, setResultado] = useState<ResultadoVenta | null>(null);
+  // Bajo la clave `cotizaciones`, para que validar, aceptar o convertir una cotización renueve esta lista; siempre se
+  // vuelve a consultar al abrir el formulario, porque una cotización recién validada debe aparecer en el acto.
   const cotizaciones = useQuery({
-    queryKey: ['cotizaciones-aceptadas'],
+    queryKey: ['cotizaciones', 'convertibles'],
     queryFn: listarCotizacionesAceptadas,
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   const stock = stockLibre();
@@ -103,9 +107,10 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
   const cotizacionPrecargada = useRef(!cotizacionParam || Boolean(inicial));
   useEffect(() => {
     if (!cotizacionParam || !cotizaciones.isSuccess || cotizacionPrecargada.current) return;
-    cotizacionPrecargada.current = true;
     const cotizacion = cotizaciones.data.find((c) => c.id === cotizacionParam);
+    // Con la lista aún sin la cotización (datos previos), se espera a la consulta actualizada antes de rendirse.
     if (!cotizacion) return;
+    cotizacionPrecargada.current = true;
     const cargaCotizacion = lineasDeCotizacion(cotizacion);
     form.setValues({
       cliente: clienteDeCotizacion(cotizacion),
@@ -147,6 +152,7 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
     mutationFn: (entrada: EntradaVenta) => registrarVenta(entrada),
     onSuccess: async (r) => {
       await queryClient.invalidateQueries({ queryKey: ['ventas'] });
+      await queryClient.invalidateQueries({ queryKey: ['cotizaciones'] });
       setConfirmando(false);
       setResultado(r);
     },
@@ -341,6 +347,7 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
               />
             )}
             {cotizaciones.isSuccess &&
+              !cotizaciones.isFetching &&
               cotizacionParam &&
               !(cotizaciones.data ?? []).some((c) => c.id === cotizacionParam) && (
                 <Alert tone="warning" title="Cotización no disponible">

@@ -17,6 +17,7 @@ import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -63,6 +64,9 @@ public class Venta {
 
 	@Column(name = "estado", nullable = false, length = 30)
 	private String estado;
+
+	@Column(name = "fecha_entrega_requerida")
+	private LocalDate fechaEntregaRequerida;
 
 	@Column(name = "fecha_cancelacion")
 	private Instant fechaCancelacion;
@@ -150,6 +154,15 @@ public class Venta {
 
 	public Instant getFechaVenta() {
 		return fechaVenta;
+	}
+
+	/** Fecha en que el cliente requiere la entrega; nula si no se indicó. */
+	public LocalDate getFechaEntregaRequerida() {
+		return fechaEntregaRequerida;
+	}
+
+	public void fijarFechaEntregaRequerida(LocalDate fecha) {
+		this.fechaEntregaRequerida = fecha;
 	}
 
 	public BigDecimal getDescuento() {

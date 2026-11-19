@@ -53,7 +53,12 @@ public class ConsultaInventarioService {
 	 * lo que ya está pedido en órdenes de compra abiertas y lo que resta por cubrir con una nueva compra.
 	 */
 	public record FaltanteVenta(long productoId, String sku, String nombre, String unidad, BigDecimal faltante,
-			BigDecimal planificado, long ventas) {
+			BigDecimal planificado, long ventas, List<OrigenFaltante> origenes) {
+	}
+
+	/** Venta que origina parte de un faltante: su cliente, su fecha, la fecha en que se requiere y lo que falta. */
+	public record OrigenFaltante(long ventaId, String ventaCodigo, long cotizacionId, String cotizacionCodigo, String cliente, java.time.Instant fechaVenta,
+			java.time.LocalDate fechaEntregaRequerida, BigDecimal faltante) {
 	}
 
 	/** Página de disponibilidad con los totales del catálogo sin filtros. */
@@ -143,6 +148,30 @@ public class ConsultaInventarioService {
 	/** Productos que faltan para las ventas pendientes de abastecimiento, de mayor a menor faltante. */
 	@Transactional(readOnly = true)
 	public List<FaltanteVenta> faltantesDeVentas() {
+		Map<Long, List<OrigenFaltante>> origenes = new java.util.LinkedHashMap<>();
+		jdbc.sql("""
+				SELECT dv.id_producto, v.id_venta, v.codigo AS venta_codigo, v.id_cotizacion, c.codigo AS cotizacion_codigo,
+				       cl.nombre_razon_social, v.fecha_venta, v.fecha_entrega_requerida, dv.cantidad_vendida - COALESCE(r.reservada, 0) AS faltante
+				  FROM venta v
+				  JOIN cotizacion c ON c.id_cotizacion = v.id_cotizacion
+				  JOIN cliente cl ON cl.id_cliente = v.id_cliente
+				  JOIN detalle_venta dv ON dv.id_venta = v.id_venta
+				  LEFT JOIN (SELECT id_detalle_venta, SUM(cantidad_reservada) AS reservada
+				               FROM reserva_stock WHERE estado = 'activa' GROUP BY id_detalle_venta) r
+				         ON r.id_detalle_venta = dv.id_detalle_venta
+				 WHERE v.estado = 'pendiente_abastecimiento'
+				   AND dv.cantidad_vendida - COALESCE(r.reservada, 0) > 0
+				 ORDER BY v.fecha_entrega_requerida NULLS LAST, v.fecha_venta, v.id_venta
+				""")
+				.query((rs, n) -> {
+					java.sql.Date entrega = rs.getDate("fecha_entrega_requerida");
+					origenes.computeIfAbsent(rs.getLong("id_producto"), k -> new java.util.ArrayList<>())
+							.add(new OrigenFaltante(rs.getLong("id_venta"), rs.getString("venta_codigo"), rs.getLong("id_cotizacion"),
+									rs.getString("cotizacion_codigo"),
+									rs.getString("nombre_razon_social"), rs.getTimestamp("fecha_venta").toInstant(),
+									entrega == null ? null : entrega.toLocalDate(), rs.getBigDecimal("faltante")));
+					return null;
+				}).list();
 		return jdbc.sql("""
 				SELECT p.id_producto, p.sku, p.nombre_oficial, p.unidad_medida,
 				       SUM(dv.cantidad_vendida - COALESCE(r.reservada, 0)) AS faltante,
@@ -171,7 +200,8 @@ public class ConsultaInventarioService {
 				""")
 				.query((rs, n) -> new FaltanteVenta(rs.getLong("id_producto"), rs.getString("sku"),
 						rs.getString("nombre_oficial"), rs.getString("unidad_medida"), rs.getBigDecimal("faltante"),
-						rs.getBigDecimal("planificado"), rs.getLong("ventas")))
+						rs.getBigDecimal("planificado"), rs.getLong("ventas"),
+						origenes.getOrDefault(rs.getLong("id_producto"), List.of())))
 				.list();
 	}
 

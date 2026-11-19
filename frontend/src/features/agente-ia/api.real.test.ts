@@ -60,7 +60,7 @@ describe('agente IA con la API real', () => {
     expect(envio.cabeceras.get('Authorization')).toBe('Bearer token-de-prueba');
     expect(envio.cuerpo).toEqual({ mensaje: 'Disponibilidad de cemento Sol 42.5 kg' });
     expect(respuesta).toEqual({
-      consultas: ['Cemento Sol tipo I, bolsa 42.5 kg, con 80 bolsas libres.'],
+      consultas: ['Consultó la disponibilidad de productos'],
       texto: 'Hay 80 bolsas libres de Cemento Sol tipo I, bolsa 42.5 kg.',
       incierta: false,
     });

@@ -68,8 +68,17 @@ class ProveedorLlmHibridoTest {
 		hibrido.planificar("compara el stock de cemento y fierro", DISPONIBLES);
 		hibrido.planificar("movimientos del kardex de cemento", DISPONIBLES);
 		hibrido.planificar("¿y en el almacén 2?", DISPONIBLES);
+		hibrido.planificar("hay stock de cemento o de fierro", DISPONIBLES);
 
-		assertEquals(4, llamadasAlModelo.get());
+		assertEquals(5, llamadasAlModelo.get());
+	}
+
+	@Test
+	void losPluralesYLaPalabraTotalSeBuscanPorElNombreDelProducto() {
+		List<LlamadaHerramienta> llamadas = hibrido.planificar("Cuantos cementos hay en total ?", DISPONIBLES);
+
+		assertEquals(Map.of("q", "cemento"), llamadas.get(0).parametros());
+		assertEquals(0, llamadasAlModelo.get());
 	}
 
 	@Test

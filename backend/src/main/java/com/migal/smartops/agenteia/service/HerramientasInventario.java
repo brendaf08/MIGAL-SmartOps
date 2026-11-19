@@ -13,6 +13,8 @@ import com.migal.smartops.inventario.service.ConsultaInventarioService.AlertaSto
 import com.migal.smartops.inventario.service.ConsultaInventarioService.ProductoExistencias;
 import com.migal.smartops.inventario.service.MovimientoDetalle;
 import com.migal.smartops.seguridad.model.RolUsuario;
+import java.math.BigDecimal;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -33,6 +35,9 @@ public class HerramientasInventario implements ProveedorDeHerramientas {
 	private static final Set<RolUsuario> ALERTAS = Set.of(RolUsuario.ALMACENERO, RolUsuario.REPONEDOR,
 			RolUsuario.ADMINISTRADOR);
 	private static final Set<RolUsuario> KARDEX = Set.of(RolUsuario.ALMACENERO, RolUsuario.ADMINISTRADOR);
+
+	/** Con más coincidencias que estas no se calculan totales: la consulta es demasiado amplia. */
+	private static final int MAXIMO_PARA_TOTALES = 200;
 
 	private final ConsultaInventarioService consultas;
 
@@ -84,11 +89,50 @@ public class HerramientasInventario implements ProveedorDeHerramientas {
 		if (pagina.getTotalElements() == 0) {
 			return new ResultadoHerramienta("No hay productos que coincidan con la consulta.", referencias);
 		}
-		String detalle = pagina.getContent().stream().map(producto -> producto.nombre() + " (" + producto.sku()
-				+ "): libre " + producto.libre().toPlainString() + " " + producto.unidad() + ", nivel "
-				+ producto.nivelAlerta() + ".").collect(Collectors.joining(" "));
-		return new ResultadoHerramienta("Coinciden " + pagina.getTotalElements() + " productos. En alerta en total: "
-				+ disponibilidad.enAlerta() + ". " + detalle, referencias);
+		StringBuilder resumen = new StringBuilder("Coinciden ").append(pagina.getTotalElements()).append(" productos (")
+				.append(disponibilidad.enAlerta()).append(" en alerta en todo el catálogo).");
+		String totales = totalesPorUnidad(parametros, pagina.getTotalElements());
+		if (!totales.isEmpty()) {
+			resumen.append("\nTotal de los productos encontrados:").append(totales);
+		}
+		resumen.append("\nDetalle:");
+		pagina.getContent().forEach(producto -> resumen.append("\n• ").append(producto.nombre()).append(" (")
+				.append(producto.sku()).append("): ").append(cantidad(producto.libre())).append(' ')
+				.append(producto.unidad()).append(" libres, nivel ").append(producto.nivelAlerta()));
+		if (pagina.getTotalElements() > pagina.getNumberOfElements()) {
+			resumen.append("\n… y ").append(pagina.getTotalElements() - pagina.getNumberOfElements())
+					.append(" productos más; precise el nombre para verlos.");
+		}
+		return new ResultadoHerramienta(resumen.toString(), referencias);
+	}
+
+	/** Suma física, reservada y libre de todas las coincidencias, agrupadas por unidad; vacío si son demasiadas. */
+	private String totalesPorUnidad(Map<String, String> parametros, long coincidencias) {
+		if (coincidencias > MAXIMO_PARA_TOTALES) {
+			return "";
+		}
+		List<ProductoExistencias> todos = consultas.disponibilidad(texto(parametros, "q"), texto(parametros, "sku"),
+				entero(parametros, "categoriaId"), booleano(parametros, "soloAlerta"), 1, MAXIMO_PARA_TOTALES)
+				.pagina().getContent();
+		Map<String, BigDecimal[]> porUnidad = new LinkedHashMap<>();
+		for (ProductoExistencias producto : todos) {
+			BigDecimal[] suma = porUnidad.computeIfAbsent(producto.unidad(),
+					unidad -> new BigDecimal[] { BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO });
+			suma[0] = suma[0].add(producto.fisico());
+			suma[1] = suma[1].add(producto.reservado());
+			suma[2] = suma[2].add(producto.libre());
+		}
+		StringBuilder texto = new StringBuilder();
+		porUnidad.forEach((unidad, suma) -> texto.append("\n• ").append(unidad).append(": físico ")
+				.append(cantidad(suma[0])).append(", reservado ").append(cantidad(suma[1])).append(", libre ")
+				.append(cantidad(suma[2])));
+		return texto.toString();
+	}
+
+	/** Cantidad sin ceros decimales sobrantes. */
+	private static String cantidad(BigDecimal valor) {
+		BigDecimal limpio = valor.stripTrailingZeros();
+		return (limpio.scale() < 0 ? limpio.setScale(0) : limpio).toPlainString();
 	}
 
 	private ResultadoHerramienta existencias(Map<String, String> parametros) {
@@ -110,11 +154,16 @@ public class HerramientasInventario implements ProveedorDeHerramientas {
 		if (pagina.getTotalElements() == 0) {
 			return new ResultadoHerramienta("No hay productos en alerta de stock.", referencias);
 		}
-		String detalle = pagina.getContent().stream().map(alerta -> alerta.nombre() + " (" + alerta.sku()
-				+ "): faltante " + alerta.faltante().toPlainString() + " " + alerta.unidad() + ", nivel "
-				+ alerta.nivelAlerta() + ".").collect(Collectors.joining(" "));
-		return new ResultadoHerramienta("Hay " + pagina.getTotalElements() + " productos en alerta de stock. " + detalle,
-				referencias);
+		StringBuilder resumen = new StringBuilder("Hay ").append(pagina.getTotalElements())
+				.append(" productos en alerta de stock. Los más graves:");
+		pagina.getContent().forEach(alerta -> resumen.append("\n• ").append(alerta.nombre()).append(" (")
+				.append(alerta.sku()).append("): faltan ").append(cantidad(alerta.faltante())).append(' ')
+				.append(alerta.unidad()).append(", nivel ").append(alerta.nivelAlerta()));
+		if (pagina.getTotalElements() > pagina.getNumberOfElements()) {
+			resumen.append("\n… y ").append(pagina.getTotalElements() - pagina.getNumberOfElements())
+					.append(" más; consulte la pantalla de alertas para verlos todos.");
+		}
+		return new ResultadoHerramienta(resumen.toString(), referencias);
 	}
 
 	private ResultadoHerramienta kardex(Map<String, String> parametros) {

@@ -10,6 +10,8 @@ export interface ProductoDisponibilidad {
   reservado: number;
   /** Pendiente de recibir en órdenes de compra; no es existencia física ni libre. */
   planificado: number;
+  /** Precio de venta de referencia; precio inicial de las líneas de cotizaciones y ventas. */
+  precio: number;
   minimo: number;
 }
 

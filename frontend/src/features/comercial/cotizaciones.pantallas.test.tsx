@@ -37,10 +37,28 @@ async function agregarLinea(producto: RegExp, cantidad: string, precio: string, 
   const campoCantidad = screen.getByLabelText(`Cantidad de la línea ${n}`);
   await userEvent.clear(campoCantidad);
   await userEvent.type(campoCantidad, cantidad);
-  const campoPrecio = screen.getByLabelText(`Precio de la línea ${n}`);
-  await userEvent.clear(campoPrecio);
-  await userEvent.type(campoPrecio, precio);
+  // El precio llega precargado con el de referencia: se reemplaza seleccionándolo entero.
+  const campoPrecio = screen.getByLabelText(`Precio de la línea ${n}`) as HTMLInputElement;
+  await userEvent.type(campoPrecio, precio, {
+    initialSelectionStart: 0,
+    initialSelectionEnd: campoPrecio.value.length,
+  });
 }
+
+describe('Precio de referencia en la cotización', () => {
+  it('precarga el precio de referencia del producto al elegirlo', async () => {
+    renderApp('/cotizaciones/nueva', 'Vendedor');
+    await screen.findByRole('heading', { level: 1, name: 'Nueva cotización' });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Agregar producto' }));
+    await userEvent.click(screen.getByRole('combobox', { name: 'Producto de la línea 1' }));
+    await userEvent.click(
+      await screen.findByRole('option', { name: PRODUCTO_CEMENTO, hidden: true }),
+    );
+
+    expect(screen.getByLabelText('Precio de la línea 1')).not.toHaveValue('S/ 0.00');
+  });
+});
 
 describe('Lista de cotizaciones', () => {
   it('filtra por estado y marca las cotizaciones que vencen en tres días o menos', async () => {

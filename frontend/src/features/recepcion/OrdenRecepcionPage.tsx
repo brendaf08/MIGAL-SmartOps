@@ -1,4 +1,4 @@
-import { Badge, Button, NumberInput, Select, Stack, Text, Textarea } from '@mantine/core';
+import { Badge, Button, Group, NumberInput, Select, Stack, Text, Textarea } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
@@ -20,6 +20,7 @@ import { LineasOcrTabla } from '@/features/documentos-ocr/LineasOcrTabla';
 import { formatNumber } from '@/lib/format';
 import {
   ALMACEN,
+  SEGUNDO_ALMACEN,
   confirmarRecepcion,
   listarAlmacenesRecepcion,
   listarOrdenesRecepcionables,
@@ -124,13 +125,18 @@ export function OrdenRecepcionPage() {
   });
 
   const [almacen, setAlmacen] = useState(ALMACEN);
+  const [segunda, setSegunda] = useState<string | null>(SEGUNDO_ALMACEN);
   const almacenes = useQuery({
     queryKey: ['almacenes-recepcion'],
     queryFn: listarAlmacenesRecepcion,
   });
+  /** La segunda ubicación solo existe si el almacén elegido figura entre las ubicaciones activas y no es la principal. */
+  const ubicaciones = almacenes.data ?? [ALMACEN];
+  const segundaActiva =
+    segunda && segunda !== almacen && ubicaciones.includes(segunda) ? segunda : null;
 
   const confirmar = useMutation({
-    mutationFn: () => confirmarRecepcion(orden!, lineas, nota, almacen),
+    mutationFn: () => confirmarRecepcion(orden!, lineas, nota, almacen, segundaActiva ?? undefined),
     onSuccess: (resultado) => {
       void queryClient.invalidateQueries({ queryKey: ['recepciones'] });
       void queryClient.invalidateQueries({ queryKey: ['ordenes-recepcion'] });
@@ -171,8 +177,13 @@ export function OrdenRecepcionPage() {
     setLineasOcr(
       (prev) => (prev ?? ocr)?.map((l) => (l.id === id ? { ...l, ...patch } : l)) ?? null,
     );
+  /** Lo enviado a la segunda ubicación nunca supera lo recibido: lo que sobra de una ubicación se resta de la otra. */
+  const conRepartoValido = (l: LineaRecepcion): LineaRecepcion => ({
+    ...l,
+    enSegunda: Math.min(Math.max(l.enSegunda ?? 0, 0), l.recibido),
+  });
   const actualizarConteo = (id: number, patch: Partial<LineaRecepcion>) =>
-    setLineas((prev) => prev.map((l) => (l.id === id ? { ...l, ...patch } : l)));
+    setLineas((prev) => prev.map((l) => (l.id === id ? conRepartoValido({ ...l, ...patch }) : l)));
 
   if (cerrada) {
     const { recepcion, cambios } = cerrada;
@@ -202,7 +213,14 @@ export function OrdenRecepcionPage() {
                   Registrar otra recepción
                 </Button>
               )}
-              <Button leftSection={<Icon name="kardex" />} onClick={() => void navigate('/kardex')}>
+              <Button
+                leftSection={<Icon name="kardex" />}
+                onClick={() =>
+                  void navigate(
+                    recepcion.idApi ? `/kardex?recepcion=${recepcion.idApi}` : '/kardex',
+                  )
+                }
+              >
                 Ver movimientos en el Kardex
               </Button>
             </>
@@ -227,7 +245,9 @@ export function OrdenRecepcionPage() {
     (resumen.sobrantes > 0 && !nota.trim()
       ? 'Registrar una nota para explicar el sobrante.'
       : null);
-  const conEntrada = lineas.filter((l) => l.recibido > 0).length;
+  const aSegunda = (l: LineaRecepcion) => (segundaActiva ? (l.enSegunda ?? 0) : 0);
+  const conSegunda = lineas.filter((l) => aSegunda(l) > 0).length;
+  const conEntrada = lineas.filter((l) => l.recibido - aSegunda(l) > 0).length + conSegunda;
 
   const columnasOcr: Column<LineaOcr>[] = [
     {
@@ -266,6 +286,50 @@ export function OrdenRecepcionPage() {
         />
       ),
     },
+    ...(segundaActiva
+      ? ([
+          {
+            key: 'enPrincipal',
+            header: `A ${almacen}`,
+            block: true,
+            render: (l) => (
+              <NumberInput
+                aria-label={`Cantidad a ${almacen} de ${l.texto}`}
+                min={0}
+                max={l.recibido}
+                miw={80}
+                maw={110}
+                hideControls
+                allowDecimal={false}
+                disabled={l.recibido > 0 && (l.enSegunda ?? 0) === l.recibido}
+                value={l.recibido - (l.enSegunda ?? 0)}
+                onChange={(v) =>
+                  actualizarConteo(l.id, { enSegunda: l.recibido - (Number(v) || 0) })
+                }
+              />
+            ),
+          },
+          {
+            key: 'enSegunda',
+            header: `A ${segundaActiva}`,
+            block: true,
+            render: (l) => (
+              <NumberInput
+                aria-label={`Cantidad a ${segundaActiva} de ${l.texto}`}
+                min={0}
+                max={l.recibido}
+                miw={80}
+                maw={110}
+                hideControls
+                allowDecimal={false}
+                disabled={l.recibido === 0 || (l.enSegunda ?? 0) === 0}
+                value={l.enSegunda ?? 0}
+                onChange={(v) => actualizarConteo(l.id, { enSegunda: Number(v) || 0 })}
+              />
+            ),
+          },
+        ] as Column<LineaRecepcion>[])
+      : []),
     {
       key: 'diferencia',
       header: 'Diferencia',
@@ -306,15 +370,27 @@ export function OrdenRecepcionPage() {
         <Stepper aria-label="Pasos de la recepción" steps={PASOS} current={paso} />
 
         {paso > 0 && (
-          <Select
-            label="Ubicación que recibe"
-            description="La mercadería ingresa al Kardex de esta ubicación."
-            data={almacenes.data ?? [ALMACEN]}
-            value={almacen}
-            onChange={(valor) => setAlmacen(valor ?? ALMACEN)}
-            allowDeselect={false}
-            maw={320}
-          />
+          <Group align="flex-start" gap="md" wrap="wrap">
+            <Select
+              label="Ubicación que recibe"
+              description="La mercadería ingresa al Kardex de esta ubicación."
+              data={ubicaciones}
+              value={almacen}
+              onChange={(valor) => setAlmacen(valor ?? ALMACEN)}
+              allowDeselect={false}
+              maw={320}
+            />
+            <Select
+              label="Segunda ubicación (opcional)"
+              description="Reparte lo recibido: lo que bajes en una ubicación pasa a la otra."
+              placeholder="Sin segunda ubicación"
+              data={ubicaciones.filter((u) => u !== almacen)}
+              value={segundaActiva}
+              onChange={setSegunda}
+              clearable
+              maw={320}
+            />
+          </Group>
         )}
 
         {paso === 0 && (
@@ -387,7 +463,9 @@ export function OrdenRecepcionPage() {
                 <Button
                   variant="default"
                   leftSection={<Icon name="check" />}
-                  onClick={() => setLineas((prev) => igualarCoincidenciasAltas(prev))}
+                  onClick={() =>
+                    setLineas((prev) => igualarCoincidenciasAltas(prev).map(conRepartoValido))
+                  }
                 >
                   Igualar coincidencias altas
                 </Button>
@@ -512,7 +590,7 @@ export function OrdenRecepcionPage() {
         title={`Confirmar recepción ${orden?.id ?? ''}`}
         description="Se ingresará al inventario la mercadería efectivamente recibida."
         consequences={[
-          `Se registrarán ${plural(conEntrada, 'movimiento', 'movimientos')} de entrada en el Kardex de ${almacen}.`,
+          `Se registrarán ${plural(conEntrada, 'movimiento', 'movimientos')} de entrada en el Kardex de ${segundaActiva && conSegunda > 0 ? `${almacen} y ${segundaActiva}` : almacen}.`,
           ...(resumen.parciales
             ? ['Las líneas con menos cantidad que el pedido quedan como recepción parcial.']
             : []),

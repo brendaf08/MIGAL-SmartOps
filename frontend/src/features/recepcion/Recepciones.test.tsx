@@ -121,6 +121,30 @@ describe('Recepciones', () => {
     expect(screen.getAllByText('Completa')).toHaveLength(3);
   });
 
+  it('reparte lo recibido entre dos ubicaciones: lo que baja en una pasa a la otra y se bloquea la completa', async () => {
+    await cargarDocumento();
+    await asociarAlambre(/CLA-008/);
+    await userEvent.click(screen.getByRole('button', { name: 'Usar datos de la guía' }));
+
+    const nombre = 'Pintura látex blanco, balde 4 L';
+    await userEvent.click(screen.getByRole('button', { name: `Igual al pedido, ${nombre}` }));
+    const aPrincipal = screen.getByLabelText(
+      `Cantidad a Almacén 1 de ${nombre}`,
+    ) as HTMLInputElement;
+    const aSegunda = screen.getByLabelText(`Cantidad a Almacén 2 de ${nombre}`) as HTMLInputElement;
+    const recibido = Number(aPrincipal.value.replace(/,/g, ''));
+
+    // Todo ingresa a la ubicación principal y la segunda queda bloqueada.
+    expect(recibido).toBeGreaterThan(0);
+    expect(aSegunda).toBeDisabled();
+    expect(aSegunda.value).toBe('0');
+
+    // Al bajar la principal, el resto pasa a la segunda.
+    await userEvent.type(aPrincipal, '{Control>}a{/Control}10');
+    expect(aSegunda.value).toBe(String(recibido - 10));
+    expect(aSegunda).not.toBeDisabled();
+  });
+
   it('confirma la recepción tras asociar el producto, anotar el sobrante y aceptar las consecuencias', async () => {
     await cargarDocumento();
     const antes = RECEPCIONES.length;

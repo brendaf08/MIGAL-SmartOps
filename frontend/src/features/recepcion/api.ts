@@ -9,6 +9,8 @@ import type { LineaRecepcion, Recepcion, RecepcionListada } from './types';
 
 /** Almacén que recibe las entradas; la API indicará el almacén de cada orden. */
 export const ALMACEN = 'Almacén 1';
+/** Segunda ubicación que sugiere la recepción para repartir lo recibido. */
+export const SEGUNDO_ALMACEN = 'Almacén 2';
 
 /** Recepciones de prueba hasta contar con la API. Se modifican en memoria. */
 export const RECEPCIONES: Recepcion[] = [
@@ -134,6 +136,7 @@ const ESTADO_ORDEN_UI: Record<OrdenCompraReferenciaApi['estado'], OrdenCompra['e
  */
 const aRecepcion = (recepcion: RecepcionApi): Recepcion => ({
   id: recepcion.codigo,
+  idApi: recepcion.id,
   orden: recepcion.codigoOrdenCompra,
   proveedor: recepcion.proveedor,
   almacen: [...new Set(recepcion.lineas.map((l) => l.nombreUbicacion))].join(', '),
@@ -260,13 +263,27 @@ const lineasSolicitud = (
   lineas: LineaRecepcion[],
   productos: Map<string, string>,
   ubicacionId: string,
+  segundaId?: string,
 ) => {
-  const cantidades = new Map<string, number>();
-  lineas.forEach((l) => cantidades.set(l.sku, (cantidades.get(l.sku) ?? 0) + l.recibido));
-  return [...cantidades].map(([sku, cantidadRecibida]) => {
+  const principal = new Map<string, number>();
+  const segunda = new Map<string, number>();
+  lineas.forEach((l) => {
+    const aSegunda = segundaId ? Math.min(l.enSegunda ?? 0, l.recibido) : 0;
+    principal.set(l.sku, (principal.get(l.sku) ?? 0) + l.recibido - aSegunda);
+    segunda.set(l.sku, (segunda.get(l.sku) ?? 0) + aSegunda);
+  });
+  return [...principal].flatMap(([sku, cantidadPrincipal]) => {
     const productoId = productos.get(sku);
     if (!productoId) throw new Error('PRODUCTO_NO_ENCONTRADO');
-    return { productoId, ubicacionId, cantidadRecibida };
+    const cantidadSegunda = segunda.get(sku) ?? 0;
+    return [
+      ...(cantidadPrincipal > 0 || cantidadSegunda === 0
+        ? [{ productoId, ubicacionId, cantidadRecibida: cantidadPrincipal }]
+        : []),
+      ...(segundaId && cantidadSegunda > 0
+        ? [{ productoId, ubicacionId: segundaId, cantidadRecibida: cantidadSegunda }]
+        : []),
+    ];
   });
 };
 
@@ -280,25 +297,28 @@ const confirmarRecepcionReal = async (
   lineas: LineaRecepcion[],
   nota: string,
   almacen: string,
+  segundoAlmacen?: string,
 ): Promise<ResultadoRecepcion> => {
   const observaciones = nota.trim();
   const huella = JSON.stringify([
     orden.id,
-    lineas.map((l) => [l.sku, l.recibido]),
+    lineas.map((l) => [l.sku, l.recibido, l.enSegunda ?? 0]),
     observaciones,
     almacen,
+    segundoAlmacen ?? null,
   ]);
   const clave = clavesPorIntencion.get(huella) ?? crypto.randomUUID();
   clavesPorIntencion.set(huella, clave);
 
-  const [productos, ubicacionId] = await Promise.all([
+  const [productos, ubicacionId, segundaId] = await Promise.all([
     productosPorSku(lineas),
     ubicacionDeRecepcion(almacen),
+    segundoAlmacen ? ubicacionDeRecepcion(segundoAlmacen) : Promise.resolve(undefined),
   ]);
   const solicitud = {
     fechaRecepcion: hoy(),
     observaciones: observaciones || null,
-    lineas: lineasSolicitud(lineas, productos, ubicacionId),
+    lineas: lineasSolicitud(lineas, productos, ubicacionId, segundaId),
   };
 
   let recepcionId = pendientesPorOrden.get(orden.id);
@@ -362,9 +382,10 @@ export const confirmarRecepcion = (
   lineas: LineaRecepcion[],
   nota: string,
   almacen: string = ALMACEN,
+  segundoAlmacen?: string,
 ): Promise<ResultadoRecepcion> =>
   API_REAL
-    ? confirmarRecepcionReal(orden, lineas, nota, almacen)
+    ? confirmarRecepcionReal(orden, lineas, nota, almacen, segundoAlmacen)
     : mockRequest<ResultadoRecepcion>(() => {
         const ordenCompra = ORDENES_COMPRA.find((o) => o.id === orden.id);
         if (!ordenCompra || ordenCompra.estado === 'Completada') {
@@ -388,7 +409,10 @@ export const confirmarRecepcion = (
           id: siguienteId(),
           orden: ordenCompra.id,
           proveedor: nombreProveedor(ordenCompra),
-          almacen,
+          almacen:
+            segundoAlmacen && lineas.some((l) => (l.enSegunda ?? 0) > 0)
+              ? `${almacen} y ${segundoAlmacen}`
+              : almacen,
           fecha: new Date().toISOString().slice(0, 10),
           estado: 'Validada',
           ...(nota.trim() ? { nota: nota.trim() } : {}),

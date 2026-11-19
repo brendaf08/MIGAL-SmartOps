@@ -27,6 +27,22 @@ describe('Órdenes de compra, listado (P25)', () => {
     ).toHaveNoViolations();
   });
 
+  it('los faltantes de ventas son una pestaña más y no un panel sobre la lista', async () => {
+    renderApp('/compras', 'Reponedor');
+
+    expect(await screen.findByRole('tab', { name: /Faltantes de ventas/ })).toBeInTheDocument();
+    expect(
+      screen.queryByText('Faltantes de ventas pendientes de abastecimiento'),
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('tab', { name: /Faltantes de ventas/ }));
+
+    expect(
+      await screen.findByText('Faltantes de ventas pendientes de abastecimiento'),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('table', { name: 'Órdenes de compra' })).not.toBeInTheDocument();
+  });
+
   it('un Vendedor no accede al módulo y se redirige al inicio de su rol', async () => {
     renderApp('/compras', 'Vendedor');
 

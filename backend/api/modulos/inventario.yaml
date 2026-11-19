@@ -46,6 +46,13 @@ components:
       schema:
         type: boolean
         default: false
+    RecepcionFiltro:
+      name: recepcionId
+      in: query
+      required: false
+      description: Limita el listado a los movimientos de entrada generados por la recepción indicada.
+      schema:
+        $ref: ../componentes/esquemas-comunes.yaml#/Identificador
     NivelAlertaFiltro:
       name: nivel
       in: query
@@ -716,6 +723,7 @@ paths:
         - $ref: '#/components/parameters/OrigenFiltro'
         - $ref: ../componentes/parametros.yaml#/desde
         - $ref: ../componentes/parametros.yaml#/hasta
+        - $ref: '#/components/parameters/RecepcionFiltro'
         - $ref: ../componentes/parametros.yaml#/page
         - $ref: ../componentes/parametros.yaml#/pageSize
       responses:

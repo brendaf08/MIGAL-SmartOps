@@ -61,15 +61,8 @@ describe('Alertas de stock (P12)', () => {
     expect(within(tabla).getAllByText('Stock crítico')).toHaveLength(contar('Critico'));
   });
 
-  it('muestra la acción de crear orden de compra solo al Reponedor', async () => {
+  it('no ofrece crear órdenes de compra desde las alertas, ni siquiera al Reponedor', async () => {
     renderApp('/alertas', 'Reponedor');
-    expect(
-      (await screen.findAllByRole('button', { name: 'Crear orden de compra' })).length,
-    ).toBeGreaterThan(0);
-  });
-
-  it('no muestra la acción de crear orden de compra al Almacenero', async () => {
-    renderApp('/alertas', 'Almacenero');
     const tabla = await screen.findByRole('table', { name: 'Productos en alerta' });
     await esperarFilas(tabla);
     expect(screen.queryByRole('button', { name: 'Crear orden de compra' })).not.toBeInTheDocument();
@@ -125,6 +118,8 @@ async function llenarMovimiento(datos: {
   if (datos.origen) await elegir(/Almacén de origen/, datos.origen);
   if (datos.destino) await elegir(/Almacén de destino/, datos.destino);
   if (datos.almacen) await elegir(/^Almacén/, datos.almacen);
+  // Las existencias llegan de forma asíncrona y autocompletan la cantidad: se espera antes de escribir.
+  await screen.findByLabelText('Existencias del producto por ubicación');
   const campoCantidad = screen.getByRole('textbox', { name: /Cantidad/ });
   await userEvent.clear(campoCantidad);
   await userEvent.type(campoCantidad, String(datos.cantidad));
@@ -173,10 +168,9 @@ describe('Registrar movimiento (P13)', { timeout: 30000 }, () => {
     expect(within(tabla).getAllByRole('row')).toHaveLength(3);
   });
 
-  it('propone la existencia física del almacén de origen como cantidad de una salida', async () => {
+  it('autocompleta la cantidad con la existencia física del almacén elegido', async () => {
     renderApp('/kardex/nuevo', 'Almacenero');
 
-    await userEvent.click(screen.getByRole('radio', { name: 'Salida por merma o ajuste' }));
     await elegir(/Producto/, PRODUCTO.sku);
     await elegir(/^Almacén/, 'Almacén 1');
 

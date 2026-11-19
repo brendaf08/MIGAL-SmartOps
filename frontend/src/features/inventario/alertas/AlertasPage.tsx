@@ -12,8 +12,6 @@ import { QueryTable } from '@/components/ui/QueryTable/QueryTable';
 import { SearchInput } from '@/components/ui/SearchInput/SearchInput';
 import { Stat } from '@/components/ui/Stat/Stat';
 import { Tabs } from '@/components/ui/Tabs/Tabs';
-import { tieneRol } from '@/features/seguridad/roles';
-import { useSession } from '@/features/seguridad/session';
 import { formatNumber } from '@/lib/format';
 import { listarAlertas, type Alerta } from '../api';
 import classes from './AlertasPage.module.css';
@@ -25,11 +23,9 @@ const NIVELES = {
   minimo: (a: Alerta) => a.nivel === 'Minimo',
 } as const;
 
-/** P12. Alertas de stock ordenadas por gravedad; el rol Reponedor puede crear la orden de compra del producto. */
+/** P12. Alertas de stock ordenadas por gravedad. */
 export function AlertasPage() {
   const navigate = useNavigate();
-  const { user } = useSession();
-  const reponedor = tieneRol(user?.role, ['Reponedor']);
   const [tab, setTab] = useState<keyof typeof NIVELES>('todas');
   const [q, setQ] = useState('');
   const [debouncedQ] = useDebouncedValue(q, 300);
@@ -115,14 +111,6 @@ export function AlertasPage() {
           >
             Ver disponibilidad
           </Button>
-          {reponedor && (
-            <Button
-              size="compact-sm"
-              onClick={() => navigate(`/compras/nueva?sku=${encodeURIComponent(a.sku)}`)}
-            >
-              Crear orden de compra
-            </Button>
-          )}
         </div>
       ),
     },

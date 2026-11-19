@@ -37,6 +37,9 @@ JERGA: dict[str, str] = {
     # En las notas de venta el diámetro (ϕ, Ø) antes de una medida designa la varilla de fierro: "Ø 5/8".
     "φ": "fierro",
     "ø": "fierro",
+    # El modelo a veces transcribe el símbolo de diámetro como letras: "fi 1/4", "phi 3/8".
+    "fi": "fierro",
+    "phi": "fierro",
     "ag": "agua",
     "gdon": "galon",
     "glon": "galon",

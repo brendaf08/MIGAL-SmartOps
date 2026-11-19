@@ -21,8 +21,12 @@ const normalizar = (texto: string) =>
     .replace(/[^a-z0-9/.]+/g, ' ')
     .trim();
 
+/** El símbolo de diámetro (Ø, φ) o su lectura como letras ("fi", "phi") antes de una medida designa el fierro. */
+const conDiametro = (texto: string) =>
+  texto.replace(/(^|\s)(?:fi|phi|ø|φ|∅|⌀)\s*(?=\d)/giu, '$1fierro ');
+
 const palabras = (texto: string) =>
-  normalizar(texto)
+  normalizar(conDiametro(texto))
     .split(' ')
     .filter((p) => p.length >= 3 && !PALABRAS_VACIAS.has(p));
 

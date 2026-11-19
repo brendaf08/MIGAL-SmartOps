@@ -2,8 +2,10 @@ package com.migal.smartops.agenteia.config;
 
 import com.migal.smartops.agenteia.service.ProveedorLlm;
 import com.migal.smartops.agenteia.service.ProveedorLlmGemini;
+import com.migal.smartops.agenteia.service.ProveedorLlmHibrido;
 import com.migal.smartops.agenteia.service.ProveedorLlmNoConfigurado;
 import com.migal.smartops.agenteia.service.ProveedorLlmSimulado;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -32,8 +34,10 @@ public class ConfiguracionAgenteIa {
 	/** Proveedor real sobre la API de Gemini (ADR-012). Sin GEMINI_API_KEY el contexto no arranca. */
 	@Bean
 	@ConditionalOnProperty(prefix = "migal.agente", name = "proveedor", havingValue = "gemini")
-	ProveedorLlm proveedorLlmGemini(PropiedadesAgenteGemini propiedades) {
+	ProveedorLlm proveedorLlmGemini(PropiedadesAgenteGemini propiedades,
+			@Value("${migal.agente.respuesta-rapida:true}") boolean respuestaRapida) {
 		PropiedadesAgenteGemini conClave = propiedades.exigirClave();
-		return new ProveedorLlmGemini(ProveedorLlmGemini.cliente(conClave), conClave);
+		ProveedorLlm gemini = new ProveedorLlmGemini(ProveedorLlmGemini.cliente(conClave), conClave);
+		return respuestaRapida ? new ProveedorLlmHibrido(new ProveedorLlmSimulado(), gemini) : gemini;
 	}
 }

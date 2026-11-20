@@ -29,10 +29,6 @@ export interface AppShellProps {
   subtitle?: string;
   /** Contenido de la cabecera a partir de tablet (por ejemplo, la ruta). */
   header?: ReactNode;
-  /** Modo almacén activo: controles de 52 a 56 px y etiquetas de la navegación en tablet. */
-  warehouse?: boolean;
-  /** Sin esta función no se muestra el interruptor del modo almacén; tampoco aparece en teléfono. */
-  onToggleWarehouse?: () => void;
   children: ReactNode;
 }
 
@@ -51,8 +47,6 @@ export function AppShell({
   appName,
   subtitle,
   header,
-  warehouse = false,
-  onToggleWarehouse,
   children,
 }: AppShellProps) {
   const [open, { toggle, close: hide }] = useDisclosure();
@@ -91,7 +85,7 @@ export function AppShell({
       layout="alt"
       header={{ height: { base: 56, sm: 64 } }}
       navbar={{
-        width: { sm: warehouse ? 232 : 72, md: 264 },
+        width: { sm: 72, md: 264 },
         breakpoint: 'sm',
         collapsed: { mobile: true },
       }}
@@ -115,17 +109,6 @@ export function AppShell({
           {appName}
         </Text>
         <div className={classes.slot}>{header}</div>
-        {onToggleWarehouse && (
-          <ActionIcon
-            visibleFrom="sm"
-            aria-label="Modo almacén"
-            aria-pressed={warehouse}
-            variant={warehouse ? 'filled' : 'subtle'}
-            onClick={onToggleWarehouse}
-          >
-            <Icon name="almacen" />
-          </ActionIcon>
-        )}
         <ActionIcon
           aria-label={scheme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
           onClick={toggleScheme}
@@ -146,10 +129,7 @@ export function AppShell({
         </ActionIcon>
       </MantineAppShell.Header>
 
-      <MantineAppShell.Navbar
-        className={classes.navbar}
-        data-warehouse={warehouse ? 'true' : undefined}
-      >
+      <MantineAppShell.Navbar className={classes.navbar}>
         {brand}
         <div className={classes.menu}>{menu()}</div>
       </MantineAppShell.Navbar>

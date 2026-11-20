@@ -168,20 +168,16 @@
   margin-inline-end: var(--space-3);
 }
 
-/* Tablet: ítems de 48 px (--control-lg) para el toque; 56 px con el modo almacén. */
+/* Tablet: ítems de 48 px (--control-lg) para el toque. */
 @mixin smaller-than $mantine-breakpoint-md {
   .link {
     min-height: var(--control-lg);
   }
-
-  .navbar[data-warehouse] .link {
-    min-height: var(--control-xl);
-  }
 }
 
-/* Tablet: barra de íconos; cada ítem conserva su `title`. Con el modo almacén las etiquetas se muestran. */
+/* Tablet: barra de íconos; cada ítem conserva su `title`. */
 @mixin smaller-than $mantine-breakpoint-md {
-  .navbar:not([data-warehouse]) {
+  .navbar {
     & .groupLabel,
     & .linkLabel,
     & .brand > div {

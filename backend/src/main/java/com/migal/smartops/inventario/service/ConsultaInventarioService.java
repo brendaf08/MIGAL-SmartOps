@@ -258,6 +258,19 @@ public class ConsultaInventarioService {
 	@Transactional(readOnly = true)
 	public Page<MovimientoDetalle> kardex(String q, String sku, Long idUbicacion, String tipoOperacion, String origen,
 			LocalDate desde, LocalDate hasta, Long idRecepcion, int page, int pageSize) {
+		return kardex(q, sku, idUbicacion, tipoOperacion, origen, desde, hasta, idRecepcion, null, null, page, pageSize);
+	}
+
+	/**
+	 * Igual que el anterior, y además limitado a los movimientos de una guía de despacho o a una lista de movimientos
+	 * concretos (por ejemplo, los que acaba de registrar una operación).
+	 */
+	@Transactional(readOnly = true)
+	public Page<MovimientoDetalle> kardex(String q, String sku, Long idUbicacion, String tipoOperacion, String origen,
+			LocalDate desde, LocalDate hasta, Long idRecepcion, Long idGuia, List<Long> idsMovimiento, int page,
+			int pageSize) {
+		boolean conIds = idsMovimiento != null && !idsMovimiento.isEmpty();
+		List<Long> ids = conIds ? idsMovimiento : List.of(-1L);
 		String tipo = tipoOperacion == null ? null : normalizar(TipoOperacion.class, tipoOperacion).valor();
 		String origenValor = origen == null ? null : normalizar(OrigenMovimiento.class, origen).valor();
 		if (desde != null && hasta != null && hasta.isBefore(desde)) {
@@ -275,6 +288,8 @@ public class ConsultaInventarioService {
 				  AND (CAST(:desde AS timestamptz) IS NULL OR m.fecha_hora >= CAST(:desde AS timestamptz))
 				  AND (CAST(:hasta AS timestamptz) IS NULL OR m.fecha_hora < CAST(:hasta AS timestamptz))
 				  AND (CAST(:recepcion AS bigint) IS NULL OR m.id_recepcion = CAST(:recepcion AS bigint))
+				  AND (CAST(:guia AS bigint) IS NULL OR m.id_guia = CAST(:guia AS bigint))
+				  AND (NOT :conIds OR m.id_movimiento IN (:ids))
 				""";
 		String union = """
 				  FROM movimiento_kardex m
@@ -285,7 +300,7 @@ public class ConsultaInventarioService {
 		String clave = sku == null || sku.isBlank() ? null : sku.trim();
 		long total = jdbc.sql("SELECT count(*) " + union + filtros)
 				.param("q", texto).param("sku", clave).param("ubicacion", idUbicacion).param("tipo", tipo)
-				.param("origen", origenValor).param("desde", inicio).param("hasta", fin).param("recepcion", idRecepcion)
+				.param("origen", origenValor).param("desde", inicio).param("hasta", fin).param("recepcion", idRecepcion).param("guia", idGuia).param("conIds", conIds).param("ids", ids)
 				.query(Long.class).single();
 		List<MovimientoDetalle> items = jdbc.sql("""
 				SELECT m.id_movimiento, m.fecha_hora, p.id_producto, p.sku, p.nombre_oficial, m.tipo_operacion,
@@ -293,7 +308,7 @@ public class ConsultaInventarioService {
 				       m.id_guia, m.id_recepcion, m.referencia_traslado, m.id_movimiento_corregido
 				""" + union + filtros + " ORDER BY m.fecha_hora DESC, m.id_movimiento DESC LIMIT :limite OFFSET :desplazamiento")
 				.param("q", texto).param("sku", clave).param("ubicacion", idUbicacion).param("tipo", tipo)
-				.param("origen", origenValor).param("desde", inicio).param("hasta", fin).param("recepcion", idRecepcion)
+				.param("origen", origenValor).param("desde", inicio).param("hasta", fin).param("recepcion", idRecepcion).param("guia", idGuia).param("conIds", conIds).param("ids", ids)
 				.param("limite", pageSize).param("desplazamiento", (long) (page - 1) * pageSize)
 				.query((rs, n) -> new MovimientoDetalle(rs.getLong("id_movimiento"),
 						rs.getObject("fecha_hora", OffsetDateTime.class).toInstant(), rs.getLong("id_producto"),

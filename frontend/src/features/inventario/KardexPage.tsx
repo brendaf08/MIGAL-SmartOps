@@ -100,6 +100,15 @@ function etiquetasDe(f: FiltrosKardex) {
       texto: 'Solo los movimientos de la recepción registrada',
     });
   }
+  if (f.guiaId) {
+    etiquetas.push({ clave: 'guiaId', texto: 'Solo los movimientos de la salida registrada' });
+  }
+  if (f.movimientoIds) {
+    etiquetas.push({
+      clave: 'movimientoIds',
+      texto: 'Solo los movimientos que acabas de registrar',
+    });
+  }
   return etiquetas;
 }
 
@@ -114,6 +123,8 @@ export function KardexPage() {
   const [filtros, setFiltros] = useState<FiltrosKardex>({
     ...SIN_FILTROS_KARDEX,
     recepcionId: params.get('recepcion') ?? '',
+    guiaId: params.get('guia') ?? '',
+    movimientoIds: params.get('movimientos') ?? '',
   });
   const [page, setPage] = useState(1);
   const [hojaAbierta, setHojaAbierta] = useState(false);

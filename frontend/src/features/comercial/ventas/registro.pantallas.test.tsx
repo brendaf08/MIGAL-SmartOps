@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it } from 'vitest';
 import { axe } from 'vitest-axe';
@@ -134,12 +134,20 @@ async function elegirCliente(texto: string) {
   await userEvent.click(await screen.findByRole('option', { name: texto, hidden: true }));
 }
 
+/** La fecha de entrega requerida es obligatoria: se indica una fecha futura. */
+async function indicarEntrega() {
+  fireEvent.change(screen.getByLabelText(/Fecha de entrega requerida/), {
+    target: { value: '2099-12-31' },
+  });
+}
+
 describe('Registro de venta', () => {
   it(
     'registra una venta con stock suficiente y muestra la constancia',
     async () => {
       renderApp('/ventas/nueva', 'Vendedor');
       await elegirCliente('Constructora Los Andes S.A.C. (20456789012)');
+      await indicarEntrega();
       await agregarLinea(1, 'CEM-001', 10);
 
       await userEvent.click(screen.getByRole('button', { name: 'Confirmar venta' }));
@@ -164,6 +172,7 @@ describe('Registro de venta', () => {
     async () => {
       renderApp('/ventas/nueva', 'Vendedor');
       await elegirCliente('Constructora Los Andes S.A.C. (20456789012)');
+      await indicarEntrega();
       await agregarLinea(1, 'FIE-003', 5);
 
       expect(
@@ -192,6 +201,7 @@ describe('Registro de venta', () => {
     async () => {
       renderApp('/ventas/nueva', 'Vendedor');
       await elegirCliente('Constructora Los Andes S.A.C. (20456789012)');
+      await indicarEntrega();
       await agregarLinea(1, 'CEM-001', 1);
 
       const descuento = screen.getByRole('textbox', { name: 'Descuento en soles' });
@@ -211,6 +221,7 @@ describe('Registro de venta', () => {
     async () => {
       renderApp('/ventas/nueva', 'Vendedor');
       await elegirCliente('Continuar sin cliente');
+      await indicarEntrega();
       await agregarLinea(1, 'CEM-001', 2);
 
       await userEvent.click(screen.getByRole('button', { name: 'Confirmar venta' }));
@@ -227,6 +238,7 @@ describe('Registro de venta', () => {
   it('bloquea la confirmación sin líneas y muestra el motivo', async () => {
     renderApp('/ventas/nueva', 'Vendedor');
     await elegirCliente('Continuar sin cliente');
+    await indicarEntrega();
 
     expect(screen.getByRole('button', { name: 'Confirmar venta' })).toBeDisabled();
     expect(await screen.findByText('Agregar al menos un producto.')).toBeInTheDocument();

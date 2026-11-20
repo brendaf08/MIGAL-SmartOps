@@ -379,6 +379,7 @@ class Sembrador:
             if not validas:
                 continue
             venta = self.api.post("/ventas/directas", {"clienteId": self.clientes["mostrador"], "descuento": 0,
+                                                       "fechaEntregaRequerida": date.today().isoformat(),
                                                        "lineas": self.lineas_api(validas)})
             self.contar("ventas")
             if destino == "despachada":

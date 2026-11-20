@@ -268,6 +268,17 @@ describe('Movimientos y Kardex (P14)', { timeout: 30000 }, () => {
     ).toBeInTheDocument();
   });
 
+  it.each([
+    ['/kardex?guia=7', 'Solo los movimientos de la salida registrada'],
+    ['/kardex?movimientos=11,12', 'Solo los movimientos que acabas de registrar'],
+  ])('%s abre solo con los movimientos de la operación', async (ruta, etiqueta) => {
+    renderApp(ruta, 'Almacenero');
+
+    expect(
+      await screen.findByRole('button', { name: `Quitar filtro ${etiqueta}` }),
+    ).toBeInTheDocument();
+  });
+
   it('combina tipo y origen y muestra cada filtro como etiqueta', async () => {
     renderApp('/kardex', 'Almacenero');
     await screen.findByText('−200');

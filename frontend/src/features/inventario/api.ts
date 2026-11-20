@@ -102,6 +102,10 @@ export interface FiltrosKardex {
   hasta: string;
   /** Identificador de una recepción: limita el listado a sus movimientos de entrada. */
   recepcionId: string;
+  /** Identificador de una guía de despacho: limita el listado a sus movimientos de salida. */
+  guiaId: string;
+  /** Identificadores de movimientos concretos, separados por coma (los que acaba de registrar una operación). */
+  movimientoIds: string;
 }
 
 export const SIN_FILTROS_KARDEX: FiltrosKardex = {
@@ -112,6 +116,8 @@ export const SIN_FILTROS_KARDEX: FiltrosKardex = {
   desde: '',
   hasta: '',
   recepcionId: '',
+  guiaId: '',
+  movimientoIds: '',
 };
 
 /**
@@ -186,6 +192,8 @@ export const consultarKardex = async (
     desde: filtros.desde,
     hasta: filtros.hasta,
     recepcionId: filtros.recepcionId || undefined,
+    guiaId: filtros.guiaId || undefined,
+    movimientoIds: filtros.movimientoIds || undefined,
     page,
     pageSize,
   });

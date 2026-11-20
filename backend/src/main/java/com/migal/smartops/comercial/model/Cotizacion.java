@@ -80,6 +80,9 @@ public class Cotizacion {
 	@OneToMany(mappedBy = "cotizacion", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
 	private List<DetalleCotizacion> lineas = new ArrayList<>();
 
+	@OneToMany(mappedBy = "cotizacion", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+	private List<CambioCotizacion> historial = new ArrayList<>();
+
 	protected Cotizacion() {
 		// Requerido por JPA.
 	}
@@ -137,6 +140,32 @@ public class Cotizacion {
 		this.usuarioRechazo = usuario;
 		this.fechaRechazo = momento;
 		this.motivoRechazo = motivo;
+	}
+
+	/**
+	 * Registra la cancelación de una cotización ya aceptada o validada: el origen, el usuario, la fecha y el motivo, y
+	 * cambia el estado a cancelada. Queda anotada en el historial.
+	 */
+	public void registrarCancelacion(OrigenRechazoCotizacion origen, Usuario usuario, Instant momento, String motivo) {
+		EstadoCotizacion anterior = getEstado();
+		cambiarEstado(EstadoCotizacion.CANCELADA);
+		this.origenRechazo = origen.valor();
+		this.usuarioRechazo = usuario;
+		this.fechaRechazo = momento;
+		this.motivoRechazo = motivo;
+		historial.add(new CambioCotizacion(this, usuario, momento, anterior, EstadoCotizacion.CANCELADA, motivo));
+	}
+
+	/**
+	 * Una cotización aceptada o validada que se modifica vuelve a emitida: el cliente debe aceptarla de nuevo y MIGAL
+	 * validarla otra vez. Se borran ambas fechas y el cambio queda anotado en el historial con su motivo.
+	 */
+	public void volverAEmitida(Usuario usuario, Instant momento, String motivo) {
+		EstadoCotizacion anterior = getEstado();
+		cambiarEstado(EstadoCotizacion.EMITIDA);
+		this.fechaAceptacionCliente = null;
+		this.fechaValidacionMigal = null;
+		historial.add(new CambioCotizacion(this, usuario, momento, anterior, EstadoCotizacion.EMITIDA, motivo));
 	}
 
 	/** Cambia el estado a vencida. */
@@ -215,5 +244,10 @@ public class Cotizacion {
 	/** Líneas de solo lectura. Las modificaciones se realizan mediante los métodos de esta entidad. */
 	public List<DetalleCotizacion> getLineas() {
 		return Collections.unmodifiableList(lineas);
+	}
+
+	/** Cambios de estado por modificación o cancelación, de solo lectura. */
+	public List<CambioCotizacion> getHistorial() {
+		return Collections.unmodifiableList(historial);
 	}
 }

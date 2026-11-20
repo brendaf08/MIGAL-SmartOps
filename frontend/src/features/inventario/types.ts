@@ -10,6 +10,10 @@ export interface ProductoDisponibilidad {
   reservado: number;
   /** Pendiente de recibir en órdenes de compra; no es existencia física ni libre. */
   planificado: number;
+  /** Lo que las ventas pendientes de abastecimiento ya reclaman y aún no tiene reserva. */
+  faltanteVentas?: number;
+  /** Fecha estimada más próxima de llegada de las órdenes de compra abiertas; nula si ninguna la indica. */
+  proximaLlegada?: string | null;
   /** Precio de venta de referencia; precio inicial de las líneas de cotizaciones y ventas. */
   precio: number;
   minimo: number;

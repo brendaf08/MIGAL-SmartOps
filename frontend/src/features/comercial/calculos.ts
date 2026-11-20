@@ -46,6 +46,7 @@ const AVANCE: Record<EstadoCotizacion, number> = {
   AceptadaCliente: 1,
   ValidadaMigal: 2,
   Rechazada: 0,
+  Cancelada: 0,
   Vencida: 0,
 };
 export const pasoActual = (estado: EstadoCotizacion) => AVANCE[estado];

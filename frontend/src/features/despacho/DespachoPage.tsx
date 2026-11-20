@@ -143,7 +143,10 @@ export function DespachoPage() {
               <Button variant="default" onClick={() => void navigate('/despachos')}>
                 Volver a despachos
               </Button>
-              <Button leftSection={<Icon name="kardex" />} onClick={() => void navigate('/kardex')}>
+              <Button
+                leftSection={<Icon name="kardex" />}
+                onClick={() => void navigate(`/kardex?guia=${encodeURIComponent(orden.id)}`)}
+              >
                 Ver movimientos en el Kardex
               </Button>
             </>

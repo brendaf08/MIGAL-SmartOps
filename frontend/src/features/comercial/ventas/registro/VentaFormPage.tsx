@@ -147,7 +147,8 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
     if (values.cliente === null) return 'Elegir el cliente o continuar sin cliente.';
     if (sinCobertura && values.modalidad === null)
       return 'Elegir cómo atender las líneas sin existencias.';
-    if (values.fechaEntrega && values.fechaEntrega < hoyIso())
+    if (!values.fechaEntrega) return 'Indicar la fecha de entrega requerida por el cliente.';
+    if (values.fechaEntrega < hoyIso())
       return 'La fecha de entrega requerida no puede ser anterior a hoy.';
     if (values.descuento < 0 || values.descuento > subtotal)
       return 'El descuento no puede ser negativo ni mayor que el subtotal.';
@@ -208,7 +209,7 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
       cotizacionId: origen === 'cotizacion' ? (values.cotizacionId ?? undefined) : undefined,
       descuento: values.descuento,
       modalidad: values.modalidad as ModalidadAtencion | null,
-      fechaEntregaRequerida: values.fechaEntrega || undefined,
+      fechaEntregaRequerida: values.fechaEntrega,
       claveIdempotencia: claveRegistro,
       lineas: consolidarLineas(values.lineas).lineas.map((l) => ({
         sku: l.sku,
@@ -421,7 +422,8 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
         <Card title="Entrega">
           <TextInput
             label="Fecha de entrega requerida"
-            description="Opcional. Es la fecha en que el cliente necesita los productos; ayuda a planificar el abastecimiento."
+            description="Es la fecha en que el cliente necesita los productos; ayuda a planificar el abastecimiento."
+            required
             type="date"
             min={hoyIso()}
             {...form.getInputProps('fechaEntrega')}

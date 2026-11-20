@@ -1,8 +1,8 @@
-import { Button, Skeleton, Stack, Text, Textarea } from '@mantine/core';
+import { Button, Radio, Skeleton, Stack, Text, Textarea } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { Link, useParams } from 'react-router';
+import { Link, useNavigate, useParams } from 'react-router';
 import { StatusBadge } from '@/components/domain/StatusBadge/StatusBadge';
 import { PageHeader } from '@/components/layout/PageHeader/PageHeader';
 import { Alert } from '@/components/ui/Alert/Alert';
@@ -14,15 +14,19 @@ import { ConfirmDialog } from '@/components/ui/Modal/ConfirmDialog';
 import { Stepper } from '@/components/ui/Stepper/Stepper';
 import { formatCurrency, formatDate, formatNumber } from '@/lib/format';
 import { API_REAL } from '@/api/cliente';
+import { STATUS } from '@/components/domain/StatusBadge/status';
 import { tieneRol, type Role } from '@/features/seguridad/roles';
 import { useSession } from '@/features/seguridad/session';
 import {
+  cancelarCotizacion,
+  duplicarCotizacion,
   obtenerCotizacion,
   registrarAceptacion,
   registrarRechazo,
   registrarValidacion,
 } from './api';
 import { PASOS, pasoActual, totales } from './calculos';
+import { DesgloseStock } from './DesgloseStock';
 import type { LineaCotizacion } from './types';
 
 const columns: Column<LineaCotizacion>[] = [
@@ -45,6 +49,8 @@ const columns: Column<LineaCotizacion>[] = [
 const ROLES_ACCION = {
   modificar: ['Vendedor'],
   rechazar: ['Vendedor', 'Administrador'],
+  cancelar: ['Vendedor', 'Administrador'],
+  duplicar: ['Vendedor'],
   aceptar: ['Vendedor'],
   validar: ['Administrador'],
   convertir: ['Vendedor'],
@@ -56,6 +62,7 @@ export function CotizacionPage() {
   const { user } = useSession();
   const puede = (roles: Role[]) => tieneRol(user?.role, roles);
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { data: cotizacion, isError } = useQuery({
     queryKey: ['cotizacion', id],
     queryFn: () => obtenerCotizacion(id),
@@ -83,6 +90,53 @@ export function CotizacionPage() {
       notifications.show({
         color: 'danger',
         title: 'No se pudo registrar la aceptación',
+        message: e.message,
+      });
+    },
+  });
+  const [cancelando, setCancelando] = useState(false);
+  const [motivoCancelacion, setMotivoCancelacion] = useState('');
+  const [origenCancelacion, setOrigenCancelacion] = useState<'cliente' | 'migal'>('cliente');
+  const [claveCancelacion, setClaveCancelacion] = useState(() => crypto.randomUUID());
+  const cancelar = useMutation({
+    mutationFn: () =>
+      cancelarCotizacion(id, origenCancelacion, motivoCancelacion, claveCancelacion),
+    onSuccess: () => {
+      setCancelando(false);
+      void queryClient.invalidateQueries({ queryKey: ['cotizacion', id] });
+      void queryClient.invalidateQueries({ queryKey: ['cotizaciones'] });
+      notifications.show({
+        color: 'success',
+        title: 'Cotización cancelada',
+        message: `La cotización ${id} quedó cancelada.`,
+      });
+    },
+    onError: (e) => {
+      setCancelando(false);
+      notifications.show({
+        color: 'danger',
+        title: 'No se pudo cancelar la cotización',
+        message: e.message,
+      });
+    },
+  });
+  const [claveDuplicado, setClaveDuplicado] = useState(() => crypto.randomUUID());
+  const duplicar = useMutation({
+    mutationFn: () => duplicarCotizacion(id, claveDuplicado),
+    onSuccess: (nueva) => {
+      setClaveDuplicado(crypto.randomUUID());
+      void queryClient.invalidateQueries({ queryKey: ['cotizaciones'] });
+      notifications.show({
+        color: 'success',
+        title: 'Cotización duplicada',
+        message: `Se emitió la cotización ${nueva.id} con los mismos productos.`,
+      });
+      void navigate(`/cotizaciones/${nueva.id}`);
+    },
+    onError: (e) => {
+      notifications.show({
+        color: 'danger',
+        title: 'No se pudo duplicar la cotización',
         message: e.message,
       });
     },
@@ -149,6 +203,12 @@ export function CotizacionPage() {
 
   const t = totales(cotizacion);
   const { cliente } = cotizacion;
+  const abierta =
+    cotizacion.estado === 'Emitida' ||
+    cotizacion.estado === 'AceptadaCliente' ||
+    cotizacion.estado === 'ValidadaMigal';
+  const sinVenta = !cotizacion.ventaId;
+  const cerrada = ['Rechazada', 'Cancelada', 'Vencida'].includes(cotizacion.estado);
 
   return (
     <>
@@ -162,17 +222,44 @@ export function CotizacionPage() {
             <Button
               variant="default"
               leftSection={<Icon name="print" />}
-              onClick={() => window.print()}
+              component={Link}
+              to={`/cotizaciones/${id}/imprimir`}
             >
               Imprimir
             </Button>
+            {abierta && sinVenta && puede(ROLES_ACCION.modificar) && (
+              <Button variant="default" component={Link} to={`/cotizaciones/${id}/editar`}>
+                Modificar
+              </Button>
+            )}
+            {(cotizacion.estado === 'AceptadaCliente' || cotizacion.estado === 'ValidadaMigal') &&
+              sinVenta &&
+              puede(ROLES_ACCION.cancelar) && (
+                <Button
+                  variant="default"
+                  color="danger"
+                  leftSection={<Icon name="x-circle" />}
+                  onClick={() => {
+                    setClaveCancelacion(crypto.randomUUID());
+                    setMotivoCancelacion('');
+                    setOrigenCancelacion('cliente');
+                    setCancelando(true);
+                  }}
+                >
+                  Cancelar cotización
+                </Button>
+              )}
+            {cerrada && puede(ROLES_ACCION.duplicar) && (
+              <Button
+                variant="default"
+                loading={duplicar.isPending}
+                onClick={() => duplicar.mutate()}
+              >
+                Duplicar cotización
+              </Button>
+            )}
             {cotizacion.estado === 'Emitida' && (
               <>
-                {puede(ROLES_ACCION.modificar) && (
-                  <Button variant="default" component={Link} to={`/cotizaciones/${id}/editar`}>
-                    Modificar
-                  </Button>
-                )}
                 {puede(ROLES_ACCION.rechazar) && (
                   <Button
                     variant="default"
@@ -250,10 +337,26 @@ export function CotizacionPage() {
                 ]}
               />
             </Card>
-            <Alert title="Esta cotización no reserva existencias">
-              El stock se consulta y se reserva al convertirla en venta, cuando el cliente la acepta
-              y MIGAL valida su viabilidad.
-            </Alert>
+            {cotizacion.ventaId && (
+              <Alert tone="info" title="Esta cotización ya originó una venta">
+                Ya no se modifica ni se cancela aquí. Para cambiarla, cancelar la venta (hasta que
+                salga del almacén) y emitir una cotización nueva.{' '}
+                <Link to={`/ventas/${cotizacion.ventaId}`}>Ver la venta</Link>
+              </Alert>
+            )}
+            {abierta && <DesgloseStock lineas={cotizacion.lineas} />}
+            {cotizacion.rechazo && (
+              <Alert
+                tone="warning"
+                title={
+                  cotizacion.estado === 'Cancelada'
+                    ? `Cancelada por ${cotizacion.rechazo.origen === 'migal' ? 'MIGAL' : 'el cliente'}`
+                    : `Rechazada por ${cotizacion.rechazo.origen === 'migal' ? 'MIGAL' : 'el cliente'}`
+                }
+              >
+                {cotizacion.rechazo.motivo}
+              </Alert>
+            )}
           </Stack>
           <Stack>
             <Card title="Cliente">
@@ -279,6 +382,24 @@ export function CotizacionPage() {
                 </Text>
               </Stack>
             </Card>
+            {cotizacion.historial && cotizacion.historial.length > 0 && (
+              <Card title="Historial de cambios">
+                <Stack gap="sm" component="ul" m={0} p={0} style={{ listStyle: 'none' }}>
+                  {cotizacion.historial.map((h) => (
+                    <li key={`${h.fecha}-${h.estadoNuevo}`}>
+                      <Text size="sm" fw={600}>
+                        {STATUS.cotizacion[h.estadoAnterior][1]} →{' '}
+                        {STATUS.cotizacion[h.estadoNuevo][1]}
+                      </Text>
+                      <Text size="sm">{h.motivo}</Text>
+                      <Text size="xs" c="dimmed">
+                        {h.usuario}, {formatDate(h.fecha)}
+                      </Text>
+                    </li>
+                  ))}
+                </Stack>
+              </Card>
+            )}
           </Stack>
         </Columns>
       </Stack>
@@ -308,6 +429,39 @@ export function CotizacionPage() {
         onConfirm={() => validar.mutate()}
         onCancel={() => setValidando(false)}
       />
+      <ConfirmDialog
+        open={cancelando}
+        title={`Cancelar la cotización ${cotizacion.id}`}
+        description="La cotización ya estaba aceptada y se deja sin efecto. No se puede reactivar: se podrá duplicar."
+        consequences={['La cotización queda en estado Cancelada.', 'El stock no se modifica.']}
+        tone="danger"
+        confirmLabel="Cancelar cotización"
+        loading={cancelar.isPending}
+        onConfirm={() => cancelar.mutate()}
+        onCancel={() => setCancelando(false)}
+      >
+        <Radio.Group
+          mt="md"
+          label="¿Quién desiste?"
+          value={origenCancelacion}
+          onChange={(v) => setOrigenCancelacion(v as 'cliente' | 'migal')}
+        >
+          <Stack gap={4} mt={4}>
+            <Radio value="cliente" label="El cliente" />
+            {puede(['Administrador']) && <Radio value="migal" label="MIGAL" />}
+          </Stack>
+        </Radio.Group>
+        <Textarea
+          mt="md"
+          label="Motivo de la cancelación"
+          description="Obligatorio."
+          autosize
+          minRows={2}
+          maxLength={500}
+          value={motivoCancelacion}
+          onChange={(e) => setMotivoCancelacion(e.currentTarget.value)}
+        />
+      </ConfirmDialog>
       <ConfirmDialog
         open={rechazando}
         title={`Registrar el rechazo de la cotización ${cotizacion.id}`}

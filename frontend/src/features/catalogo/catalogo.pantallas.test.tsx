@@ -119,7 +119,9 @@ describe('Catálogo, formulario', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Registrar producto' }));
 
     expect(
-      await screen.findByText('Usar el formato AAA-000, por ejemplo CEM-049.'),
+      await screen.findByText(
+        'Usar el formato AAA-000 (por ejemplo CEM-049) o un código de 5 dígitos (por ejemplo 00123).',
+      ),
     ).toBeInTheDocument();
     expect(screen.getByText('Ingresar al menos 3 caracteres.')).toBeInTheDocument();
     expect(screen.getByText('El stock mínimo no puede ser negativo.')).toBeInTheDocument();

@@ -20,7 +20,7 @@ const TAMANO_PAGINA = 100;
 /** Forma de una cotización en la API (esquema CotizacionRegistrada de comercial.yaml). */
 interface CotizacionApi {
   id: string;
-  estado: 'emitida' | 'aceptada' | 'validada' | 'rechazada' | 'vencida';
+  estado: 'emitida' | 'aceptada' | 'validada' | 'rechazada' | 'cancelada' | 'vencida';
   cliente: { id: string; nombreRazonSocial: string; estadoActivo: boolean };
   fechaEmision: string;
   fechaVencimiento: string;
@@ -36,6 +36,15 @@ interface CotizacionApi {
   }[];
   subtotal: number;
   total: number;
+  rechazo?: { origen: 'cliente' | 'migal'; motivo: string } | null;
+  ventaId?: string | null;
+  historial?: {
+    fecha: string;
+    usuario: string;
+    estadoAnterior: CotizacionApi['estado'];
+    estadoNuevo: CotizacionApi['estado'];
+    motivo: string;
+  }[];
 }
 
 interface CotizacionPaginaApi {
@@ -50,6 +59,7 @@ const ESTADO_DE_API: Record<CotizacionApi['estado'], EstadoCotizacion> = {
   aceptada: 'AceptadaCliente',
   validada: 'ValidadaMigal',
   rechazada: 'Rechazada',
+  cancelada: 'Cancelada',
   vencida: 'Vencida',
 };
 
@@ -93,6 +103,19 @@ const cotizacionDesde = (c: CotizacionApi): Cotizacion => ({
     cantidad: l.cantidad,
     precio: l.precioUnitario,
   })),
+  ...(c.ventaId ? { ventaId: c.ventaId } : {}),
+  ...(c.rechazo ? { rechazo: { origen: c.rechazo.origen, motivo: c.rechazo.motivo } } : {}),
+  ...(c.historial
+    ? {
+        historial: c.historial.map((h) => ({
+          fecha: h.fecha,
+          usuario: h.usuario,
+          estadoAnterior: ESTADO_DE_API[h.estadoAnterior],
+          estadoNuevo: ESTADO_DE_API[h.estadoNuevo],
+          motivo: h.motivo,
+        })),
+      }
+    : {}),
 });
 
 /** Cuerpo de CotizacionDatos. El descuento de la interfaz es una fracción que se convierte en monto. */
@@ -109,6 +132,7 @@ async function cuerpoDesde(datos: DatosCotizacion) {
     descuento: aCentimos(datos.descuento * subtotal),
     validezDias: datos.validezDias,
     condicionesComerciales: unirCondiciones(datos.formaPago, datos.condiciones),
+    ...(datos.motivoCambio ? { motivoCambio: datos.motivoCambio } : {}),
   };
 }
 
@@ -211,6 +235,66 @@ export const registrarRechazo = (
       });
 
 /**
+ * Cancela una cotización aceptada o validada que aún no tiene venta. El origen indica quién desiste: el cliente
+ * (Vendedor o Administrador) o MIGAL (solo Administrador). El motivo es obligatorio.
+ */
+export const cancelarCotizacion = (
+  id: string,
+  origen: 'cliente' | 'migal',
+  motivo: string,
+  claveIdempotencia: string,
+): Promise<Cotizacion> =>
+  API_REAL
+    ? (async () => {
+        const texto = motivo.trim();
+        if (!texto) throw new Error('Indicar el motivo de la cancelación.');
+        return api
+          .post<CotizacionApi>(
+            ruta(id, '/cancelacion'),
+            { origen, motivo: texto },
+            claveIdempotencia,
+          )
+          .then(cotizacionDesde);
+      })()
+    : mockRequest<Cotizacion>(() => {
+        const found = COTIZACIONES.find((c) => c.id === id);
+        if (!found || (found.estado !== 'AceptadaCliente' && found.estado !== 'ValidadaMigal'))
+          throw new Error('Solo se puede cancelar una cotización aceptada o validada.');
+        found.estado = 'Cancelada';
+        found.rechazo = { origen, motivo };
+        return found;
+      });
+
+/** Emite una cotización nueva con los datos de una rechazada, cancelada o vencida. */
+export const duplicarCotizacion = (id: string, claveIdempotencia: string): Promise<Cotizacion> =>
+  API_REAL
+    ? api
+        .post<CotizacionApi>(ruta(id, '/duplicado'), undefined, claveIdempotencia)
+        .then(cotizacionDesde)
+    : mockRequest<Cotizacion>(() => {
+        const found = COTIZACIONES.find((c) => c.id === id);
+        if (!found || !['Rechazada', 'Cancelada', 'Vencida'].includes(found.estado))
+          throw new Error('Solo se puede duplicar una cotización rechazada, cancelada o vencida.');
+        const hoy = hoyIso();
+        const nueva: Cotizacion = {
+          ...found,
+          id: siguienteCodigo(
+            'COT',
+            COTIZACIONES.map((c) => c.id),
+          ),
+          estado: 'Emitida',
+          emision: hoy,
+          vencimiento: sumarDias(hoy, 7),
+          rechazo: undefined,
+          historial: undefined,
+          ventaId: undefined,
+          lineas: found.lineas.map((l) => ({ ...l })),
+        };
+        COTIZACIONES.unshift(nueva);
+        return nueva;
+      });
+
+/**
  * Datos capturados en el formulario de cotización. El descuento es una fracción de 0 a 1 (ver `Cotizacion.descuento`).
  * Ausente `clienteId` cuando la cotización se emite sin cliente.
  */
@@ -221,6 +305,8 @@ export interface DatosCotizacion {
   validezDias: number;
   formaPago: string;
   condiciones?: string;
+  /** Motivo del cambio; obligatorio al modificar una cotización aceptada o validada. */
+  motivoCambio?: string;
 }
 
 const lineasDesde = (lineas: DatosCotizacion['lineas']): LineaCotizacion[] =>
@@ -258,7 +344,10 @@ export const crearCotizacion = (datos: DatosCotizacion): Promise<Cotizacion> =>
         return nueva;
       });
 
-/** Modifica una cotización emitida. La fecha de emisión se conserva y el vencimiento se recalcula desde ella. */
+/**
+ * Modifica una cotización. Una aceptada o validada sin venta vuelve a emitida (hay que aceptarla y validarla otra vez)
+ * y exige `motivoCambio`. La fecha de emisión se conserva y el vencimiento se recalcula desde ella.
+ */
 export const actualizarCotizacion = (id: string, datos: DatosCotizacion): Promise<Cotizacion> =>
   API_REAL
     ? cuerpoDesde(datos)
@@ -266,8 +355,28 @@ export const actualizarCotizacion = (id: string, datos: DatosCotizacion): Promis
         .then(cotizacionDesde)
     : mockRequest<Cotizacion>(() => {
         const found = COTIZACIONES.find((c) => c.id === id);
-        if (!found || found.estado !== 'Emitida')
-          throw new Error('Solo se puede modificar una cotización emitida.');
+        if (
+          !found ||
+          found.estado === 'Rechazada' ||
+          found.estado === 'Vencida' ||
+          found.estado === 'Cancelada'
+        )
+          throw new Error('Esta cotización ya no se puede modificar.');
+        if (found.estado !== 'Emitida') {
+          if ((datos.motivoCambio?.trim().length ?? 0) < 10)
+            throw new Error('Indicar el motivo del cambio (mínimo 10 caracteres).');
+          found.historial = [
+            {
+              fecha: new Date().toISOString(),
+              usuario: 'Usuario de prueba',
+              estadoAnterior: found.estado,
+              estadoNuevo: 'Emitida',
+              motivo: datos.motivoCambio!.trim(),
+            },
+            ...(found.historial ?? []),
+          ];
+          found.estado = 'Emitida';
+        }
         Object.assign(found, {
           vencimiento: sumarDias(found.emision, datos.validezDias),
           cliente: clienteSimulado(datos.clienteId),

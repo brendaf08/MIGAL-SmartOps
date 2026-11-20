@@ -76,14 +76,24 @@ export function OrdenCompraDetallePage() {
         breadcrumbs={[{ label: 'Órdenes de compra', href: '/compras' }, { label: orden.id }]}
         status={<StatusBadge entity="compra" value={orden.estado} variant="sello" />}
         actions={
-          completada || !tieneRol(user?.role, ['Almacenero']) ? undefined : (
+          <>
             <Button
-              leftSection={<Icon name="recepcion" />}
-              onClick={() => void navigate(`/recepciones/nueva?oc=${orden.id}`)}
+              variant="default"
+              component={Link}
+              to={`/compras/${orden.id}/imprimir`}
+              leftSection={<Icon name="print" />}
             >
-              Registrar recepción
+              Imprimir
             </Button>
-          )
+            {!completada && tieneRol(user?.role, ['Almacenero']) && (
+              <Button
+                leftSection={<Icon name="recepcion" />}
+                onClick={() => void navigate(`/recepciones/nueva?oc=${orden.id}`)}
+              >
+                Registrar recepción
+              </Button>
+            )}
+          </>
         }
       />
       <Stack gap="lg">

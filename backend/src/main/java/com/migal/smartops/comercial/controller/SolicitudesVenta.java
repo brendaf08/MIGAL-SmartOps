@@ -27,7 +27,7 @@ public final class SolicitudesVenta {
 
 	/** {@code SolicitudVentaDesdeCotizacion}. */
 	public record SolicitudVentaDesdeCotizacion(@NotBlank @Pattern(regexp = IDENTIFICADOR) String idCotizacion,
-			LocalDate fechaEntregaRequerida) {
+			@NotNull LocalDate fechaEntregaRequerida) {
 	}
 
 	/** Línea de una venta directa. */
@@ -46,7 +46,7 @@ public final class SolicitudesVenta {
 			@NotNull @DecimalMin("0") @Digits(integer = 12, fraction = 2) BigDecimal descuento,
 			@Size(max = 500) String condicionesComerciales,
 			LocalDate fechaVencimiento,
-			LocalDate fechaEntregaRequerida,
+			@NotNull LocalDate fechaEntregaRequerida,
 			@NotEmpty @Valid List<LineaVentaDirecta> lineas) {
 
 		public DatosVentaDirecta datos() {

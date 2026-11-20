@@ -280,6 +280,8 @@ describe('inventario, Kardex (rama de la API real)', () => {
       desde: '2026-11-01',
       hasta: '2026-11-07',
       recepcionId: '',
+      guiaId: '',
+      movimientoIds: '',
     });
 
     const consulta = llamadas.find((l) => l.ruta === '/api/v1/inventario/movimientos')!.consulta;

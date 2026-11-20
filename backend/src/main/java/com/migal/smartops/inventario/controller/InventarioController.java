@@ -108,10 +108,16 @@ public class InventarioController {
 			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
 			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta,
 			@RequestParam(required = false) String recepcionId,
+			@RequestParam(required = false) String guiaId,
+			@RequestParam(required = false) String movimientoIds,
 			@RequestParam(defaultValue = "1") @Min(1) int page,
 			@RequestParam(defaultValue = "20") @Min(1) @Max(100) int pageSize) {
 		Long idRecepcion = recepcionId == null ? null : Identificadores.numero(recepcionId);
-		return PaginaDto.de(consultas.kardex(q, sku, ubicacionId, tipoOperacion, origen, desde, hasta, idRecepcion, page, pageSize),
+		Long idGuia = guiaId == null ? null : Identificadores.numero(guiaId);
+		List<Long> idsMovimiento = movimientoIds == null || movimientoIds.isBlank() ? null
+				: java.util.Arrays.stream(movimientoIds.split(",")).map(String::trim).map(Identificadores::numero).toList();
+		return PaginaDto.de(consultas.kardex(q, sku, ubicacionId, tipoOperacion, origen, desde, hasta, idRecepcion, idGuia,
+				idsMovimiento, page, pageSize),
 				MovimientoKardexDto::de);
 	}
 

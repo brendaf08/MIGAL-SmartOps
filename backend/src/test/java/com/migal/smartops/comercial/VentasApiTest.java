@@ -160,8 +160,13 @@ class VentasApiTest {
 		return UUID.randomUUID().toString();
 	}
 
+	/** Fecha de entrega requerida de las ventas de prueba: obligatoria y no anterior a hoy. */
+	private static String entregaRequerida() {
+		return java.time.LocalDate.now(java.time.ZoneId.of("America/Lima")).plusDays(7).toString();
+	}
+
 	private static String desdeCotizacion(String cotizacion) {
-		return "{\"idCotizacion\":\"" + cotizacion + "\"}";
+		return "{\"idCotizacion\":\"" + cotizacion + "\",\"fechaEntregaRequerida\":\"" + entregaRequerida() + "\"}";
 	}
 
 	private String registrarVentaDesdeCotizacion(String token, String cotizacion) throws Exception {
@@ -210,6 +215,14 @@ class VentasApiTest {
 				.andExpect(jsonPath("$.estado", is("pendiente_despacho")))
 				.andExpect(jsonPath("$.lineas[0].cantidadReservadaActual", is(10.0)))
 				.andExpect(jsonPath("$.reservas", hasSize(1)));
+	}
+
+	@Test
+	void exigeLaFechaDeEntregaRequeridaEnLaVenta() throws Exception {
+		alta("/api/v1/ventas", bearer("apc-vendedor"), clave(), "{\"idCotizacion\":\"" + cotizacion("validada") + "\"}")
+				.andExpect(status().isUnprocessableEntity())
+				.andExpect(jsonPath("$.code", is("VALIDACION_FALLIDA")))
+				.andExpect(jsonPath("$.errores[0].campo", is("fechaEntregaRequerida")));
 	}
 
 	@Test
@@ -337,6 +350,7 @@ class VentasApiTest {
 	@Test
 	void registraVentaDirectaComoAdministrador() throws Exception {
 		String cuerpo = "{\"clienteId\":\"" + idCliente + "\",\"descuento\":0,\"condicionesComerciales\":null,"
+				+ "\"fechaEntregaRequerida\":\"" + entregaRequerida() + "\","
 				+ "\"lineas\":[{\"productoId\":\"" + idProducto + "\",\"cantidad\":5,\"precioUnitario\":28.50}]}";
 
 		alta("/api/v1/ventas/directas", bearer("apc-admin"), clave(), cuerpo)
@@ -347,7 +361,7 @@ class VentasApiTest {
 
 	@Test
 	void rechazaUnaVentaDirectaSinCliente() throws Exception {
-		String cuerpo = "{\"clienteId\":null,\"descuento\":0,"
+		String cuerpo = "{\"clienteId\":null,\"descuento\":0,\"fechaEntregaRequerida\":\"" + entregaRequerida() + "\","
 				+ "\"lineas\":[{\"productoId\":\"" + idProducto + "\",\"cantidad\":5,\"precioUnitario\":28.50}]}";
 
 		alta("/api/v1/ventas/directas", bearer("apc-vendedor"), clave(), cuerpo)

@@ -27,7 +27,7 @@ describe('Cotizaciones', () => {
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Cotización COT-0231' }),
     ).toBeInTheDocument();
-    expect(screen.getByText('Esta cotización no reserva existencias')).toBeInTheDocument();
+    expect(screen.getByText('Stock para decidir')).toBeInTheDocument();
   });
 
   it('presenta los totales con subtotal, descuento y total', async () => {

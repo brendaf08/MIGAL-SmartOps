@@ -59,6 +59,7 @@ const entrada = {
   descuento: 25,
   lineas: [{ sku: 'CEM-049', nombre: 'Cemento Sol tipo I 42.5 kg', cantidad: 40, precio: 28.5 }],
   modalidad: null,
+  fechaEntregaRequerida: '2026-12-04',
   claveIdempotencia: 'clave-registro-1',
 };
 
@@ -84,7 +85,7 @@ describe('registro de ventas (API real)', () => {
     expect(llamada(0)[0]).toBe('/api/v1/ventas');
     expect(llamada(0)[1]?.method).toBe('POST');
     expect(cabeceras(0)['Idempotency-Key']).toBe('clave-registro-1');
-    expect(cuerpo(0)).toEqual({ idCotizacion: '812' });
+    expect(cuerpo(0)).toEqual({ idCotizacion: '812', fechaEntregaRequerida: '2026-12-04' });
     expect(resultado.venta.estado).toBe('PendienteDespacho');
     expect(resultado.atencion).toEqual({
       lineas: [{ sku: 'CEM-049', solicitada: 40, atendida: 40, pendiente: 0 }],
@@ -120,6 +121,7 @@ describe('registro de ventas (API real)', () => {
     expect(cuerpo(1)).toEqual({
       clienteId: '57',
       descuento: 25,
+      fechaEntregaRequerida: '2026-12-04',
       lineas: [{ productoId: '101', cantidad: 40, precioUnitario: 28.5 }],
     });
   });

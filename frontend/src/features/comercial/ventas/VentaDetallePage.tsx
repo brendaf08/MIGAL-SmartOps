@@ -183,6 +183,16 @@ export function VentaDetallePage() {
         ]
           .filter(Boolean)
           .join(', ')}
+        actions={
+          <Button
+            variant="default"
+            component={Link}
+            to={`/ventas/${venta.id}/imprimir`}
+            leftSection={<Icon name="print" />}
+          >
+            Imprimir
+          </Button>
+        }
       />
       {resultado && (
         <Constancia

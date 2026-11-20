@@ -16,12 +16,14 @@ confianza de al menos 0.60, frente a 36 sin estas reglas ni la normalización de
 el catálogo real de 818 productos, 47 de esas líneas reciben sugerencia sobre 0.60.
 """
 
+from collections import Counter
 from dataclasses import dataclass
 
 from rapidfuzz import fuzz, process
+from rapidfuzz.distance import DamerauLevenshtein
 
 from app.esquemas import Coincidencia, ProductoCatalogo
-from app.normalizador import TextoNormalizado, normalizar, tipo_de_medida
+from app.normalizador import PALABRAS_VACIAS, TextoNormalizado, normalizar, tipo_de_medida
 
 PESO_ORDEN = 0.6
 PESO_CONJUNTO = 0.4
@@ -30,6 +32,12 @@ FACTOR_TIPO_DISTINTO = 0.7
 SIMILITUD_TIPO = 80
 MATERIALES = frozenset({"pvc", "cpvc", "bronce", "galvanizado", "cobre", "acero"})
 MAXIMO_COINCIDENCIAS = 3
+# Errores de escritura: una palabra de 4 a 7 letras que no existe en el catálogo se corrige si hay otra a una letra de
+# distancia (sustitución, falta, sobra o intercambio: "curbas" por "curva"); de 8 o más letras se admiten dos. Una
+# línea corregida pierde un poco de confianza frente a una escrita bien, para que la persona la revise.
+LONGITUD_MINIMA_CORRECCION = 4
+LONGITUD_DOS_ERRORES = 8
+FACTOR_PALABRA_CORREGIDA = 0.95
 # Con catálogos grandes, solo los candidatos más parecidos por conjunto de palabras (calculado en C++ por RapidFuzz)
 # pasan al puntaje completo, que se calcula en Python.
 CANDIDATOS_PREFILTRO = 50
@@ -50,6 +58,54 @@ def preparar_catalogo(catalogo: list[ProductoCatalogo]) -> list[Candidato]:
         partes = [producto.nombreOficial, producto.marca or "", producto.presentacion or ""]
         candidatos.append(Candidato(producto.sku, normalizar(" ".join(p for p in partes if p))))
     return candidatos
+
+
+def vocabulario(candidatos: list[Candidato]) -> Counter[str]:
+    """Palabras del catálogo normalizado, con cuántos productos las usan. Las medidas no son palabras."""
+    palabras: Counter[str] = Counter()
+    for candidato in candidatos:
+        for palabra in set(candidato.normalizado.texto.split()):
+            if palabra not in candidato.normalizado.medidas and palabra.isalpha() and len(palabra) >= LONGITUD_MINIMA_CORRECCION:
+                palabras[palabra] += 1
+    return palabras
+
+
+def corregir_errores(linea: TextoNormalizado, palabras: Counter[str]) -> tuple[TextoNormalizado, bool]:
+    """Corrige las palabras de la línea que no existen en el catálogo y están a una o dos letras de una que sí existe.
+
+    Devuelve la línea corregida y si cambió algo. Se ignoran las medidas, los números y las palabras cortas, que serían
+    corregidas por azar. Entre varias palabras igual de cercanas gana la más usada en el catálogo.
+    """
+    corregidas: list[str] = []
+    cambio = False
+    for palabra in linea.texto.split():
+        corregida = palabra
+        largo = len(palabra)
+        if (
+            largo >= LONGITUD_MINIMA_CORRECCION
+            and palabra.isalpha()
+            and palabra not in palabras
+            and palabra not in PALABRAS_VACIAS
+            and palabra not in linea.medidas
+        ):
+            maxima = 2 if largo >= LONGITUD_DOS_ERRORES else 1
+            mejor: tuple[int, int, str] | None = None
+            for existente, usos in palabras.items():
+                if abs(len(existente) - largo) > maxima:
+                    continue
+                distancia = DamerauLevenshtein.distance(palabra, existente, score_cutoff=maxima)
+                if distancia > maxima:
+                    continue
+                clave = (distancia, -usos, existente)
+                if mejor is None or clave < mejor:
+                    mejor = clave
+            if mejor is not None:
+                corregida = mejor[2]
+                cambio = True
+        corregidas.append(corregida)
+    if not cambio:
+        return linea, False
+    return TextoNormalizado(" ".join(corregidas), linea.medidas), True
 
 
 def medidas_incompatibles(linea: frozenset[str], candidato: frozenset[str]) -> bool:
@@ -100,7 +156,7 @@ def puntaje(linea: TextoNormalizado, candidato: TextoNormalizado) -> float:
 
 def coincidencias(texto: str, candidatos: list[Candidato], umbral_baja: float) -> list[Coincidencia]:
     """Hasta tres coincidencias con confianza igual o mayor al umbral, de mayor a menor."""
-    linea = normalizar(texto)
+    linea, corregida = corregir_errores(normalizar(texto), vocabulario(candidatos))
     if len(candidatos) > CANDIDATOS_PREFILTRO and linea.texto:
         elegidos = process.extract(
             linea.texto,
@@ -109,6 +165,7 @@ def coincidencias(texto: str, candidatos: list[Candidato], umbral_baja: float) -
             limit=CANDIDATOS_PREFILTRO,
         )
         candidatos = [candidatos[indice] for _, _, indice in elegidos]
-    puntuados = [(puntaje(linea, c.normalizado), c.sku) for c in candidatos]
+    factor = FACTOR_PALABRA_CORREGIDA if corregida else 1.0
+    puntuados = [(round(puntaje(linea, c.normalizado) * factor, 3), c.sku) for c in candidatos]
     seleccionados = sorted((p for p in puntuados if p[0] >= umbral_baja), key=lambda p: (-p[0], p[1]))
     return [Coincidencia(sku=sku, confianza=valor) for valor, sku in seleccionados[:MAXIMO_COINCIDENCIAS]]

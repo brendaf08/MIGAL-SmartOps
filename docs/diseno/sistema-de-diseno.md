@@ -106,7 +106,7 @@ Principios:
 - **Tarea primero.** En teléfono se prioriza la tarea del momento: lo secundario se omite (`phone: false` en columnas de tabla) o se traslada al detalle.
 - **Zona del pulgar.** Las acciones principales se ubican al pie o a ancho completo; las entradas de mensajes quedan fijas al pie.
 - **Sin desplazamiento horizontal de la página.** Solo las tablas de comparación (`stack` desactivado) se desplazan dentro de su contenedor.
-- **Objetivos táctiles.** 44 px como mínimo en teléfono y en cualquier pantalla táctil, 48 px en tablet y 52 a 56 px en el modo almacén; campos con 16 px de fuente para evitar el acercamiento automático de iOS; enlaces de las migas con objetivo de 44 px.
+- **Objetivos táctiles.** 44 px como mínimo en teléfono y en cualquier pantalla táctil, 48 px en tablet; campos con 16 px de fuente para evitar el acercamiento automático de iOS; enlaces de las migas con objetivo de 44 px.
 - **Cámara como entrada.** `Dropzone` con `camera` abre la cámara trasera para fotografiar notas, pedidos y guías de proveedores.
 - **Áreas seguras y altura dinámica.** Declarar `viewport-fit=cover` y usar `env(safe-area-inset-*)` y unidades `dvh` en superficies que ocupan toda la pantalla (panel, hoja inferior).
 - **Zoom y orientación.** La interfaz admite el zoom del navegador al 200 % sin desplazamiento horizontal y funciona en vertical y horizontal.
@@ -171,7 +171,6 @@ Reglas que se derivan de la crítica de las pantallas de almacén y rigen todo f
 - **Cierre.** Toda confirmación termina en una `Constancia` que dice qué cambió y qué sigue.
 - **Un solo lugar para cada estado.** El estado de un documento se muestra una vez como sello; el ciclo de vida, como `Stepper`, solo cuando se necesita para decidir.
 - **Avisos breves.** Un `Alert` informativo ocupa como máximo dos líneas.
-- **Modo almacén.** Un interruptor por equipo (`AppShell`, `warehouse`) que sube los controles a 52 a 56 px, muestra las etiquetas de la barra lateral en tablet y agranda las cifras.
 
 ## Integración con el stack
 
@@ -221,7 +220,6 @@ Propuesta derivada de los actores de los casos de uso. La visibilidad es una ayu
 - RNF-05 contempla computadoras de escritorio y tablets. La compatibilidad con teléfonos se incorpora por decisión del equipo y debe registrarse en los requerimientos.
 - La confirmación de una recepción se bloquea mientras exista una línea sin producto asociado y admite cantidades menores a las pedidas (recepción parcial). Confirmar la regla con el negocio.
 - La tabla de Disponibilidad reemplaza las columnas Físico y Reservado por el reparto (`StockBar`) y por las ubicaciones; los valores exactos se consultan en el detalle del producto. Confirmar con RF-KAR-02 y RF-PRO-05 si deben mantenerse como columnas.
-- El modo almacén se guarda por equipo; falta definir quién puede activarlo y si se guarda en el dispositivo o en el servidor.
 - Los umbrales de `MatchConfidence` (0.85 y 0.60) son valores de ejemplo hasta que se definan en el servicio Python.
 - Los nombres definitivos de los estados de cotización, venta y guía deben armonizarse con los casos de uso (tabla de limitaciones de la metodología); el mapa `STATUS` se actualiza una sola vez cuando se confirmen.
 - La atención parcial de ventas (RF-VEN-12) difiere de la reserva parcial con despacho completo del modelo vigente; las pantallas de venta se ajustan cuando se resuelva.

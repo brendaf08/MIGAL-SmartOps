@@ -89,7 +89,10 @@ services:
       MIGAL_OCR_GEMINI_MODELO: ${MIGAL_OCR_GEMINI_MODELO:-gemini-3.5-flash-lite,gemini-3.1-flash-lite,gemini-3.6-flash}
       # Dos intentos de 25 s caben en el plazo de 60 s de la vigilancia del backend (ADR-012, punto 4).
       TIEMPO_MODELO_SEGUNDOS: ${TIEMPO_MODELO_SEGUNDOS:-25}
-    # Sin puerto publicado: solo el backend lo invoca dentro de la red de Compose.
+    ports:
+      # El backend lo invoca por la red de Compose (servicio-ocr:8000). La publicación en el bucle local es opcional y
+      # permite consultar /salud y /docs desde el equipo anfitrión; no sustituye al token interno.
+      - "127.0.0.1:${OCR_PUERTO:-8000}:8000"
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/salud')"]
       interval: 10s

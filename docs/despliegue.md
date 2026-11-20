@@ -20,3 +20,14 @@ Mientras no se defina un backend público, la compilación de producción utiliz
 | `desplegar-frontend.yml` | Vista previa en cada PR y producción al integrar en `main`, tras superar la verificación. Se omite si faltan los secretos. |
 | `analisis-codeql.yml` | Análisis estático de seguridad en PR, `main` y semanalmente. |
 | `dependabot.yml` | Actualizaciones semanales de dependencias y acciones. |
+
+## Despliegue del backend en Render
+
+1. En Supabase, copiar los datos de conexión del pooler en modo sesión (puerto 5432).
+2. En Render, elegir New > Blueprint, seleccionar el repositorio y la rama `main`; se lee `render.yaml`.
+3. Completar las variables solicitadas: `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD` y `MIGAL_ADMIN_CLAVE` (letras y números, mínimo 8 caracteres).
+4. En la primera ejecución contra Supabase, agregar `spring.flyway.baseline-on-migrate=true` y `spring.flyway.baseline-version=0`, y retirarlas después (ver `.env.example`).
+5. Verificar `https://<servicio>.onrender.com/actuator/health`.
+6. En `frontend/vercel.json`, agregar antes del rewrite de la SPA `{ "source": "/api/:path*", "destination": "https://<servicio>.onrender.com/api/:path*" }` y definir `VITE_API_REAL=true` en Vercel.
+
+Limitaciones del plan gratuito: el servicio se suspende por inactividad y los documentos subidos no persisten. El servicio de OCR no se incluye; el backend usa el proveedor simulado hasta que se despliegue por separado.

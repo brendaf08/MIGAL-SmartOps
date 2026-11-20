@@ -9,6 +9,7 @@ import com.migal.smartops.comun.errores.CodigoError;
 import com.migal.smartops.comun.errores.ErrorDeNegocio;
 import com.migal.smartops.despacho.model.EstadoGuia;
 import com.migal.smartops.despacho.model.GuiaDespacho;
+import com.migal.smartops.despacho.model.TipoEntrega;
 import com.migal.smartops.despacho.model.ReimpresionGuia;
 import com.migal.smartops.despacho.repository.GuiaDespachoRepository;
 import com.migal.smartops.despacho.repository.ReimpresionGuiaRepository;
@@ -18,6 +19,9 @@ import com.migal.smartops.inventario.model.ReservaStock;
 import com.migal.smartops.inventario.repository.InventarioRepository;
 import com.migal.smartops.inventario.service.MovimientoDetalle;
 import com.migal.smartops.inventario.service.ReservaInventarioService;
+import com.migal.smartops.inventario.service.ReservaInventarioService.OpcionUbicacion;
+import com.migal.smartops.inventario.service.ReservaInventarioService.SalidaLinea;
+import com.migal.smartops.seguridad.model.RolUsuario;
 import com.migal.smartops.seguridad.model.Usuario;
 import com.migal.smartops.seguridad.service.UsuarioService;
 import jakarta.persistence.criteria.Predicate;
@@ -63,6 +67,14 @@ public class DespachoService {
 	public record GuiaDetalle(GuiaDespacho guia, List<LineaGuia> lineas) {
 	}
 
+	/** Salidas elegidas para un producto de la venta: de qué ubicaciones y cuánto sale de cada una. */
+	public record SalidaProducto(long productoId, List<SalidaLinea> ubicaciones) {
+	}
+
+	/** Producto de una venta con las ubicaciones desde las que puede salir (para elegir el origen al emitir la guía). */
+	public record OpcionesProducto(DetalleVenta linea, List<OpcionUbicacion> ubicaciones) {
+	}
+
 	/** Existencia antes y después de la salida, por producto y ubicación. */
 	public record Cambio(long productoId, String sku, long ubicacionId, String unidad, BigDecimal antes,
 			BigDecimal despues) {
@@ -98,6 +110,13 @@ public class DespachoService {
 	@Transactional(readOnly = true)
 	public Page<GuiaDespacho> listar(Collection<EstadoGuia> estados, String texto, Long idVenta, LocalDate desde,
 			LocalDate hasta, Pageable paginacion) {
+		return listar(estados, texto, idVenta, desde, hasta, null, paginacion);
+	}
+
+	/** Igual que el listado anterior; {@code soloTipo} limita a las guías de esa forma de entrega (nulo: todas). */
+	@Transactional(readOnly = true)
+	public Page<GuiaDespacho> listar(Collection<EstadoGuia> estados, String texto, Long idVenta, LocalDate desde,
+			LocalDate hasta, TipoEntrega soloTipo, Pageable paginacion) {
 		String patron = patron(texto);
 		Instant inicio = inicio(desde);
 		Instant fin = fin(hasta);
@@ -112,6 +131,9 @@ public class DespachoService {
 			}
 			if (idVenta != null) {
 				condiciones.add(cb.equal(raiz.get("venta").get("id"), idVenta));
+			}
+			if (soloTipo != null) {
+				condiciones.add(cb.equal(raiz.get("tipoEntrega"), soloTipo.valor()));
 			}
 			if (inicio != null) {
 				condiciones.add(cb.greaterThanOrEqualTo(raiz.<Instant>get("fechaEmision"), inicio));
@@ -165,6 +187,21 @@ public class DespachoService {
 	 */
 	@Transactional
 	public GuiaDetalle emitir(long idVenta) {
+		return emitir(0, RolUsuario.ALMACENERO, idVenta, null, null, null);
+	}
+
+	/**
+	 * Emite la guía eligiendo cómo se entrega y de dónde sale cada producto. {@code tipo} nulo equivale a envío. Un
+	 * Vendedor solo puede emitir guías de retiro en tienda (venta de mostrador); el Almacenero emite cualquiera. En un
+	 * envío se usa {@code direccion} (o la del cliente si no se indica); en un retiro, el punto de retiro es la tienda.
+	 * {@code salidas} opcional reasigna las reservas a las ubicaciones elegidas para que el Kardex registre la salida
+	 * donde realmente se saca la mercadería.
+	 */
+	@Transactional
+	public GuiaDetalle emitir(long idUsuario, RolUsuario rol, long idVenta, TipoEntrega tipo, String direccion,
+			List<SalidaProducto> salidas) {
+		TipoEntrega forma = tipo == null ? TipoEntrega.ENVIO : tipo;
+		exigirPermisoDeEntrega(rol, forma);
 		Venta venta = ventas.bloquearPorId(idVenta).orElseThrow(DespachoService::ventaNoEncontrada);
 		if (guias.existsByVentaId(idVenta)) {
 			throw new ErrorDeNegocio(CodigoError.GUIA_EXISTENTE, "La venta ya tiene una guía de despacho.");
@@ -173,11 +210,20 @@ public class DespachoService {
 			throw new ErrorDeNegocio(CodigoError.VENTA_NO_DESPACHABLE, "La venta no está pendiente de despacho.");
 		}
 		exigirReservaCompleta(venta);
-		String direccion = venta.getCliente().getDireccionReferencia();
-		if (direccion == null || direccion.isBlank()) {
-			throw validacion("El cliente de la venta no tiene una dirección de entrega registrada.");
+		String destino;
+		if (forma == TipoEntrega.RETIRO_TIENDA) {
+			destino = TipoEntrega.DIRECCION_RETIRO;
+		} else {
+			destino = direccion != null && !direccion.isBlank() ? direccion.trim() : venta.getCliente().getDireccionReferencia();
+			if (destino == null || destino.isBlank()) {
+				throw validacion("Indicar la dirección de entrega: el cliente de la venta no tiene una registrada.");
+			}
+			if (destino.length() > 255) {
+				throw validacion("La dirección de entrega no puede superar 255 caracteres.");
+			}
 		}
-		GuiaDespacho guia = guias.saveAndFlush(new GuiaDespacho(venta, direccion));
+		asignarSalidas(idUsuario, venta, salidas);
+		GuiaDespacho guia = guias.saveAndFlush(new GuiaDespacho(venta, forma, destino));
 		venta.cambiarEstado(EstadoVenta.LISTA_PARA_DESPACHO);
 		return detalle(guia);
 	}
@@ -189,9 +235,16 @@ public class DespachoService {
 	 */
 	@Transactional
 	public ResultadoSalida confirmarSalida(long idUsuario, long idGuia) {
+		return confirmarSalida(idUsuario, RolUsuario.ALMACENERO, idGuia);
+	}
+
+	/** Confirma la salida verificando que el rol pueda despachar esa forma de entrega (el Vendedor, solo retiro en tienda). */
+	@Transactional
+	public ResultadoSalida confirmarSalida(long idUsuario, RolUsuario rol, long idGuia) {
 		Long idVenta = guias.idVentaDeGuia(idGuia).orElseThrow(DespachoService::guiaNoEncontrada);
 		Venta venta = ventas.bloquearPorId(idVenta).orElseThrow(DespachoService::ventaNoEncontrada);
 		GuiaDespacho guia = guias.bloquearPorId(idGuia).orElseThrow(DespachoService::guiaNoEncontrada);
+		exigirPermisoDeEntrega(rol, guia.getTipoEntrega());
 		if (guia.getEstado() != EstadoGuia.EMITIDA) {
 			throw new ErrorDeNegocio(CodigoError.SALIDA_NO_CONFIRMABLE, "La guía no está emitida y su salida no puede confirmarse.");
 		}
@@ -220,7 +273,14 @@ public class DespachoService {
 	/** Registra la entrega al cliente de una guía con la salida confirmada. No modifica el inventario ni el Kardex. */
 	@Transactional
 	public GuiaDetalle registrarEntrega(long idGuia) {
+		return registrarEntrega(RolUsuario.ALMACENERO, idGuia);
+	}
+
+	/** Registra la entrega verificando que el rol pueda gestionar esa forma de entrega. */
+	@Transactional
+	public GuiaDetalle registrarEntrega(RolUsuario rol, long idGuia) {
 		GuiaDespacho guia = guias.bloquearPorId(idGuia).orElseThrow(DespachoService::guiaNoEncontrada);
+		exigirPermisoDeEntrega(rol, guia.getTipoEntrega());
 		if (guia.getEstado() != EstadoGuia.SALIDA_CONFIRMADA) {
 			throw new ErrorDeNegocio(CodigoError.TRANSICION_NO_PERMITIDA,
 					"La guía debe tener la salida confirmada para registrar la entrega.");
@@ -259,6 +319,43 @@ public class DespachoService {
 			}
 			guia.anular();
 		});
+	}
+
+	/**
+	 * Productos de una venta con las ubicaciones desde las que puede salir cada uno, para elegir el origen al emitir la
+	 * guía. Solo lectura.
+	 */
+	@Transactional(readOnly = true)
+	public List<OpcionesProducto> opcionesSalida(long idVenta) {
+		Venta venta = ventas.findById(idVenta).orElseThrow(DespachoService::ventaNoEncontrada);
+		return venta.getLineas().stream()
+				.map(l -> new OpcionesProducto(l, reservas.opcionesSalida(l.getId(), l.getProducto().getId())))
+				.toList();
+	}
+
+	/** Reasigna las reservas de los productos indicados a las ubicaciones elegidas. */
+	private void asignarSalidas(long idUsuario, Venta venta, List<SalidaProducto> salidas) {
+		if (salidas == null || salidas.isEmpty()) {
+			return;
+		}
+		for (SalidaProducto salida : salidas) {
+			DetalleVenta linea = venta.getLineas().stream().filter(l -> l.getProducto().getId() == salida.productoId())
+					.findFirst().orElseThrow(() -> validacion("Un producto de la salida no pertenece a la venta."));
+			reservas.reasignarSalida(idUsuario, linea.getId(), salida.productoId(), linea.getCantidadVendida(), salida.ubicaciones());
+		}
+	}
+
+	/**
+	 * El Almacenero (y el rol de demostración) despachan cualquier guía; el Vendedor solo las de retiro en tienda, que
+	 * son las ventas de mostrador. Cualquier otro rol no despacha.
+	 */
+	private static void exigirPermisoDeEntrega(RolUsuario rol, TipoEntrega tipo) {
+		boolean permitido = rol.incluye(RolUsuario.ALMACENERO)
+				|| (tipo == TipoEntrega.RETIRO_TIENDA && rol.incluye(RolUsuario.VENDEDOR));
+		if (!permitido) {
+			throw new ErrorDeNegocio(CodigoError.PERMISO_INSUFICIENTE,
+					"Solo el Almacenero despacha los envíos; el Vendedor solo gestiona retiros en tienda.");
+		}
 	}
 
 	/** Verifica que cada línea de la venta tenga reservada su cantidad vendida completa (reservas activas). */

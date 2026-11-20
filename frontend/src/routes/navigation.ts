@@ -32,7 +32,7 @@ export const NAV: NavGroup[] = [
         key: 'despachos',
         label: 'Despachos',
         icon: 'despacho',
-        roles: ['Almacenero', 'Administrador'],
+        roles: ['Almacenero', 'Vendedor', 'Administrador'],
       },
       {
         key: 'recepciones',

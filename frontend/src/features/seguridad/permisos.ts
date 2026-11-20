@@ -19,6 +19,8 @@ export const PERMISOS = {
   registrarRecepcion: ['Almacenero'],
   /** POST /guias-despacho, /salida, /reimpresiones y /entrega. */
   operarDespacho: ['Almacenero'],
+  /** POST /guias-despacho, /salida y /entrega solo de retiros en tienda (ventas de mostrador). */
+  despacharRetiro: ['Almacenero', 'Vendedor'],
   /** POST /inventario/movimientos y /inventario/traslados. */
   registrarMovimiento: ['Almacenero', 'Administrador'],
   /** POST /ordenes-compra, PUT y cierre. */

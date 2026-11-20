@@ -8,11 +8,18 @@ import com.migal.smartops.comun.web.PaginaDto;
 import com.migal.smartops.despacho.controller.DespachoDtos.GuiaDespachoDto;
 import com.migal.smartops.despacho.controller.DespachoDtos.GuiaReimpresionDto;
 import com.migal.smartops.despacho.controller.DespachoDtos.GuiaResumenDto;
+import com.migal.smartops.despacho.controller.DespachoDtos.OpcionesSalidaDto;
 import com.migal.smartops.despacho.controller.DespachoDtos.ResultadoSalidaDto;
 import com.migal.smartops.despacho.controller.DespachoDtos.VentaPendienteDto;
 import com.migal.smartops.despacho.controller.SolicitudesDespacho.SolicitudEmisionGuia;
 import com.migal.smartops.despacho.controller.SolicitudesDespacho.SolicitudReimpresionGuia;
 import com.migal.smartops.despacho.model.EstadoGuia;
+import com.migal.smartops.despacho.model.TipoEntrega;
+import com.migal.smartops.despacho.service.DespachoService.SalidaProducto;
+import com.migal.smartops.comun.errores.CodigoError;
+import com.migal.smartops.comun.errores.ErrorDeNegocio;
+import com.migal.smartops.inventario.service.ReservaInventarioService.SalidaLinea;
+import com.migal.smartops.seguridad.model.RolUsuario;
 import com.migal.smartops.despacho.service.DespachoService;
 import com.migal.smartops.seguridad.config.UsuarioAutenticado;
 import jakarta.validation.Valid;
@@ -48,7 +55,9 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1")
 public class DespachoController {
 
-	private static final String ROLES_CONSULTA = "hasAnyRole('ALMACENERO','ADMINISTRADOR')";
+	// El Vendedor consulta y despacha solo las guías de retiro en tienda (venta de mostrador); lo verifica el servicio.
+	private static final String ROLES_CONSULTA = "hasAnyRole('ALMACENERO','VENDEDOR','ADMINISTRADOR')";
+	private static final String ROLES_DESPACHO = "hasAnyRole('ALMACENERO','VENDEDOR')";
 	private static final String ROLES_ALMACENERO = "hasRole('ALMACENERO')";
 	// Todos los valores de GuiaEstado del contrato, incluida anulada (ADR-009): filtrar por ella respondía 422.
 	private static final String ESTADOS = "^(preparacion|emitida|salida_confirmada|entregada|anulada)"
@@ -66,7 +75,7 @@ public class DespachoController {
 
 	@GetMapping("/guias-despacho")
 	@PreAuthorize(ROLES_CONSULTA)
-	public PaginaDto<GuiaResumenDto> listar(
+	public PaginaDto<GuiaResumenDto> listar(@AuthenticationPrincipal UsuarioAutenticado actor,
 			@RequestParam(required = false) String q,
 			@RequestParam(required = false) @Pattern(regexp = ESTADOS) String estado,
 			@RequestParam(required = false) String idVenta,
@@ -80,37 +89,45 @@ public class DespachoController {
 		List<EstadoGuia> estados = estado == null ? null
 				: Arrays.stream(estado.split(",")).map(EstadoGuia::de).toList();
 		Long id = idVenta == null ? null : Identificadores.numero(idVenta);
-		return PaginaDto.de(despacho.listar(estados, q, id, desde, hasta, paginacion), GuiaResumenDto::de);
+		return PaginaDto.de(despacho.listar(estados, q, id, desde, hasta, soloRetiro(actor) ? TipoEntrega.RETIRO_TIENDA : null,
+				paginacion), GuiaResumenDto::de);
 	}
 
 	@PostMapping("/guias-despacho")
-	@PreAuthorize(ROLES_ALMACENERO)
-	public ResponseEntity<GuiaDespachoDto> emitir(@Valid @RequestBody SolicitudEmisionGuia solicitud) {
-		GuiaDespachoDto guia = GuiaDespachoDto.de(despacho.emitir(Identificadores.numero(solicitud.idVenta())));
+	@PreAuthorize(ROLES_DESPACHO)
+	public ResponseEntity<GuiaDespachoDto> emitir(@AuthenticationPrincipal UsuarioAutenticado actor,
+			@Valid @RequestBody SolicitudEmisionGuia solicitud) {
+		TipoEntrega tipo = solicitud.tipoEntrega() == null ? null : TipoEntrega.de(solicitud.tipoEntrega());
+		List<SalidaProducto> salidas = solicitud.salidas() == null ? null : solicitud.salidas().stream()
+				.map(s -> new SalidaProducto(Identificadores.numero(s.productoId()), s.ubicaciones().stream()
+						.map(u -> new SalidaLinea(Identificadores.numero(u.ubicacionId()), u.cantidad())).toList()))
+				.toList();
+		GuiaDespachoDto guia = GuiaDespachoDto.de(despacho.emitir(actor.id(), actor.rol(),
+				Identificadores.numero(solicitud.idVenta()), tipo, solicitud.direccionEntrega(), salidas));
 		return ResponseEntity.status(HttpStatus.CREATED).body(guia);
 	}
 
 	@GetMapping("/guias-despacho/{id}")
 	@PreAuthorize(ROLES_CONSULTA)
-	public GuiaDespachoDto consultar(@PathVariable String id) {
-		return GuiaDespachoDto.de(despacho.consultar(Identificadores.numero(id)));
+	public GuiaDespachoDto consultar(@AuthenticationPrincipal UsuarioAutenticado actor, @PathVariable String id) {
+		return visible(actor, GuiaDespachoDto.de(despacho.consultar(Identificadores.numero(id))));
 	}
 
 	@GetMapping("/guias-despacho/{id}/documento")
 	@PreAuthorize(ROLES_CONSULTA)
-	public GuiaDespachoDto documento(@PathVariable String id) {
-		return GuiaDespachoDto.de(despacho.consultar(Identificadores.numero(id)));
+	public GuiaDespachoDto documento(@AuthenticationPrincipal UsuarioAutenticado actor, @PathVariable String id) {
+		return visible(actor, GuiaDespachoDto.de(despacho.consultar(Identificadores.numero(id))));
 	}
 
 	@PostMapping("/guias-despacho/{id}/salida")
-	@PreAuthorize(ROLES_ALMACENERO)
+	@PreAuthorize(ROLES_DESPACHO)
 	public ResponseEntity<ResultadoSalidaDto> confirmarSalida(
 			@RequestHeader(value = "Idempotency-Key", required = false) String clave,
 			@AuthenticationPrincipal UsuarioAutenticado actor, @PathVariable String id) {
 		long idGuia = Identificadores.numero(id);
 		Resultado<ResultadoSalidaDto> resultado = idempotencia.ejecutar(actor.id(), "POST /guias-despacho/{id}/salida",
 				clave, Map.of("id", idGuia), 200, ResultadoSalidaDto.class,
-				() -> ResultadoSalidaDto.de(despacho.confirmarSalida(actor.id(), idGuia)));
+				() -> ResultadoSalidaDto.de(despacho.confirmarSalida(actor.id(), actor.rol(), idGuia)));
 		return respuesta(resultado);
 	}
 
@@ -123,9 +140,16 @@ public class DespachoController {
 	}
 
 	@PostMapping("/guias-despacho/{id}/entrega")
-	@PreAuthorize(ROLES_ALMACENERO)
-	public GuiaDespachoDto registrarEntrega(@PathVariable String id) {
-		return GuiaDespachoDto.de(despacho.registrarEntrega(Identificadores.numero(id)));
+	@PreAuthorize(ROLES_DESPACHO)
+	public GuiaDespachoDto registrarEntrega(@AuthenticationPrincipal UsuarioAutenticado actor, @PathVariable String id) {
+		return GuiaDespachoDto.de(despacho.registrarEntrega(actor.rol(), Identificadores.numero(id)));
+	}
+
+	@GetMapping("/ventas-pendientes-despacho/{idVenta}/salidas")
+	@PreAuthorize(ROLES_CONSULTA)
+	public OpcionesSalidaDto opcionesSalida(@PathVariable String idVenta) {
+		long id = Identificadores.numero(idVenta);
+		return OpcionesSalidaDto.de(id, despacho.opcionesSalida(id));
 	}
 
 	@GetMapping("/ventas-pendientes-despacho")
@@ -139,6 +163,19 @@ public class DespachoController {
 		var paginacion = PageRequest.of(page - 1, pageSize,
 				Sort.by(Sort.Order.asc("fechaVenta"), Sort.Order.asc("codigo")));
 		return PaginaDto.de(despacho.ventasPendientes(q, desde, hasta, paginacion), VentaPendienteDto::de);
+	}
+
+	/** El Vendedor (sin los permisos del Almacenero) solo ve las guías de retiro en tienda. */
+	private static boolean soloRetiro(UsuarioAutenticado actor) {
+		return !actor.rol().incluye(RolUsuario.ALMACENERO) && !actor.rol().incluye(RolUsuario.ADMINISTRADOR)
+				&& actor.rol().incluye(RolUsuario.VENDEDOR);
+	}
+
+	private static GuiaDespachoDto visible(UsuarioAutenticado actor, GuiaDespachoDto guia) {
+		if (soloRetiro(actor) && !TipoEntrega.RETIRO_TIENDA.valor().equals(guia.tipoEntrega())) {
+			throw new ErrorDeNegocio(CodigoError.PERMISO_INSUFICIENTE, "El Vendedor solo consulta retiros en tienda.");
+		}
+		return guia;
 	}
 
 	private static <T> ResponseEntity<T> respuesta(Resultado<T> resultado) {

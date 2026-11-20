@@ -35,6 +35,7 @@ export interface GuiaApi {
   fechaSalidaReal: string | null;
   fechaEntrega: string | null;
   usuarioResponsableId: string | null;
+  tipoEntrega: 'envio' | 'retiro_tienda';
   direccionEntrega: string;
   lineas: GuiaLineaApi[];
 }
@@ -73,11 +74,14 @@ export const ordenDesde = (g: GuiaApi): OrdenDespacho => {
     cliente: g.cliente,
     estado: ESTADO_DE_API[g.estado],
     entrega: 'Completa',
+    tipoEntrega: g.tipoEntrega,
+    direccion: g.direccionEntrega,
     lineas: g.lineas.map((l): LineaDespacho => ({
       sku: l.sku,
       nombre: l.nombre,
       cantidad: l.cantidad,
       reservado: l.ubicacionesSalida.reduce((suma, u) => suma + u.cantidad, 0),
+      salidas: l.ubicacionesSalida.map((u) => ({ ubicacion: u.nombre, cantidad: u.cantidad })),
     })),
   };
 };

@@ -12,10 +12,14 @@ import com.migal.smartops.comercial.service.VentaService;
 import com.migal.smartops.comun.errores.CodigoError;
 import com.migal.smartops.comun.errores.ErrorDeNegocio;
 import com.migal.smartops.despacho.model.EstadoGuia;
+import com.migal.smartops.despacho.model.TipoEntrega;
 import com.migal.smartops.despacho.service.DespachoService;
 import com.migal.smartops.despacho.service.DespachoService.Cambio;
 import com.migal.smartops.despacho.service.DespachoService.GuiaDetalle;
 import com.migal.smartops.despacho.service.DespachoService.ResultadoSalida;
+import com.migal.smartops.despacho.service.DespachoService.SalidaProducto;
+import com.migal.smartops.inventario.service.ReservaInventarioService.SalidaLinea;
+import com.migal.smartops.seguridad.model.RolUsuario;
 import com.migal.smartops.inventario.EscenarioInventario;
 import com.migal.smartops.inventario.model.OrigenMovimiento;
 import com.migal.smartops.inventario.model.TipoOperacion;
@@ -145,6 +149,64 @@ class DespachoServiceTest {
 	/** Cambio de existencia de la ubicación indicada. */
 	private static Cambio cambioEn(List<Cambio> cambios, long ubicacion) {
 		return cambios.stream().filter(c -> c.ubicacionId() == ubicacion).findFirst().orElseThrow();
+	}
+
+	@Test
+	void emitirConSalidasElegidasReasignaLasReservasYElKardexSaleDeLaUbicacionElegida() {
+		ventaReservada();
+		GuiaDetalle guia = servicio.emitir(usuario, RolUsuario.ALMACENERO, venta, TipoEntrega.ENVIO, "Calle elegida 1",
+				List.of(new SalidaProducto(producto, List.of(new SalidaLinea(deposito, new BigDecimal("40"))))));
+
+		assertEquals("Calle elegida 1", guia.guia().getDireccionEntrega());
+		assertEquals(TipoEntrega.ENVIO, guia.guia().getTipoEntrega());
+		assertEquals(1, guia.lineas().get(0).ubicaciones().size());
+		assertEquals(deposito, guia.lineas().get(0).ubicaciones().get(0).ubicacionId());
+		assertEquals(0, new BigDecimal("40").compareTo(reservadoActivo()));
+
+		ResultadoSalida salida = servicio.confirmarSalida(usuario, guia.guia().getId());
+		assertEquals(0, new BigDecimal("10").compareTo(cambioEn(salida.cambios(), deposito).despues()));
+		assertEquals(1, salida.cambios().size());
+	}
+
+	@Test
+	void salidaConStockInsuficienteEnLaUbicacionElegidaSeRechazaYConservaLasReservas() {
+		ventaReservada();
+		assertCodigo(CodigoError.STOCK_INSUFICIENTE, () -> servicio.emitir(usuario, RolUsuario.ALMACENERO, venta, TipoEntrega.ENVIO,
+				null, List.of(new SalidaProducto(producto, List.of(new SalidaLinea(tienda, new BigDecimal("40")))))));
+		assertEquals(0, new BigDecimal("40").compareTo(reservadoActivo()));
+		assertEquals(0, new BigDecimal("30").compareTo(jdbc.queryForObject("SELECT coalesce(sum(r.cantidad_reservada), 0) "
+				+ "FROM reserva_stock r JOIN inventario i ON i.id_inventario = r.id_inventario WHERE r.id_detalle_venta = ? "
+				+ "AND r.estado = 'activa' AND i.id_almacen = ?", BigDecimal.class, detalle, tienda)));
+	}
+
+	@Test
+	void laSumaDeLasSalidasDebeSerLaCantidadVendida() {
+		ventaReservada();
+		assertCodigo(CodigoError.VALIDACION_FALLIDA, () -> servicio.emitir(usuario, RolUsuario.ALMACENERO, venta, TipoEntrega.ENVIO,
+				null, List.of(new SalidaProducto(producto, List.of(new SalidaLinea(deposito, new BigDecimal("39")))))));
+	}
+
+	@Test
+	void elVendedorSoloEmiteYDespachaRetirosEnTienda() {
+		ventaReservada();
+		assertCodigo(CodigoError.PERMISO_INSUFICIENTE,
+				() -> servicio.emitir(usuario, RolUsuario.VENDEDOR, venta, TipoEntrega.ENVIO, "Calle 1", null));
+
+		GuiaDetalle guia = servicio.emitir(usuario, RolUsuario.VENDEDOR, venta, TipoEntrega.RETIRO_TIENDA, null, null);
+		assertEquals(TipoEntrega.RETIRO_TIENDA, guia.guia().getTipoEntrega());
+		assertEquals(TipoEntrega.DIRECCION_RETIRO, guia.guia().getDireccionEntrega());
+		long id = guia.guia().getId();
+		servicio.confirmarSalida(usuario, RolUsuario.VENDEDOR, id);
+		assertEquals(EstadoGuia.ENTREGADA, servicio.registrarEntrega(RolUsuario.VENDEDOR, id).guia().getEstado());
+	}
+
+	@Test
+	void elVendedorNoDespachaUnEnvio() {
+		ventaReservada();
+		long guia = servicio.emitir(usuario, RolUsuario.ALMACENERO, venta, TipoEntrega.ENVIO, "Calle 1", null).guia().getId();
+		assertCodigo(CodigoError.PERMISO_INSUFICIENTE, () -> servicio.confirmarSalida(usuario, RolUsuario.VENDEDOR, guia));
+		servicio.confirmarSalida(usuario, RolUsuario.ALMACENERO, guia);
+		assertCodigo(CodigoError.PERMISO_INSUFICIENTE, () -> servicio.registrarEntrega(RolUsuario.VENDEDOR, guia));
 	}
 
 	@Test

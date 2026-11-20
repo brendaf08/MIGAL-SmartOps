@@ -199,6 +199,11 @@ components:
         fechaVenta:
           description: Fecha y hora de aprobación y registro de la venta.
           $ref: ../componentes/esquemas-comunes.yaml#/FechaHora
+        fechaEntregaRequerida:
+          description: Fecha en que el cliente requiere la entrega, registrada con la venta; nula si no se indicó.
+          anyOf:
+            - $ref: ../componentes/esquemas-comunes.yaml#/Fecha
+            - type: 'null'
         cotizacionId:
           description: Cotización aceptada y validada de la que procede la venta. Única por venta.
           $ref: ../componentes/esquemas-comunes.yaml#/Identificador
@@ -313,6 +318,11 @@ components:
           $ref: ../componentes/esquemas-comunes.yaml#/Identificador
         fechaVenta:
           $ref: ../componentes/esquemas-comunes.yaml#/FechaHora
+        fechaEntregaRequerida:
+          description: Fecha en que el cliente requiere la entrega, registrada con la venta; nula si no se indicó.
+          anyOf:
+            - $ref: ../componentes/esquemas-comunes.yaml#/Fecha
+            - type: 'null'
         cotizacionId:
           $ref: ../componentes/esquemas-comunes.yaml#/Identificador
         clienteId:
@@ -362,8 +372,14 @@ components:
         idCotizacion:
           description: Cotización aceptada y validada que origina la venta. Referencia a Cotizacion.id.
           $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        fechaEntregaRequerida:
+          description: Fecha en que el cliente requiere la entrega. Opcional; no puede ser anterior a hoy.
+          anyOf:
+            - $ref: ../componentes/esquemas-comunes.yaml#/Fecha
+            - type: 'null'
       example:
         idCotizacion: "301"
+        fechaEntregaRequerida: "2026-12-04"
     VentaLineaDirecta:
       type: object
       description: Producto y cantidad de una venta directa de mostrador.
@@ -406,6 +422,11 @@ components:
         fechaVencimiento:
           description: Fecha límite de vigencia de la cotización registrada. Si se omite, el servidor la asigna.
           $ref: ../componentes/esquemas-comunes.yaml#/Fecha
+        fechaEntregaRequerida:
+          description: Fecha en que el cliente requiere la entrega. Opcional; no puede ser anterior a hoy.
+          anyOf:
+            - $ref: ../componentes/esquemas-comunes.yaml#/Fecha
+            - type: 'null'
         lineas:
           type: array
           minItems: 1

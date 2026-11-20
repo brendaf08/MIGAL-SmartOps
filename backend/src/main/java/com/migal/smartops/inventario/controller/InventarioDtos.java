@@ -45,11 +45,18 @@ public final class InventarioDtos {
 
 	/** {@code FaltanteVenta}. {@code porCubrir} es lo que falta menos lo ya pedido en órdenes de compra abiertas. */
 	public record FaltanteVentaDto(String productoId, String sku, String nombre, String unidad, BigDecimal faltante,
-			BigDecimal planificado, BigDecimal porCubrir, long ventas) {
+			BigDecimal planificado, BigDecimal porCubrir, long ventas, List<OrigenFaltanteDto> origenes) {
+
+		/** {@code FaltanteOrigen}: la venta que origina parte del faltante. */
+		public record OrigenFaltanteDto(String ventaId, String ventaCodigo, String cotizacionId, String cotizacionCodigo, String cliente, Instant fechaVenta,
+				java.time.LocalDate fechaEntregaRequerida, BigDecimal faltante) {
+		}
 
 		static FaltanteVentaDto de(FaltanteVenta f) {
 			return new FaltanteVentaDto(texto(f.productoId()), f.sku(), f.nombre(), f.unidad(), f.faltante(),
-					f.planificado(), f.faltante().subtract(f.planificado()).max(BigDecimal.ZERO), f.ventas());
+					f.planificado(), f.faltante().subtract(f.planificado()).max(BigDecimal.ZERO), f.ventas(),
+					f.origenes().stream().map(o -> new OrigenFaltanteDto(texto(o.ventaId()), o.ventaCodigo(), texto(o.cotizacionId()), o.cotizacionCodigo(),
+							o.cliente(), o.fechaVenta(), o.fechaEntregaRequerida(), o.faltante())).toList());
 		}
 	}
 

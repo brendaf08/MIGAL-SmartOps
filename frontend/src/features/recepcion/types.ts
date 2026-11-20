@@ -14,10 +14,14 @@ export interface LineaRecepcion {
   /** Cantidad pendiente en la orden; 0 para los sobrantes. */
   pedido: number;
   recibido: number;
+  /** Lo recibido en cada ubicación (nombre → cantidad); `recibido` es su suma. Ausente hasta repartir. */
+  reparto?: Record<string, number>;
 }
 
 export interface Recepcion {
   id: string;
+  /** Identificador técnico de la recepción en la API; con datos simulados no existe. */
+  idApi?: string;
   orden: string;
   proveedor: string;
   almacen: string;

@@ -1,4 +1,4 @@
-import { Button, Group } from '@mantine/core';
+import { Button } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
 import { StatusBadge } from '@/components/domain/StatusBadge/StatusBadge';
@@ -43,16 +43,12 @@ export function RecepcionesPage() {
         description="Mercadería recibida de proveedores."
         actions={
           puede('registrarRecepcion') && (
-            <Group gap="sm">
-              <Button
-                variant="default"
-                leftSection={<Icon name="scan" />}
-                onClick={() => void navigate('/documentos/procesar?destino=recepcion')}
-              >
-                Escanear guía con OCR
-              </Button>
-              <Button onClick={() => void navigate('/recepciones/nueva')}>Nueva recepción</Button>
-            </Group>
+            <Button
+              leftSection={<Icon name="scan" />}
+              onClick={() => void navigate('/recepciones/nueva')}
+            >
+              Nueva recepción
+            </Button>
           )
         }
       />

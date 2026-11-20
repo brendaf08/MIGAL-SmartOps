@@ -22,6 +22,11 @@ export interface LineasOcrTablaProps<T extends LineaOcrFila> {
   onSkuChange: (id: T['id'], sku: string) => void;
   /** Columnas que siguen a la de coincidencia: cantidades, pedido y diferencia según el flujo. */
   columnas: Column<T>[];
+  /**
+   * Sin OCR no hay texto leído ni coincidencia que revisar: se muestra solo el nombre del producto, fijo. Con OCR se
+   * mantienen el texto extraído, el selector de producto y la coincidencia.
+   */
+  soloCatalogo?: boolean;
 }
 
 /**
@@ -33,6 +38,7 @@ export function LineasOcrTabla<T extends LineaOcrFila>({
   lineas,
   onSkuChange,
   columnas,
+  soloCatalogo = false,
 }: LineasOcrTablaProps<T>) {
   // Con la API real, el catálogo vigente llega después del primer render y vuelve a pintar la tabla.
   const { productos } = useCatalogoVigente();
@@ -86,6 +92,11 @@ export function LineasOcrTabla<T extends LineaOcrFila>({
     },
     ...columnas,
   ];
+
+  if (soloCatalogo) {
+    const fijas: Column<T>[] = [{ key: 'texto', header: 'Producto', primary: true }, ...columnas];
+    return <DataTable caption={caption} columns={fijas} rows={lineas} rowKey="id" />;
+  }
 
   return <DataTable caption={caption} columns={columns} rows={lineas} rowKey="id" />;
 }

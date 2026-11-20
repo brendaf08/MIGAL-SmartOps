@@ -49,6 +49,31 @@ describe('Recepciones', () => {
     ).toBeInTheDocument();
   });
 
+  it('no ofrece escanear una guía desde el listado: el OCR se usa dentro de una orden', async () => {
+    renderApp('/recepciones', 'Almacenero');
+
+    expect(await screen.findByText('R-0012')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Escanear guía/ })).not.toBeInTheDocument();
+  });
+
+  it('desde el detalle de una orden la deja asociada, sin lista para elegir otra', async () => {
+    renderApp('/recepciones/nueva?oc=OC-0087', 'Almacenero');
+
+    expect(await screen.findByText('Orden asociada')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('table', { name: 'Órdenes de compra para recibir' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('desde Nueva recepción muestra todas las órdenes para elegir', async () => {
+    renderApp('/recepciones/nueva', 'Almacenero');
+
+    expect(
+      await screen.findByRole('table', { name: 'Órdenes de compra para recibir' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Orden asociada')).not.toBeInTheDocument();
+  });
+
   it('precarga las líneas de la guía y bloquea el uso de los datos hasta asociar la sin coincidencia', async () => {
     await cargarDocumento();
 
@@ -78,22 +103,55 @@ describe('Recepciones', () => {
     ).toHaveNoViolations();
   });
 
-  it('iguala lo recibido al pedido de una línea con su botón', async () => {
+  it('completa lo pedido de una línea con su botón y no admite lo que no se pidió', async () => {
     await cargarDocumento();
     await asociarAlambre(/CLA-008/);
     await userEvent.click(screen.getByRole('button', { name: 'Usar datos de la guía' }));
 
-    // Pendiente: PIN-005 (60) sin recibir; FIE-003 no está en la orden y sobra 40.
+    // Pendiente: PIN-005 (60) sin recibir; FIE-003 no está en la orden y no se puede recibir.
     expect(screen.getByText('Faltan 60')).toBeInTheDocument();
-    expect(screen.getByText('Sobran 40')).toBeInTheDocument();
-    expect(screen.getAllByText('Completa')).toHaveLength(2);
+    expect(screen.queryByText(/Sobran/)).not.toBeInTheDocument();
 
     await userEvent.click(
       screen.getByRole('button', { name: 'Igual al pedido, Pintura látex blanco, balde 4 L' }),
     );
 
     expect(screen.queryByText('Faltan 60')).not.toBeInTheDocument();
-    expect(screen.getAllByText('Completa')).toHaveLength(3);
+  });
+
+  it('cada ubicación guarda su propio recibido, con tope: lo que ya llegó a una reduce el cupo de la otra', async () => {
+    await cargarDocumento();
+    await asociarAlambre(/CLA-008/);
+    await userEvent.click(screen.getByRole('button', { name: 'Usar datos de la guía' }));
+
+    const nombre = 'Pintura látex blanco, balde 4 L';
+    const en = (ubicacion: string) =>
+      screen.getByLabelText(`Cantidad recibida en ${ubicacion} de ${nombre}`) as HTMLInputElement;
+    const cambiarA = async (ubicacion: string) => {
+      await userEvent.click(screen.getByRole('combobox', { name: /Ubicación que recibe/ }));
+      await userEvent.click(await screen.findByRole('option', { name: ubicacion, hidden: true }));
+    };
+
+    // Pendiente 60. En Almacén 1 se reciben 20.
+    await userEvent.clear(en('Almacén 1'));
+    await userEvent.type(en('Almacén 1'), '20');
+
+    // En Almacén 2 el máximo es la diferencia: pedir 500 deja 40, y la vista parte de 0.
+    await cambiarA('Almacén 2');
+    expect(en('Almacén 2').value).toBe('');
+    await userEvent.type(en('Almacén 2'), '99');
+    expect(Number(en('Almacén 2').value)).toBeLessThanOrEqual(40);
+    await userEvent.clear(en('Almacén 2'));
+    await userEvent.type(en('Almacén 2'), '40');
+    expect(en('Almacén 2').value).toBe('40');
+    expect(await screen.findByRole('columnheader', { name: 'Total recibido' })).toBeInTheDocument();
+
+    // Ya llegó todo lo pedido: Tienda queda gris y bloqueada, y Almacén 1 conserva su 20.
+    await cambiarA('Tienda');
+    expect(en('Tienda')).toBeDisabled();
+    await cambiarA('Almacén 1');
+    expect(en('Almacén 1').value).toBe('20');
+    expect(screen.getByText(/Recibido por ubicación:.*Almacén 2 40/)).toBeInTheDocument();
   });
 
   it('confirma la recepción tras asociar el producto, anotar el sobrante y aceptar las consecuencias', async () => {
@@ -102,14 +160,10 @@ describe('Recepciones', () => {
 
     await asociarAlambre(/CLA-008/);
     await userEvent.click(screen.getByRole('button', { name: 'Usar datos de la guía' }));
-    await userEvent.type(
-      screen.getByRole('textbox', { name: 'Nota del sobrante' }),
-      'Material de otra obra',
-    );
     await userEvent.click(screen.getByRole('button', { name: 'Confirmar recepción' }));
 
     const dialog = await screen.findByRole('dialog', { name: 'Confirmar recepción OC-0087' });
-    expect(dialog).toHaveTextContent('3 movimientos de entrada en el Kardex de Almacén 1');
+    expect(dialog).toHaveTextContent('2 movimientos de entrada en el Kardex de Almacén 1');
     expect(dialog).toHaveTextContent('recepción parcial');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Confirmar recepción' }));
 

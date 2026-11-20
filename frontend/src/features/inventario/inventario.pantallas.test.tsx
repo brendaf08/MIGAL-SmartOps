@@ -258,6 +258,16 @@ describe('Movimientos y Kardex (P14)', { timeout: 30000 }, () => {
     expect(screen.getByText('Desde Almacén 2')).toBeInTheDocument();
   });
 
+  it('abre solo con los movimientos de una recepción cuando llega con su identificador', async () => {
+    renderApp('/kardex?recepcion=12', 'Almacenero');
+
+    expect(
+      await screen.findByRole('button', {
+        name: 'Quitar filtro Solo los movimientos de la recepción registrada',
+      }),
+    ).toBeInTheDocument();
+  });
+
   it('combina tipo y origen y muestra cada filtro como etiqueta', async () => {
     renderApp('/kardex', 'Almacenero');
     await screen.findByText('−200');

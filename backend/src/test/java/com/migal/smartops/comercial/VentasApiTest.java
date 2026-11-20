@@ -213,6 +213,21 @@ class VentasApiTest {
 	}
 
 	@Test
+	void guardaLaFechaDeEntregaRequeridaEnLaVentaYRechazaUnaFechaPasada() throws Exception {
+		String token = bearer("apc-vendedor");
+		String entrega = java.time.LocalDate.now(java.time.ZoneId.of("America/Lima")).plusDays(10).toString();
+		alta("/api/v1/ventas", token, clave(), "{\"idCotizacion\":\"" + cotizacion("validada")
+				+ "\",\"fechaEntregaRequerida\":\"" + entrega + "\"}")
+				.andExpect(status().isCreated())
+				.andExpect(cumple(contrato))
+				.andExpect(jsonPath("$.fechaEntregaRequerida", is(entrega)));
+
+		alta("/api/v1/ventas", token, clave(), "{\"idCotizacion\":\"" + cotizacion("validada")
+				+ "\",\"fechaEntregaRequerida\":\"2020-01-01\"}")
+				.andExpect(status().isUnprocessableEntity());
+	}
+
+	@Test
 	void repiteLaMismaClaveDevuelveLaRespuestaOriginal() throws Exception {
 		String token = bearer("apc-vendedor");
 		String clave = clave();

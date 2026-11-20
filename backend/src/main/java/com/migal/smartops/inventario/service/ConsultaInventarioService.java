@@ -53,7 +53,12 @@ public class ConsultaInventarioService {
 	 * lo que ya está pedido en órdenes de compra abiertas y lo que resta por cubrir con una nueva compra.
 	 */
 	public record FaltanteVenta(long productoId, String sku, String nombre, String unidad, BigDecimal faltante,
-			BigDecimal planificado, long ventas) {
+			BigDecimal planificado, long ventas, List<OrigenFaltante> origenes) {
+	}
+
+	/** Venta que origina parte de un faltante: su cliente, su fecha, la fecha en que se requiere y lo que falta. */
+	public record OrigenFaltante(long ventaId, String ventaCodigo, long cotizacionId, String cotizacionCodigo, String cliente, java.time.Instant fechaVenta,
+			java.time.LocalDate fechaEntregaRequerida, BigDecimal faltante) {
 	}
 
 	/** Página de disponibilidad con los totales del catálogo sin filtros. */
@@ -143,6 +148,30 @@ public class ConsultaInventarioService {
 	/** Productos que faltan para las ventas pendientes de abastecimiento, de mayor a menor faltante. */
 	@Transactional(readOnly = true)
 	public List<FaltanteVenta> faltantesDeVentas() {
+		Map<Long, List<OrigenFaltante>> origenes = new java.util.LinkedHashMap<>();
+		jdbc.sql("""
+				SELECT dv.id_producto, v.id_venta, v.codigo AS venta_codigo, v.id_cotizacion, c.codigo AS cotizacion_codigo,
+				       cl.nombre_razon_social, v.fecha_venta, v.fecha_entrega_requerida, dv.cantidad_vendida - COALESCE(r.reservada, 0) AS faltante
+				  FROM venta v
+				  JOIN cotizacion c ON c.id_cotizacion = v.id_cotizacion
+				  JOIN cliente cl ON cl.id_cliente = v.id_cliente
+				  JOIN detalle_venta dv ON dv.id_venta = v.id_venta
+				  LEFT JOIN (SELECT id_detalle_venta, SUM(cantidad_reservada) AS reservada
+				               FROM reserva_stock WHERE estado = 'activa' GROUP BY id_detalle_venta) r
+				         ON r.id_detalle_venta = dv.id_detalle_venta
+				 WHERE v.estado = 'pendiente_abastecimiento'
+				   AND dv.cantidad_vendida - COALESCE(r.reservada, 0) > 0
+				 ORDER BY v.fecha_entrega_requerida NULLS LAST, v.fecha_venta, v.id_venta
+				""")
+				.query((rs, n) -> {
+					java.sql.Date entrega = rs.getDate("fecha_entrega_requerida");
+					origenes.computeIfAbsent(rs.getLong("id_producto"), k -> new java.util.ArrayList<>())
+							.add(new OrigenFaltante(rs.getLong("id_venta"), rs.getString("venta_codigo"), rs.getLong("id_cotizacion"),
+									rs.getString("cotizacion_codigo"),
+									rs.getString("nombre_razon_social"), rs.getTimestamp("fecha_venta").toInstant(),
+									entrega == null ? null : entrega.toLocalDate(), rs.getBigDecimal("faltante")));
+					return null;
+				}).list();
 		return jdbc.sql("""
 				SELECT p.id_producto, p.sku, p.nombre_oficial, p.unidad_medida,
 				       SUM(dv.cantidad_vendida - COALESCE(r.reservada, 0)) AS faltante,
@@ -171,7 +200,8 @@ public class ConsultaInventarioService {
 				""")
 				.query((rs, n) -> new FaltanteVenta(rs.getLong("id_producto"), rs.getString("sku"),
 						rs.getString("nombre_oficial"), rs.getString("unidad_medida"), rs.getBigDecimal("faltante"),
-						rs.getBigDecimal("planificado"), rs.getLong("ventas")))
+						rs.getBigDecimal("planificado"), rs.getLong("ventas"),
+						origenes.getOrDefault(rs.getLong("id_producto"), List.of())))
 				.list();
 	}
 
@@ -221,6 +251,13 @@ public class ConsultaInventarioService {
 	@Transactional(readOnly = true)
 	public Page<MovimientoDetalle> kardex(String q, String sku, Long idUbicacion, String tipoOperacion, String origen,
 			LocalDate desde, LocalDate hasta, int page, int pageSize) {
+		return kardex(q, sku, idUbicacion, tipoOperacion, origen, desde, hasta, null, page, pageSize);
+	}
+
+	/** Igual que {@link #kardex(String, String, Long, String, String, LocalDate, LocalDate, int, int)}, limitado a los movimientos de una recepción. */
+	@Transactional(readOnly = true)
+	public Page<MovimientoDetalle> kardex(String q, String sku, Long idUbicacion, String tipoOperacion, String origen,
+			LocalDate desde, LocalDate hasta, Long idRecepcion, int page, int pageSize) {
 		String tipo = tipoOperacion == null ? null : normalizar(TipoOperacion.class, tipoOperacion).valor();
 		String origenValor = origen == null ? null : normalizar(OrigenMovimiento.class, origen).valor();
 		if (desde != null && hasta != null && hasta.isBefore(desde)) {
@@ -237,6 +274,7 @@ public class ConsultaInventarioService {
 				  AND (CAST(:origen AS text) IS NULL OR m.origen_movimiento = CAST(:origen AS text))
 				  AND (CAST(:desde AS timestamptz) IS NULL OR m.fecha_hora >= CAST(:desde AS timestamptz))
 				  AND (CAST(:hasta AS timestamptz) IS NULL OR m.fecha_hora < CAST(:hasta AS timestamptz))
+				  AND (CAST(:recepcion AS bigint) IS NULL OR m.id_recepcion = CAST(:recepcion AS bigint))
 				""";
 		String union = """
 				  FROM movimiento_kardex m
@@ -247,7 +285,7 @@ public class ConsultaInventarioService {
 		String clave = sku == null || sku.isBlank() ? null : sku.trim();
 		long total = jdbc.sql("SELECT count(*) " + union + filtros)
 				.param("q", texto).param("sku", clave).param("ubicacion", idUbicacion).param("tipo", tipo)
-				.param("origen", origenValor).param("desde", inicio).param("hasta", fin)
+				.param("origen", origenValor).param("desde", inicio).param("hasta", fin).param("recepcion", idRecepcion)
 				.query(Long.class).single();
 		List<MovimientoDetalle> items = jdbc.sql("""
 				SELECT m.id_movimiento, m.fecha_hora, p.id_producto, p.sku, p.nombre_oficial, m.tipo_operacion,
@@ -255,7 +293,7 @@ public class ConsultaInventarioService {
 				       m.id_guia, m.id_recepcion, m.referencia_traslado, m.id_movimiento_corregido
 				""" + union + filtros + " ORDER BY m.fecha_hora DESC, m.id_movimiento DESC LIMIT :limite OFFSET :desplazamiento")
 				.param("q", texto).param("sku", clave).param("ubicacion", idUbicacion).param("tipo", tipo)
-				.param("origen", origenValor).param("desde", inicio).param("hasta", fin)
+				.param("origen", origenValor).param("desde", inicio).param("hasta", fin).param("recepcion", idRecepcion)
 				.param("limite", pageSize).param("desplazamiento", (long) (page - 1) * pageSize)
 				.query((rs, n) -> new MovimientoDetalle(rs.getLong("id_movimiento"),
 						rs.getObject("fecha_hora", OffsetDateTime.class).toInstant(), rs.getLong("id_producto"),

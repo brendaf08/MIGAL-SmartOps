@@ -30,6 +30,8 @@ export interface LineasEditorProps {
   error?: string;
   /** SKU que se ofrecen primero en cada selector. */
   sugeridos?: readonly string[];
+  /** Las líneas vienen de otro documento (por ejemplo, una cotización) y no se pueden modificar. */
+  soloLectura?: boolean;
 }
 
 /**
@@ -47,6 +49,7 @@ export function LineasEditor({
   onDescuentoChange,
   error,
   sugeridos,
+  soloLectura = false,
 }: LineasEditorProps) {
   const precioDe = (sku: string) => productos.find((p) => p.sku === sku)?.precio ?? 0;
   const actualizar = (id: number, cambio: Partial<LineaEditable>) =>
@@ -85,6 +88,7 @@ export function LineasEditor({
           productos={productos}
           sugeridos={sugeridos}
           miw={200}
+          disabled={soloLectura}
           value={l.sku || null}
           onChange={(sku) => {
             const conPrecioDeReferencia = precargarPrecio && !!sku && precioDe(sku) > 0;
@@ -109,7 +113,8 @@ export function LineasEditor({
           hideControls
           miw={80}
           maw={120}
-          value={l.cantidad}
+          disabled={soloLectura}
+          value={l.cantidad || ''}
           onChange={(v) => actualizar(l.id, { cantidad: Number(v) || 0 })}
         />
       ),
@@ -125,6 +130,7 @@ export function LineasEditor({
                 aria-label={`Precio de la línea ${l.id}`}
                 miw={110}
                 maw={150}
+                disabled={soloLectura}
                 value={l.precio}
                 onChange={(v) => actualizar(l.id, { precio: Number(v) || 0 })}
               />
@@ -138,22 +144,26 @@ export function LineasEditor({
           },
         ] satisfies Column<LineaEditable>[])
       : []),
-    {
-      key: 'acciones',
-      header: 'Quitar',
-      render: (l) => (
-        <Button
-          variant="subtle"
-          color="danger"
-          size="compact-sm"
-          leftSection={<Icon name="trash" size={16} />}
-          aria-label={`Quitar la línea ${l.id}`}
-          onClick={() => quitar(l.id)}
-        >
-          Quitar
-        </Button>
-      ),
-    },
+    ...(soloLectura
+      ? []
+      : ([
+          {
+            key: 'acciones',
+            header: 'Quitar',
+            render: (l) => (
+              <Button
+                variant="subtle"
+                color="danger"
+                size="compact-sm"
+                leftSection={<Icon name="trash" size={16} />}
+                aria-label={`Quitar la línea ${l.id}`}
+                onClick={() => quitar(l.id)}
+              >
+                Quitar
+              </Button>
+            ),
+          },
+        ] satisfies Column<LineaEditable>[])),
   ];
 
   const subtotal = subtotalLineas(lineas);
@@ -180,6 +190,7 @@ export function LineasEditor({
                   aria-label="Descuento en soles"
                   maw={150}
                   max={subtotal}
+                  disabled={soloLectura}
                   value={descuento}
                   onChange={(v) => onDescuentoChange?.(Number(v) || 0)}
                 />
@@ -198,11 +209,13 @@ export function LineasEditor({
           {error}
         </p>
       )}
-      <div className={classes.actions}>
-        <Button variant="default" leftSection={<Icon name="plus" />} onClick={agregar}>
-          Agregar producto
-        </Button>
-      </div>
+      {!soloLectura && (
+        <div className={classes.actions}>
+          <Button variant="default" leftSection={<Icon name="plus" />} onClick={agregar}>
+            Agregar producto
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

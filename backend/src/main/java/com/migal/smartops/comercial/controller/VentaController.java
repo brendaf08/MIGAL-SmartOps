@@ -88,7 +88,8 @@ public class VentaController {
 			@Valid @RequestBody SolicitudVentaDesdeCotizacion solicitud) {
 		long idCotizacion = Identificadores.numero(solicitud.idCotizacion());
 		Resultado<VentaDto> resultado = idempotencia.ejecutar(actor.id(), "POST /ventas", clave, solicitud, 201,
-				VentaDto.class, () -> VentaDto.de(ventas.registrarDesdeCotizacion(actor.id(), idCotizacion)));
+				VentaDto.class, () -> VentaDto.de(ventas.registrarDesdeCotizacion(actor.id(), idCotizacion,
+						solicitud.fechaEntregaRequerida())));
 		return respuesta(resultado);
 	}
 

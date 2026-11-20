@@ -23,7 +23,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import uuid
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parent.parent
@@ -45,7 +45,7 @@ CLIENTES = [
     ("20600100088", "Carpintería Metálica San José E.I.R.L.", "999000088", "Av. Pachacútec 75, San Juan de Miraflores"),
     ("20600100099", "Minera Pampa Verde S.A.C.", "999000099", "Av. El Sol 400, Arequipa"),
 ]
-CLIENTE_MOSTRADOR = "Cliente de mostrador (demo)"
+CLIENTE_MOSTRADOR = "Cliente de mostrador"
 
 # razón social, contacto, condiciones, catálogo [(sku, precio de compra, plazo en días)]
 PROVEEDORES = {
@@ -355,7 +355,9 @@ class Sembrador:
                 if destino != "aceptada":
                     self.api.post(f"/cotizaciones/{cid}/validacion")
                 if destino in ("validada_venta", "despachada", "guia_emitida"):
-                    venta = self.api.post("/ventas", {"idCotizacion": cid})
+                    dias = 3 if destino == "guia_emitida" else 9
+                    entrega = (date.today() + timedelta(days=dias)).isoformat()
+                    venta = self.api.post("/ventas", {"idCotizacion": cid, "fechaEntregaRequerida": entrega})
                     self.contar("ventas")
                     self.despachar(venta["id"], destino)
         return True
@@ -435,6 +437,41 @@ class Sembrador:
                   for i in coincidencias[:10]]
         self.api.post("/ordenes-compra", {"proveedorId": mejor["id"], "lineas": lineas})
         self.contar("órdenes de compra (reposición por alertas)")
+
+    # --- Ventas pendientes de abastecimiento (para planificar compras) ---------------------------------------
+    PENDIENTES = [
+        # RUC del cliente, días hasta la entrega, [(SKU, unidades por encima del stock libre)]
+        ("20600100099", 5, [("00762", 80), ("00743", 25), ("00160", 600)]),
+        ("20600100088", 14, [("00762", 40), ("00064", 120), ("00015", 30)]),
+        ("20600100055", 25, [("00160", 1500), ("00079", 40)]),
+    ]
+
+    def ventas_pendientes_de_abastecimiento(self):
+        print("Ventas pendientes de abastecimiento")
+        for ruc, dias, lineas in self.PENDIENTES:
+            cliente = self.clientes[ruc]
+            if not self.forzar and self.api.get("/cotizaciones", clienteId=cliente, pageSize=1)["total"] > 0:
+                print("  ya existen ventas de este cliente; se omite (usar --forzar para repetir).")
+                continue
+            pedido = []
+            for sku, exceso in lineas:
+                producto = self.producto(sku)
+                if not producto:
+                    self.aviso(f"SKU {sku} no está en el catálogo; se omite.")
+                    continue
+                precio = float(producto.get("precioReferencial") or 1)
+                pedido.append((sku, int(self.libre(sku)) + exceso, precio))
+            if not pedido:
+                continue
+            cotizacion = self.api.post("/cotizaciones", {
+                "clienteId": cliente, "lineas": self.lineas_api(pedido), "descuento": 0, "validezDias": 30,
+                "condicionesComerciales": "Pago a 7 días, entrega en obra según avance."})
+            self.contar("cotizaciones")
+            self.api.post(f"/cotizaciones/{cotizacion['id']}/aceptacion")
+            self.api.post(f"/cotizaciones/{cotizacion['id']}/validacion")
+            entrega = (date.today() + timedelta(days=dias)).isoformat()
+            self.api.post("/ventas", {"idCotizacion": cotizacion["id"], "fechaEntregaRequerida": entrega})
+            self.contar("ventas pendientes de abastecimiento")
 
     # --- Kardex manual ---------------------------------------------------------------------------------------
     def movimientos(self):
@@ -542,6 +579,8 @@ def main():
     parser.add_argument("--url", default="http://localhost:8080", help="Base del backend (sin /api/v1).")
     parser.add_argument("--dry-run", action="store_true", help="Muestra el plan sin llamar a la API.")
     parser.add_argument("--forzar", action="store_true", help="Repite las fases aunque ya existan datos sembrados.")
+    parser.add_argument("--solo-pendientes", action="store_true",
+                        help="Siembra solo las ventas pendientes de abastecimiento (con maestros ya cargados).")
     parser.add_argument("--con-ocr", action="store_true", help="Sube imágenes al OCR (gasta cuota de Gemini).")
     parser.add_argument("--imagenes", default=str(RAIZ / "Documentos-Escanear"), help="Carpeta de imágenes escaneadas.")
     argumentos = parser.parse_args()
@@ -558,9 +597,14 @@ def main():
     sembrador = Sembrador(api, argumentos.forzar, Path(argumentos.imagenes))
     try:
         sembrador.maestros()
+        if argumentos.solo_pendientes:
+            sembrador.ventas_pendientes_de_abastecimiento()
+            sembrador.resumen()
+            return
         if sembrador.cotizaciones_y_ventas():
             sembrador.movimientos()
         sembrador.compras_y_recepciones()
+        sembrador.ventas_pendientes_de_abastecimiento()
         if argumentos.con_ocr:
             sembrador.documentos()
     except ErrorApi as error:

@@ -27,3 +27,24 @@
 .ayuda {
   margin: 0;
 }
+
+/* Faltantes de ventas: un bloque por venta con su cabecera de procedencia y su tabla de productos. */
+.faltanteVenta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--line);
+
+  &:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+  }
+}
+
+.faltanteCabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-4);
+}

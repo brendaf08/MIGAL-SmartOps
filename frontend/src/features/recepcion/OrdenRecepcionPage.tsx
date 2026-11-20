@@ -1,4 +1,4 @@
-import { Badge, Button, NumberInput, Select, Stack, Text, Textarea } from '@mantine/core';
+import { Badge, Button, Group, NumberInput, Select, Stack, Text, Textarea } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
@@ -26,13 +26,18 @@ import {
   type ResultadoRecepcion,
 } from './api';
 import { coincidenciasConGuia, construirLineas, ordenSugerida } from './lineas';
-import { SeleccionOrdenCompra } from './SeleccionOrdenCompra';
 import {
-  diferenciaLinea,
-  igualarCoincidenciasAltas,
-  resumirRecepcion,
-  type DiferenciaLinea,
-} from './resumen';
+  cantidadEn,
+  completarEn,
+  maximoEn,
+  movimientosDeEntrada,
+  recibirEn,
+  repartoDeLaGuia,
+  sinReparto,
+  totalesPorUbicacion,
+} from './reparto';
+import { SeleccionOrdenCompra } from './SeleccionOrdenCompra';
+import { diferenciaLinea, resumirRecepcion, type DiferenciaLinea } from './resumen';
 import type { LineaRecepcion } from './types';
 
 const PASOS = [
@@ -128,6 +133,7 @@ export function OrdenRecepcionPage() {
     queryKey: ['almacenes-recepcion'],
     queryFn: listarAlmacenesRecepcion,
   });
+  const ubicaciones = almacenes.data ?? [ALMACEN];
 
   const confirmar = useMutation({
     mutationFn: () => confirmarRecepcion(orden!, lineas, nota, almacen),
@@ -173,6 +179,11 @@ export function OrdenRecepcionPage() {
     );
   const actualizarConteo = (id: number, patch: Partial<LineaRecepcion>) =>
     setLineas((prev) => prev.map((l) => (l.id === id ? { ...l, ...patch } : l)));
+  /** Lo recibido de la línea en la ubicación elegida, sin pasar de lo pendiente de la orden. */
+  const recibirLinea = (id: number, cantidad: number) =>
+    setLineas((prev) => prev.map((l) => (l.id === id ? recibirEn(l, almacen, cantidad) : l)));
+  const completarLinea = (id: number) =>
+    setLineas((prev) => prev.map((l) => (l.id === id ? completarEn(l, almacen) : l)));
 
   if (cerrada) {
     const { recepcion, cambios } = cerrada;
@@ -202,7 +213,14 @@ export function OrdenRecepcionPage() {
                   Registrar otra recepción
                 </Button>
               )}
-              <Button leftSection={<Icon name="kardex" />} onClick={() => void navigate('/kardex')}>
+              <Button
+                leftSection={<Icon name="kardex" />}
+                onClick={() =>
+                  void navigate(
+                    recepcion.idApi ? `/kardex?recepcion=${recepcion.idApi}` : '/kardex',
+                  )
+                }
+              >
                 Ver movimientos en el Kardex
               </Button>
             </>
@@ -227,7 +245,8 @@ export function OrdenRecepcionPage() {
     (resumen.sobrantes > 0 && !nota.trim()
       ? 'Registrar una nota para explicar el sobrante.'
       : null);
-  const conEntrada = lineas.filter((l) => l.recibido > 0).length;
+  const totales = totalesPorUbicacion(lineas, almacen);
+  const conEntrada = movimientosDeEntrada(lineas, almacen);
 
   const columnasOcr: Column<LineaOcr>[] = [
     {
@@ -241,7 +260,7 @@ export function OrdenRecepcionPage() {
           miw={80}
           maw={110}
           hideControls
-          value={l.cantidad}
+          value={l.cantidad || ''}
           onChange={(v) => actualizarOcr(l.id, { cantidad: Number(v) || 0 })}
         />
       ),
@@ -252,20 +271,35 @@ export function OrdenRecepcionPage() {
     { key: 'pedido', header: 'Pendiente', numeric: true },
     {
       key: 'recibido',
-      header: 'Recibido',
+      header: `Recibido en ${almacen}`,
       block: true,
       render: (l) => (
         <NumberInput
-          aria-label={`Cantidad recibida de ${l.texto}`}
+          aria-label={`Cantidad recibida en ${almacen} de ${l.texto}`}
           min={0}
+          max={maximoEn(l, almacen)}
           miw={80}
           maw={110}
           hideControls
-          value={l.recibido}
-          onChange={(v) => actualizarConteo(l.id, { recibido: Number(v) || 0 })}
+          allowDecimal={false}
+          clampBehavior="strict"
+          disabled={maximoEn(l, almacen) === 0}
+          // El vacío equivale a 0: al borrar no aparece un 0 que estorbe al escribir la nueva cantidad.
+          value={cantidadEn(l, almacen) || ''}
+          onChange={(v) => recibirLinea(l.id, Number(v) || 0)}
         />
       ),
     },
+    ...(totales.length > 1
+      ? ([
+          {
+            key: 'total',
+            header: 'Total recibido',
+            numeric: true,
+            render: (l) => formatNumber(l.recibido),
+          },
+        ] satisfies Column<LineaRecepcion>[])
+      : []),
     {
       key: 'diferencia',
       header: 'Diferencia',
@@ -274,12 +308,12 @@ export function OrdenRecepcionPage() {
         return (
           <Stack gap={2} align="flex-start">
             <Diferencia valor={d} />
-            {(d.tipo === 'faltan' || d.tipo === 'sobran') && (
+            {d.tipo === 'faltan' && maximoEn(l, almacen) > 0 && (
               <Button
                 variant="subtle"
                 size="compact-sm"
                 aria-label={`Igual al pedido, ${l.texto}`}
-                onClick={() => actualizarConteo(l.id, { recibido: l.pedido })}
+                onClick={() => completarLinea(l.id)}
               >
                 Igual al pedido
               </Button>
@@ -306,15 +340,25 @@ export function OrdenRecepcionPage() {
         <Stepper aria-label="Pasos de la recepción" steps={PASOS} current={paso} />
 
         {paso > 0 && (
-          <Select
-            label="Ubicación que recibe"
-            description="La mercadería ingresa al Kardex de esta ubicación."
-            data={almacenes.data ?? [ALMACEN]}
-            value={almacen}
-            onChange={(valor) => setAlmacen(valor ?? ALMACEN)}
-            allowDeselect={false}
-            maw={320}
-          />
+          <Group align="flex-start" gap="md" wrap="wrap">
+            <Select
+              label="Ubicación que recibe"
+              description="Registra lo recibido en esta ubicación. Cambia de ubicación (tienda, Almacén 1, Almacén 2) para repartir la mercadería."
+              data={ubicaciones}
+              value={almacen}
+              onChange={(valor) => setAlmacen(valor ?? ALMACEN)}
+              allowDeselect={false}
+              maw={320}
+            />
+          </Group>
+        )}
+        {paso === 2 && totales.length > 0 && (
+          <Text size="sm">
+            Recibido por ubicación:{' '}
+            {totales
+              .map(([ubicacion, cantidad]) => `${ubicacion} ${formatNumber(cantidad)}`)
+              .join(' · ')}
+          </Text>
         )}
 
         {paso === 0 && (
@@ -324,6 +368,7 @@ export function OrdenRecepcionPage() {
             onSeleccionar={setOrdenId}
             coincidencias={coincidencias}
             sugerida={sugerida}
+            bloqueada={params.has('oc') && orden !== null}
           />
         )}
 
@@ -386,9 +431,9 @@ export function OrdenRecepcionPage() {
                 <Button
                   variant="default"
                   leftSection={<Icon name="check" />}
-                  onClick={() => setLineas((prev) => igualarCoincidenciasAltas(prev))}
+                  onClick={() => setLineas((prev) => prev.map((l) => completarEn(l, almacen)))}
                 >
-                  Igualar coincidencias altas
+                  {`Todo lo pedido llegó a ${almacen}`}
                 </Button>
               }
               padded={false}
@@ -398,6 +443,7 @@ export function OrdenRecepcionPage() {
                 lineas={lineas}
                 onSkuChange={(id, sku) => actualizarConteo(id, { sku })}
                 columnas={columnasConteo}
+                soloCatalogo={!ocr}
               />
             </Card>
             {resumen.sobrantes > 0 && (
@@ -461,7 +507,7 @@ export function OrdenRecepcionPage() {
             onClick={() => {
               setLineasOcr(null);
               setUsarPrecargado(false);
-              setLineas(construirLineas(orden, null));
+              setLineas(sinReparto(construirLineas(orden, null)));
               setPaso(2);
             }}
           >
@@ -471,7 +517,7 @@ export function OrdenRecepcionPage() {
             leftSection={<Icon name="check" />}
             disabled={!ocr || sinAsociarOcr > 0 || procesar.isPending}
             onClick={() => {
-              setLineas(construirLineas(orden, ocr));
+              setLineas(repartoDeLaGuia(construirLineas(orden, ocr), almacen));
               setPaso(2);
             }}
           >
@@ -511,7 +557,7 @@ export function OrdenRecepcionPage() {
         title={`Confirmar recepción ${orden?.id ?? ''}`}
         description="Se ingresará al inventario la mercadería efectivamente recibida."
         consequences={[
-          `Se registrarán ${plural(conEntrada, 'movimiento', 'movimientos')} de entrada en el Kardex de ${almacen}.`,
+          `Se registrarán ${plural(conEntrada, 'movimiento', 'movimientos')} de entrada en el Kardex de ${totales.length > 0 ? totales.map(([u]) => u).join(' y ') : almacen}.`,
           ...(resumen.parciales
             ? ['Las líneas con menos cantidad que el pedido quedan como recepción parcial.']
             : []),

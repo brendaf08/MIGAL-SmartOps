@@ -31,6 +31,8 @@ async function cargarDocumento() {
 async function asociarAlambre(sku: RegExp) {
   const select = screen.getByRole('combobox', { name: 'Producto para ALAMBRE REC. N16' });
   await userEvent.click(select);
+  // Sin escribir solo se ofrecen los productos relacionados con el texto: se busca por el código.
+  await userEvent.type(select, sku.source.replace(/\\/g, ''));
   // Cada Select monta su propia lista; se elige la opción de la lista de este campo.
   const lista = document.getElementById(select.getAttribute('aria-controls')!)!;
   await userEvent.click(await within(lista).findByRole('option', { name: sku, hidden: true }));

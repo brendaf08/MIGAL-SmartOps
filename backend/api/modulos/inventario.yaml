@@ -118,7 +118,7 @@ components:
     ProductoExistencias:
       type: object
       description: Existencias de un producto consolidadas y por ubicación. Es el elemento de la disponibilidad y la respuesta de la consulta de existencias.
-      required: [productoId, sku, nombre, categoria, unidad, stockMinimo, fisico, reservado, libre, nivelAlerta, ubicaciones]
+      required: [productoId, sku, nombre, categoria, unidad, stockMinimo, fisico, reservado, libre, planificado, precioReferencial, nivelAlerta, ubicaciones]
       properties:
         productoId:
           $ref: ../componentes/esquemas-comunes.yaml#/Identificador
@@ -148,6 +148,16 @@ components:
           description: Existencia física menos existencia reservada, consolidada.
           $ref: ../componentes/esquemas-comunes.yaml#/Cantidad
           minimum: 0
+        planificado:
+          description: >-
+            Cantidad pendiente de recibir de las órdenes de compra pendientes o parciales. No forma parte de la existencia
+            física ni libre; al recepcionar la orden baja y la existencia física aumenta.
+          $ref: ../componentes/esquemas-comunes.yaml#/Cantidad
+          minimum: 0
+        precioReferencial:
+          description: Precio de venta de referencia del producto, usado como precio inicial de las líneas de cotizaciones y ventas.
+          $ref: ../componentes/esquemas-comunes.yaml#/Cantidad
+          minimum: 0
         nivelAlerta:
           $ref: '#/components/schemas/NivelAlerta'
         ubicaciones:
@@ -165,6 +175,8 @@ components:
         fisico: 160
         reservado: 40
         libre: 120
+        planificado: 300
+        precioReferencial: 29.9
         nivelAlerta: normal
         ubicaciones:
           - ubicacionId: "101"
@@ -232,6 +244,43 @@ components:
         libre: 0
         faltante: 10
         nivelAlerta: critico
+    FaltanteVenta:
+      type: object
+      description: Producto que falta para atender ventas pendientes de abastecimiento.
+      required: [productoId, sku, nombre, unidad, faltante, planificado, porCubrir, ventas]
+      properties:
+        productoId:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        sku:
+          $ref: ../componentes/esquemas-comunes.yaml#/Sku
+        nombre:
+          type: string
+        unidad:
+          type: string
+        faltante:
+          description: Suma de lo vendido y aún sin reserva en las ventas pendientes de abastecimiento.
+          $ref: ../componentes/esquemas-comunes.yaml#/Cantidad
+        planificado:
+          description: Cantidad ya pedida en órdenes de compra pendientes o parciales.
+          $ref: ../componentes/esquemas-comunes.yaml#/Cantidad
+        porCubrir:
+          description: Faltante menos lo ya pedido; lo que aún no tiene orden de compra.
+          $ref: ../componentes/esquemas-comunes.yaml#/Cantidad
+        ventas:
+          type: integer
+          minimum: 1
+          description: Cantidad de ventas pendientes que incluyen el producto.
+    FaltantesVentasPagina:
+      description: Productos faltantes para las ventas pendientes de abastecimiento.
+      allOf:
+        - $ref: ../componentes/esquemas-comunes.yaml#/Pagina
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/FaltanteVenta'
     AlertasPagina:
       description: Página de productos en alerta, ordenada por nivel crítico primero, después por faltante descendente y SKU ascendente.
       allOf:
@@ -557,6 +606,31 @@ paths:
         '500':
           $ref: ../componentes/errores.yaml#/Error500
 
+  /inventario/faltantes:
+    get:
+      operationId: listarFaltantesVentas
+      tags: [Inventario]
+      summary: Listar los productos que faltan para las ventas pendientes de abastecimiento
+      description: >-
+        Suma, por producto, lo que falta para atender las ventas en estado pendiente de abastecimiento (cantidad vendida
+        menos la reservada) y lo que ya está pedido en órdenes de compra pendientes o parciales. Sirve de referencia al
+        preparar una orden de compra; no crea ni modifica nada. Operación de solo lectura.
+      x-roles: [almacenero, reponedor, administrador]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Productos faltantes, de mayor a menor cantidad.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FaltantesVentasPagina'
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500
   /inventario/alertas:
     get:
       operationId: listarAlertasStock

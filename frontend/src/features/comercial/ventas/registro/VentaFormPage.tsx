@@ -16,6 +16,7 @@ import { FormPage } from '@/components/ui/FormPage/FormPage';
 import { Icon } from '@/components/ui/Icon/Icon';
 import { LineasEditor } from '@/components/ui/LineasEditor/LineasEditor';
 import {
+  consolidarLineas,
   subtotalLineas,
   totalLineas,
   type LineaEditable,
@@ -36,6 +37,7 @@ import {
 } from './api';
 import { calcularAtencion, MODALIDADES, type ModalidadAtencion } from './atencion';
 import { crearEsquemaVenta } from './esquema';
+import { avisarRepetidos } from '@/features/documentos-ocr/avisos';
 import { usePrecargaDocumento } from '@/features/documentos-ocr/usePrecargaDocumento';
 import classes from './VentaForm.module.css';
 import { useCatalogoVigente } from '@/features/catalogo/catalogoVigente';
@@ -81,9 +83,13 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
   // Cada apertura de la confirmación inicia una intención nueva; sus reintentos reutilizan la misma clave.
   const [claveRegistro, setClaveRegistro] = useState(() => crypto.randomUUID());
   const [resultado, setResultado] = useState<ResultadoVenta | null>(null);
+  // Bajo la clave `cotizaciones`, para que validar, aceptar o convertir una cotización renueve esta lista; siempre se
+  // vuelve a consultar al abrir el formulario, porque una cotización recién validada debe aparecer en el acto.
   const cotizaciones = useQuery({
-    queryKey: ['cotizaciones-aceptadas'],
+    queryKey: ['cotizaciones', 'convertibles'],
     queryFn: listarCotizacionesAceptadas,
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   const stock = stockLibre();
@@ -101,9 +107,10 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
   const cotizacionPrecargada = useRef(!cotizacionParam || Boolean(inicial));
   useEffect(() => {
     if (!cotizacionParam || !cotizaciones.isSuccess || cotizacionPrecargada.current) return;
-    cotizacionPrecargada.current = true;
     const cotizacion = cotizaciones.data.find((c) => c.id === cotizacionParam);
+    // Con la lista aún sin la cotización (datos previos), se espera a la consulta actualizada antes de rendirse.
     if (!cotizacion) return;
+    cotizacionPrecargada.current = true;
     const cargaCotizacion = lineasDeCotizacion(cotizacion);
     form.setValues({
       cliente: clienteDeCotizacion(cotizacion),
@@ -113,8 +120,9 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
       modalidad: null,
     });
   }, [cotizacionParam, cotizaciones.data, cotizaciones.isSuccess, form]);
-  const precarga = usePrecargaDocumento((lineas) => {
+  const precarga = usePrecargaDocumento((lineas, repetidos) => {
     form.setFieldValue('lineas', lineas);
+    avisarRepetidos(repetidos);
     setOrigen('documento');
   });
 
@@ -144,6 +152,7 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
     mutationFn: (entrada: EntradaVenta) => registrarVenta(entrada),
     onSuccess: async (r) => {
       await queryClient.invalidateQueries({ queryKey: ['ventas'] });
+      await queryClient.invalidateQueries({ queryKey: ['cotizaciones'] });
       setConfirmando(false);
       setResultado(r);
     },
@@ -157,9 +166,17 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
     },
   });
 
+  /** Cambiar el origen descarta lo cargado (cliente, productos y descuento) para no mezclar datos de otro origen. */
   const cambiarOrigen = (valor: string) => {
     setOrigen(valor as Origen);
-    form.setFieldValue('cotizacionId', null);
+    form.setValues({
+      cliente: null,
+      cotizacionId: null,
+      lineas: [],
+      descuento: 0,
+      modalidad: null,
+    });
+    form.clearErrors();
   };
 
   const elegirCotizacion = (id: string | null) => {
@@ -185,7 +202,7 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
       descuento: values.descuento,
       modalidad: values.modalidad as ModalidadAtencion | null,
       claveIdempotencia: claveRegistro,
-      lineas: values.lineas.map((l) => ({
+      lineas: consolidarLineas(values.lineas).lineas.map((l) => ({
         sku: l.sku,
         nombre: PRODUCTOS.find((p) => p.sku === l.sku)?.nombre ?? l.sku,
         cantidad: l.cantidad,
@@ -237,6 +254,14 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
         libre,
         unidad: p?.unidad ?? '',
       };
+    });
+
+  /** Detalle de lo que falta: solo los productos con cantidad pendiente, con su nombre y unidad. */
+  const faltantes = vista.lineas
+    .filter((l) => l.pendiente > 0)
+    .map((l) => {
+      const p = PRODUCTOS.find((x) => x.sku === l.sku);
+      return { ...l, nombre: p?.nombre ?? l.sku, unidad: p?.unidad ?? '' };
     });
 
   const columnas: Column<(typeof filas)[number]>[] = [
@@ -299,6 +324,7 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
               value={values.cliente}
               onChange={(v) => form.setFieldValue('cliente', v)}
               error={form.errors.cliente as string | undefined}
+              bloqueado={origen === 'cotizacion' && values.cotizacionId !== null}
             />
             <Radio.Group label="Origen de los productos" value={origen} onChange={cambiarOrigen}>
               <Stack gap="xs" mt="xs">
@@ -321,6 +347,7 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
               />
             )}
             {cotizaciones.isSuccess &&
+              !cotizaciones.isFetching &&
               cotizacionParam &&
               !(cotizaciones.data ?? []).some((c) => c.id === cotizacionParam) && (
                 <Alert tone="warning" title="Cotización no disponible">
@@ -347,6 +374,7 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
             onChange={(lineas) => form.setFieldValue('lineas', lineas)}
             productos={opcionesProducto()}
             conPrecio
+            precargarPrecio
             conDescuento
             descuento={values.descuento}
             onDescuentoChange={(d) => form.setFieldValue('descuento', d)}
@@ -390,7 +418,16 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
         consequences={[
           `Se reservará el stock de ${plural(vista.lineas.filter((l) => l.atendida > 0).length, 'producto', 'productos')}. La salida del Kardex se registra al confirmar el despacho.`,
           ...(vista.totalPendiente > 0
-            ? [`Quedan ${formatNumber(vista.totalPendiente)} unidades pendientes.`]
+            ? [
+                `Quedan ${formatNumber(vista.totalPendiente)} unidades pendientes en ${plural(faltantes.length, 'producto', 'productos')}:`,
+                ...faltantes
+                  .slice(0, 8)
+                  .map(
+                    (f) =>
+                      `• ${f.nombre}: faltan ${formatNumber(f.pendiente)} de ${formatNumber(f.solicitada)} ${f.unidad}`,
+                  ),
+                ...(faltantes.length > 8 ? [`… y ${faltantes.length - 8} productos más.`] : []),
+              ]
             : []),
         ]}
         confirmLabel="Confirmar venta"

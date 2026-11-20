@@ -19,6 +19,8 @@ const EXISTENCIAS_CEM = {
   fisico: 160,
   reservado: 40,
   libre: 120,
+  planificado: 300,
+  precioReferencial: 29.9,
   nivelAlerta: 'minimo',
   ubicaciones: [
     { ubicacionId: '101', nombre: 'Tienda principal', fisica: 40, reservada: 0, libre: 40 },
@@ -105,6 +107,8 @@ describe('inventario, disponibilidad (rama de la API real)', () => {
           almacen1: 120,
           almacen2: 0,
           reservado: 40,
+          planificado: 300,
+          precio: 29.9,
           minimo: 200,
         },
       ],

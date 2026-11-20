@@ -30,6 +30,8 @@ export interface LineaOcr {
   /** Similitud con el catálogo, de 0 a 1. */
   score: number;
   cantidad: number;
+  /** SKU que propone el OCR para la línea, de mayor a menor coincidencia. */
+  candidatos?: string[];
 }
 
 export interface Documento {
@@ -177,6 +179,7 @@ const aLinea = (linea: DetalleApi): LineaOcr => {
     sku: linea.sku ?? mejor?.sku ?? '',
     score: linea.idProducto ? (confirmada?.confianza ?? 1) : (mejor?.confianza ?? 0),
     cantidad: linea.cantidadLeida ?? 0,
+    candidatos: linea.coincidencias.slice(0, 8).map((c) => c.sku),
   };
 };
 
@@ -193,7 +196,7 @@ const aDocumento = (documento: DocumentoResumenApi, detalles: DetalleApi[] = [])
 const productosPorSku = idsDeProductosPorSku;
 
 const INTERVALO_SONDEO_MS = 1500;
-const MAXIMO_SONDEOS = 40;
+const MAXIMO_SONDEOS = 100;
 
 /** Consulta el documento hasta que el OCR termine o registre un error de procesamiento. */
 async function esperarProcesamiento(id: string): Promise<DocumentoApi> {

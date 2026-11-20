@@ -242,6 +242,8 @@ const listarAlertasReal = async (): Promise<Alerta[]> => {
       almacen1: 0,
       almacen2: 0,
       reservado: 0,
+      planificado: 0,
+      precio: 0,
       minimo: a.stockMinimo,
     };
     return [{ ...base, libre: a.libre, nivel, faltante: a.faltante }];
@@ -262,3 +264,23 @@ export const listarAlertas = (): Promise<Alerta[]> =>
           return b.faltante - a.faltante || a.sku.localeCompare(b.sku);
         }),
       );
+
+/** Producto que falta para las ventas pendientes de abastecimiento, según `FaltanteVenta` del contrato de inventario. */
+export interface FaltanteVenta {
+  sku: string;
+  nombre: string;
+  unidad: string;
+  /** Lo vendido que aún no tiene reserva. */
+  faltante: number;
+  /** Lo ya pedido en órdenes de compra pendientes o parciales. */
+  planificado: number;
+  /** Lo que aún no tiene orden de compra. */
+  porCubrir: number;
+  ventas: number;
+}
+
+/** Productos que faltan para las ventas pendientes de abastecimiento. Con datos simulados no hay ventas de este tipo. */
+export const listarFaltantesVentas = (): Promise<FaltanteVenta[]> =>
+  API_REAL
+    ? api.get<{ items: FaltanteVenta[] }>('/inventario/faltantes').then((p) => p.items)
+    : mockRequest<FaltanteVenta[]>(() => []);

@@ -131,3 +131,8 @@ def test_el_envase_tras_la_cantidad_no_es_el_tipo_de_producto() -> None:
 def test_plurales_en_ces_y_palabras_que_no_son_plurales() -> None:
     assert normalizar("luces led").texto == "luz led"
     assert normalizar("arnés de seguridad").texto == "arnes seguridad"
+
+
+def test_el_simbolo_de_diametro_leido_como_letras_designa_el_fierro():
+    for texto in ("fi 1/4", "phi 1/4", "Ø 1/4"):
+        assert normalizar(texto).texto == "fierro 1/4in"

@@ -153,7 +153,7 @@ describe('Catálogo, formulario', () => {
     renderApp('/catalogo/CEM-001/editar', 'Almacenero');
     const sku = await screen.findByRole('textbox', { name: 'SKU' });
     expect(sku).toHaveValue('CEM-001');
-    expect(sku).toHaveAttribute('readonly');
+    expect(sku).toBeDisabled();
 
     await elegir('Unidad de medida', 'rollo');
     const minimo = screen.getByRole('textbox', { name: 'Stock mínimo' });

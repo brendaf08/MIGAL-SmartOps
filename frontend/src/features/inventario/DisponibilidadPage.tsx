@@ -2,6 +2,7 @@ import { Alert, Button } from '@mantine/core';
 import { useDebouncedValue } from '@mantine/hooks';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
+import { useSearchParams } from 'react-router';
 import { StatusBadge } from '@/components/domain/StatusBadge/StatusBadge';
 import { StockBar } from '@/components/domain/StockBar/StockBar';
 import { StockLocations } from '@/components/domain/StockLocations/StockLocations';
@@ -89,7 +90,8 @@ const columns: Column<ProductoDisponibilidad>[] = [
 /** CU-04: consulta de disponibilidad por ubicación, con búsqueda, filtro de alerta y paginación en el servidor. */
 export function DisponibilidadPage() {
   const [tab, setTab] = useState('todos');
-  const [q, setQ] = useState('');
+  const [params] = useSearchParams();
+  const [q, setQ] = useState(params.get('sku') ?? '');
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<ProductoDisponibilidad | null>(null);
   const [debouncedQ] = useDebouncedValue(q, 300);

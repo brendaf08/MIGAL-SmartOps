@@ -11,18 +11,33 @@ export interface LlamadaApi {
 
 /** Respuesta JSON del servidor simulado. */
 export const json = (cuerpo: unknown, estado = 200) =>
-  new Response(JSON.stringify(cuerpo), { status: estado, headers: { 'Content-Type': 'application/json' } });
+  new Response(JSON.stringify(cuerpo), {
+    status: estado,
+    headers: { 'Content-Type': 'application/json' },
+  });
 
 /** Error de la API con la forma `application/problem+json` del contrato. */
 export const problema = (estado: number, codigo: string, detalle: string) =>
-  json({ type: 'about:blank', title: codigo, status: estado, detail: detalle, instance: '/', code: codigo }, estado);
+  json(
+    {
+      type: 'about:blank',
+      title: codigo,
+      status: estado,
+      detail: detalle,
+      instance: '/',
+      code: codigo,
+    },
+    estado,
+  );
 
 /**
  * Sustituye `fetch` por un servidor simulado. Cada clave tiene la forma "METODO /ruta" y recibe la llamada para
  * construir la respuesta, por ejemplo según el parámetro `page`. Las llamadas sin ruta simulada fallan en la prueba.
  * Devuelve el arreglo donde se registra cada llamada.
  */
-export function simularServidor(respuestas: Record<string, (llamada: LlamadaApi) => Response>): LlamadaApi[] {
+export function simularServidor(
+  respuestas: Record<string, (llamada: LlamadaApi) => Response>,
+): LlamadaApi[] {
   const llamadas: LlamadaApi[] = [];
   vi.stubGlobal(
     'fetch',

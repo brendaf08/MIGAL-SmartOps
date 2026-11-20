@@ -43,10 +43,10 @@ import org.springframework.web.client.RestClient;
  */
 class ProveedorLlmGeminiTest {
 
-	private static final String URL = "https://gemini.local/v1beta/models/gemini-3.8-flash:generateContent";
+	private static final String URL = "https://gemini.local/v1beta/models/gemini-3.5-flash-lite:generateContent";
 
-	private final PropiedadesAgenteGemini propiedades = new PropiedadesAgenteGemini("clave-ficticia", null,
-			"https://gemini.local", null, null);
+	private final PropiedadesAgenteGemini propiedades = new PropiedadesAgenteGemini("clave-ficticia",
+			"gemini-3.5-flash-lite", "https://gemini.local", null, null);
 	private MockRestServiceServer servidor;
 	private ProveedorLlmGemini proveedor;
 
@@ -156,8 +156,50 @@ class ProveedorLlmGeminiTest {
 	}
 
 	@Test
-	void unaApiNoDisponibleRespondeServicioNoDisponible() {
+	void unaApiSaturadaSeReintentaUnaVezAntesDeRendirse() {
+		servidor.expect(requestTo(URL)).andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE));
 		servidor.expect(requestTo(URL)).andRespond(withStatus(HttpStatus.TOO_MANY_REQUESTS));
+
+		ErrorDeNegocio error = assertThrows(ErrorDeNegocio.class,
+				() -> proveedor.planificar("alertas", List.of(herramienta("listarAlertasStock"))));
+		assertEquals(CodigoError.SERVICIO_NO_DISPONIBLE, error.codigo());
+		assertTrue(error.getMessage().contains("saturado"));
+		servidor.verify();
+	}
+
+	@Test
+	void unaSaturacionPasajeraSeRecuperaConElReintento() {
+		servidor.expect(requestTo(URL)).andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE));
+		servidor.expect(requestTo(URL)).andRespond(withSuccess(respuesta("{\"text\":\"Sin llamadas\"}"),
+				MediaType.APPLICATION_JSON));
+
+		assertTrue(proveedor.planificar("alertas", List.of(herramienta("listarAlertasStock"))).isEmpty());
+		servidor.verify();
+	}
+
+	@Test
+	void conLaCuotaAgotadaPasaAlSiguienteModeloYLoOmiteDespues() {
+		PropiedadesAgenteGemini dos = new PropiedadesAgenteGemini("clave-ficticia",
+				"gemini-3.5-flash-lite, gemini-3.1-flash-lite", "https://gemini.local", null, null);
+		RestClient.Builder constructor = RestClient.builder().baseUrl("https://gemini.local");
+		MockRestServiceServer simulado = MockRestServiceServer.bindTo(constructor).build();
+		ProveedorLlmGemini conRespaldo = new ProveedorLlmGemini(constructor.build(), dos);
+		String respaldo = "https://gemini.local/v1beta/models/gemini-3.1-flash-lite:generateContent";
+		simulado.expect(requestTo(URL)).andRespond(withStatus(HttpStatus.TOO_MANY_REQUESTS));
+		simulado.expect(requestTo(respaldo)).andRespond(withSuccess(respuesta("{\"text\":\"Sin llamadas\"}"),
+				MediaType.APPLICATION_JSON));
+		// La segunda consulta ya no toca el modelo agotado.
+		simulado.expect(requestTo(respaldo)).andRespond(withSuccess(respuesta("{\"text\":\"Sin llamadas\"}"),
+				MediaType.APPLICATION_JSON));
+
+		assertTrue(conRespaldo.planificar("alertas", List.of(herramienta("listarAlertasStock"))).isEmpty());
+		assertTrue(conRespaldo.planificar("alertas", List.of(herramienta("listarAlertasStock"))).isEmpty());
+		simulado.verify();
+	}
+
+	@Test
+	void unaApiNoDisponibleRespondeServicioNoDisponible() {
+		servidor.expect(requestTo(URL)).andRespond(withStatus(HttpStatus.BAD_GATEWAY));
 
 		ErrorDeNegocio error = assertThrows(ErrorDeNegocio.class,
 				() -> proveedor.planificar("alertas", List.of(herramienta("listarAlertasStock"))));

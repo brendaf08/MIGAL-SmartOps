@@ -79,7 +79,12 @@ migal:
     # que responde SERVICIO_NO_DISPONIBLE, o gemini, que usa la API de Gemini (ADR-012). No hay credenciales en el
     # repositorio: la clave se define solo con la variable de entorno GEMINI_API_KEY.
     proveedor: ${MIGAL_AGENTE_PROVEEDOR:simulado}
+    # Con gemini, las consultas frecuentes (alertas y disponibilidad de un producto) se resuelven por reglas, sin llamar al
+    # modelo, que tarda segundos por llamada. false envía todas las consultas al modelo.
+    respuesta-rapida: ${MIGAL_AGENTE_RESPUESTA_RAPIDA:true}
     gemini:
       api-key: ${GEMINI_API_KEY:}
       # Modelo Gemini Flash estable. Vacío usa el valor por defecto de PropiedadesAgenteGemini.
       modelo: ${MIGAL_AGENTE_GEMINI_MODELO:}
+      # Plazo de cada llamada al modelo; una consulta hace dos (planificar y redactar). Gemini suele tardar más de 10 s.
+      tiempo-lectura: ${MIGAL_AGENTE_GEMINI_TIEMPO_LECTURA:PT35S}

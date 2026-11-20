@@ -61,15 +61,8 @@ describe('Alertas de stock (P12)', () => {
     expect(within(tabla).getAllByText('Stock crítico')).toHaveLength(contar('Critico'));
   });
 
-  it('muestra la acción de crear orden de compra solo al Reponedor', async () => {
+  it('no ofrece crear órdenes de compra desde las alertas, ni siquiera al Reponedor', async () => {
     renderApp('/alertas', 'Reponedor');
-    expect(
-      (await screen.findAllByRole('button', { name: 'Crear orden de compra' })).length,
-    ).toBeGreaterThan(0);
-  });
-
-  it('no muestra la acción de crear orden de compra al Almacenero', async () => {
-    renderApp('/alertas', 'Almacenero');
     const tabla = await screen.findByRole('table', { name: 'Productos en alerta' });
     await esperarFilas(tabla);
     expect(screen.queryByRole('button', { name: 'Crear orden de compra' })).not.toBeInTheDocument();

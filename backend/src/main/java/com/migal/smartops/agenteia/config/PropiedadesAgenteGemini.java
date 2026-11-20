@@ -8,7 +8,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * {@code migal.agente.proveedor=gemini}. La clave se define únicamente por variable de entorno.
  *
  * @param apiKey         clave de la API de Gemini, de un proyecto con facturación habilitada
- * @param modelo         identificador de un modelo Gemini Flash estable; no se admiten versiones preview ni alias latest
+ * @param modelo         identificadores de modelos Gemini estables separados por coma, por orden de preferencia: si
+ * el primero agota su cuota o no responde, se usa el siguiente; no se admiten versiones preview ni alias latest
  * @param urlBase        dirección base de la API
  * @param tiempoConexion tiempo máximo para conectar con la API
  * @param tiempoLectura  tiempo máximo de cada respuesta del modelo
@@ -17,8 +18,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public record PropiedadesAgenteGemini(String apiKey, String modelo, String urlBase, Duration tiempoConexion,
 		Duration tiempoLectura) {
 
-	/** Modelo por defecto: Flash estable más reciente según la lista oficial de modelos, consultada el 16-11-2026. */
-	public static final String MODELO_POR_DEFECTO = "gemini-3.8-flash";
+	/** Modelos por defecto, por orden: dos Flash-Lite (cuota diaria amplia) y, como respaldo, Flash. */
+	public static final String MODELO_POR_DEFECTO = "gemini-3.5-flash-lite,gemini-3.1-flash-lite,gemini-3.6-flash";
 
 	public PropiedadesAgenteGemini {
 		apiKey = apiKey == null ? "" : apiKey.trim();
@@ -26,9 +27,16 @@ public record PropiedadesAgenteGemini(String apiKey, String modelo, String urlBa
 		urlBase = urlBase == null || urlBase.isBlank() ? "https://generativelanguage.googleapis.com" : urlBase.trim();
 		tiempoConexion = tiempoConexion == null ? Duration.ofSeconds(3) : tiempoConexion;
 		tiempoLectura = tiempoLectura == null ? Duration.ofSeconds(10) : tiempoLectura;
-		if (modelo.contains("preview") || modelo.contains("-exp") || modelo.endsWith("latest")) {
-			throw new IllegalStateException("migal.agente.gemini.modelo debe ser un modelo estable");
+		for (String m : modelo.split(",")) {
+			if (m.isBlank() || m.contains("preview") || m.contains("-exp") || m.endsWith("latest")) {
+				throw new IllegalStateException("migal.agente.gemini.modelo debe listar modelos estables");
+			}
 		}
+	}
+
+	/** Modelos en orden de preferencia. */
+	public java.util.List<String> modelos() {
+		return java.util.Arrays.stream(modelo.split(",")).map(String::trim).toList();
 	}
 
 	/** Exige la clave antes de crear el proveedor Gemini. */

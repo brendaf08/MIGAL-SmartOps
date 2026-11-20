@@ -65,6 +65,8 @@ services:
       MIGAL_AGENTE_GEMINI_TIEMPOLECTURA: ${MIGAL_AGENTE_GEMINI_TIEMPOLECTURA:-PT30S}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       MIGAL_CORS_ORIGENES: ${MIGAL_CORS_ORIGENES:-}
+      # Respeta X-Forwarded-Proto/Host del proxy (Nginx, túnel HTTPS) al comparar el Origin del navegador con el host.
+      SERVER_FORWARD_HEADERS_STRATEGY: framework
     ports:
       - "127.0.0.1:${BACKEND_PUERTO:-8080}:8080"
     volumes:

@@ -1,0 +1,38 @@
+# Blueprint de Render para el backend (docs/despliegue.md). La base de datos es Supabase (ADR-007).
+# Las variables con sync: false se solicitan en el panel de Render al crear el Blueprint y no se guardan aquí.
+services:
+  - type: web
+    name: migal-smartops-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .
+    # Despliegue automático solo cuando pasan las comprobaciones de GitHub.
+    autoDeployTrigger: checksPass
+    healthCheckPath: /actuator/health
+    # El plan gratuito no admite discos persistentes: los documentos subidos se pierden en cada reinicio.
+    # Para conservarlos, usar un plan de pago y agregar un disco (el usuario del contenedor requiere permisos de escritura).
+    plan: free
+    envVars:
+      - key: JAVA_TOOL_OPTIONS
+        value: -XX:MaxRAMPercentage=75
+      - key: SPRING_DATASOURCE_URL
+        sync: false
+      - key: SPRING_DATASOURCE_USERNAME
+        sync: false
+      - key: SPRING_DATASOURCE_PASSWORD
+        sync: false
+      - key: MIGAL_JWT_SECRETO
+        generateValue: true
+      - key: MIGAL_ADMIN_USERNAME
+        value: admin
+      - key: MIGAL_ADMIN_CLAVE
+        sync: false
+      - key: MIGAL_ROL_DEMOSTRACION
+        value: "false"
+      - key: MIGAL_OCR_PROVEEDOR
+        value: simulado
+      - key: MIGAL_AGENTE_PROVEEDOR
+        value: simulado
+      # Origen del frontend en Vercel, solo si se accede a la API sin el rewrite de /api.
+      - key: MIGAL_CORS_ORIGENES
+        sync: false

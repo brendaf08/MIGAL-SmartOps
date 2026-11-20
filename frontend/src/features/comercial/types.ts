@@ -16,7 +16,7 @@ export interface LineaCotizacion {
 
 /** Valores de `EstadoCotizacion` del backend; sus nombres definitivos están pendientes de armonizar. */
 export type EstadoCotizacion =
-  'Emitida' | 'AceptadaCliente' | 'ValidadaMigal' | 'Rechazada' | 'Vencida';
+  'Emitida' | 'AceptadaCliente' | 'ValidadaMigal' | 'Rechazada' | 'Cancelada' | 'Vencida';
 
 export interface Cotizacion {
   id: string;
@@ -31,4 +31,19 @@ export interface Cotizacion {
   /** Descuento global, de 0 a 1. */
   descuento: number;
   lineas: LineaCotizacion[];
+  /** Venta que originó la cotización; con venta no se modifica ni se cancela. Solo la informa el detalle. */
+  ventaId?: string;
+  /** Rechazo o cancelación registrada. */
+  rechazo?: { origen: 'cliente' | 'migal'; motivo: string };
+  /** Modificaciones y cancelaciones, de la más reciente a la más antigua. Solo las informa el detalle. */
+  historial?: CambioCotizacion[];
+}
+
+/** Cambio de estado por modificación o cancelación, con su motivo. */
+export interface CambioCotizacion {
+  fecha: string;
+  usuario: string;
+  estadoAnterior: EstadoCotizacion;
+  estadoNuevo: EstadoCotizacion;
+  motivo: string;
 }

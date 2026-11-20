@@ -140,7 +140,7 @@ components:
     ProductoExistencias:
       type: object
       description: Existencias de un producto consolidadas y por ubicación. Es el elemento de la disponibilidad y la respuesta de la consulta de existencias.
-      required: [productoId, sku, nombre, categoria, unidad, stockMinimo, fisico, reservado, libre, planificado, precioReferencial, nivelAlerta, ubicaciones]
+      required: [productoId, sku, nombre, categoria, unidad, stockMinimo, fisico, reservado, libre, planificado, faltanteVentas, proximaLlegada, precioReferencial, nivelAlerta, ubicaciones]
       properties:
         productoId:
           $ref: ../componentes/esquemas-comunes.yaml#/Identificador
@@ -176,6 +176,14 @@ components:
             física ni libre; al recepcionar la orden baja y la existencia física aumenta.
           $ref: ../componentes/esquemas-comunes.yaml#/Cantidad
           minimum: 0
+        faltanteVentas:
+          description: Cantidad que las ventas pendientes de abastecimiento ya reclaman de este producto y que aún no tiene reserva. Con planificado permite calcular el previsto neto.
+          $ref: ../componentes/esquemas-comunes.yaml#/CantidadNoNegativa
+        proximaLlegada:
+          description: Fecha estimada más próxima de llegada entre las órdenes de compra pendientes o parciales del producto; nula si ninguna la indica.
+          anyOf:
+            - $ref: ../componentes/esquemas-comunes.yaml#/Fecha
+            - type: 'null'
         precioReferencial:
           description: Precio de venta de referencia del producto, usado como precio inicial de las líneas de cotizaciones y ventas.
           $ref: ../componentes/esquemas-comunes.yaml#/Cantidad
@@ -198,6 +206,8 @@ components:
         reservado: 40
         libre: 120
         planificado: 300
+        faltanteVentas: 0
+        proximaLlegada: "2026-12-05"
         precioReferencial: 29.9
         nivelAlerta: normal
         ubicaciones:

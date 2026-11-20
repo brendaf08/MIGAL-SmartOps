@@ -22,6 +22,8 @@ export interface ProductoExistenciasDto {
   reservado: number;
   libre: number;
   planificado: number;
+  faltanteVentas: number;
+  proximaLlegada: string | null;
   precioReferencial: number;
   nivelAlerta: 'normal' | 'minimo' | 'critico';
   ubicaciones: ExistenciaUbicacionDto[];
@@ -87,6 +89,8 @@ export const aDisponibilidad = (dto: ProductoExistenciasDto): ProductoDisponibil
     almacen2: fisicaEn(2),
     reservado: dto.reservado,
     planificado: dto.planificado,
+    faltanteVentas: dto.faltanteVentas,
+    proximaLlegada: dto.proximaLlegada,
     precio: dto.precioReferencial,
     minimo: dto.stockMinimo,
   };

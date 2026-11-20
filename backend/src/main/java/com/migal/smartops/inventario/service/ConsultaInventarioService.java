@@ -40,7 +40,7 @@ public class ConsultaInventarioService {
 	/** Existencias de un producto, consolidadas y por ubicación. */
 	public record ProductoExistencias(long productoId, String sku, String nombre, String categoria, String unidad,
 			BigDecimal stockMinimo, BigDecimal fisico, BigDecimal reservado, BigDecimal libre, BigDecimal planificado,
-			BigDecimal precioReferencial, String nivelAlerta, List<ExistenciaUbicacion> ubicaciones) {
+			BigDecimal faltanteVentas, LocalDate proximaLlegada, BigDecimal precioReferencial, String nivelAlerta, List<ExistenciaUbicacion> ubicaciones) {
 	}
 
 	/** Producto en nivel crítico o mínimo, con lo que falta para alcanzar el stock mínimo. */
@@ -81,7 +81,22 @@ public class ConsultaInventarioService {
 			                       FROM detalle_compra dc
 			                       JOIN orden_compra oc ON oc.id_orden = dc.id_orden
 			                      WHERE dc.id_producto = p.id_producto
-			                        AND oc.estado IN ('pendiente', 'parcial')), 0) AS planificado
+			                        AND oc.estado IN ('pendiente', 'parcial')), 0) AS planificado,
+			           -- Lo que las ventas pendientes de abastecimiento ya reclaman de ese producto.
+			           COALESCE((SELECT SUM(dv.cantidad_vendida - COALESCE((
+			                         SELECT SUM(rs.cantidad_reservada)
+			                           FROM reserva_stock rs
+			                          WHERE rs.id_detalle_venta = dv.id_detalle_venta AND rs.estado = 'activa'), 0))
+			                       FROM detalle_venta dv
+			                       JOIN venta vp ON vp.id_venta = dv.id_venta
+			                      WHERE dv.id_producto = p.id_producto
+			                        AND vp.estado = 'pendiente_abastecimiento'), 0) AS faltante_ventas,
+			           -- Fecha estimada más próxima de llegada entre las órdenes de compra abiertas del producto.
+			           (SELECT MIN(oe.fecha_entrega_estimada)
+			              FROM detalle_compra de
+			              JOIN orden_compra oe ON oe.id_orden = de.id_orden
+			             WHERE de.id_producto = p.id_producto
+			               AND oe.estado IN ('pendiente', 'parcial')) AS proxima_llegada
 			      FROM producto p
 			      JOIN categoria c ON c.id_categoria = p.id_categoria
 			      LEFT JOIN inventario i ON i.id_producto = p.id_producto
@@ -134,7 +149,8 @@ public class ConsultaInventarioService {
 				.query((rs, n) -> new ProductoExistencias(rs.getLong("id_producto"), rs.getString("sku"),
 						rs.getString("nombre_oficial"), rs.getString("categoria"), rs.getString("unidad_medida"),
 						rs.getBigDecimal("stock_minimo"), rs.getBigDecimal("fisico"), rs.getBigDecimal("reservado"),
-						rs.getBigDecimal("libre"), rs.getBigDecimal("planificado"), rs.getBigDecimal("precio_referencial"), rs.getString("nivel"), List.of()))
+						rs.getBigDecimal("libre"), rs.getBigDecimal("planificado"), rs.getBigDecimal("faltante_ventas"),
+						rs.getObject("proxima_llegada", LocalDate.class), rs.getBigDecimal("precio_referencial"), rs.getString("nivel"), List.of()))
 				.list();
 		Map<Long, List<ExistenciaUbicacion>> ubicaciones = ubicaciones(items.stream().map(ProductoExistencias::productoId).toList());
 		List<ProductoExistencias> completos = items.stream().map(p -> conUbicaciones(p, ubicaciones)).toList();
@@ -212,7 +228,8 @@ public class ConsultaInventarioService {
 				.query((rs, n) -> new ProductoExistencias(rs.getLong("id_producto"), rs.getString("sku"),
 						rs.getString("nombre_oficial"), rs.getString("categoria"), rs.getString("unidad_medida"),
 						rs.getBigDecimal("stock_minimo"), rs.getBigDecimal("fisico"), rs.getBigDecimal("reservado"),
-						rs.getBigDecimal("libre"), rs.getBigDecimal("planificado"), rs.getBigDecimal("precio_referencial"), rs.getString("nivel"), List.of()))
+						rs.getBigDecimal("libre"), rs.getBigDecimal("planificado"), rs.getBigDecimal("faltante_ventas"),
+						rs.getObject("proxima_llegada", LocalDate.class), rs.getBigDecimal("precio_referencial"), rs.getString("nivel"), List.of()))
 				.optional()
 				.orElseThrow(() -> new ErrorDeNegocio(CodigoError.RECURSO_NO_ENCONTRADO, "El producto no existe."));
 		return conUbicaciones(producto, ubicaciones(List.of(idProducto)));
@@ -359,7 +376,8 @@ public class ConsultaInventarioService {
 
 	private static ProductoExistencias conUbicaciones(ProductoExistencias p, Map<Long, List<ExistenciaUbicacion>> mapa) {
 		return new ProductoExistencias(p.productoId(), p.sku(), p.nombre(), p.categoria(), p.unidad(), p.stockMinimo(),
-				p.fisico(), p.reservado(), p.libre(), p.planificado(), p.precioReferencial(), p.nivelAlerta(),
+				p.fisico(), p.reservado(), p.libre(), p.planificado(), p.faltanteVentas(), p.proximaLlegada(), p.precioReferencial(),
+				p.nivelAlerta(),
 				mapa.getOrDefault(p.productoId(), List.of()));
 	}
 }

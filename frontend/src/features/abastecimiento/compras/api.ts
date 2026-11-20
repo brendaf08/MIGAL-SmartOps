@@ -36,6 +36,8 @@ export interface LineaNuevaOrden {
 export interface NuevaOrdenCompra {
   proveedorId: string;
   fecha: string;
+  /** Llegada estimada acordada con el proveedor, si la hay. */
+  fechaEstimada?: string;
   lineas: LineaNuevaOrden[];
 }
 
@@ -167,6 +169,7 @@ const crearOrdenReal = async (datos: NuevaOrdenCompra): Promise<OrdenCompra> => 
     // La fecha de emisión la asigna el servidor, por lo que no se envía el campo fecha del formulario.
     const creada = await api.post<OrdenCompraApi>('/ordenes-compra', {
       proveedorId: datos.proveedorId,
+      ...(datos.fechaEstimada ? { fechaEntregaEstimada: datos.fechaEstimada } : {}),
       lineas: datos.lineas.map((l) => ({
         sku: l.sku,
         cantidadComprada: l.cantidad,

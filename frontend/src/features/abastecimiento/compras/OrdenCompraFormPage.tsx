@@ -20,7 +20,7 @@ import {
   listarProveedoresCompra,
   precioReferencia,
 } from './api';
-import { esquemaOrden, hoyISO, type ValoresOrden } from './esquema';
+import { esquemaOrdenConEstimada, hoyISO, type ValoresOrden } from './esquema';
 import { FaltantesVentasPanel } from './FaltantesVentasPanel';
 import { useCatalogoVigente } from '@/features/catalogo/catalogoVigente';
 
@@ -47,9 +47,10 @@ export function OrdenCompraFormPage() {
     initialValues: {
       proveedorId: '',
       fecha: hoyISO(),
+      fechaEstimada: '',
       lineas: lineaInicial(params.get('sku')),
     },
-    validate: zod4Resolver(esquemaOrden),
+    validate: zod4Resolver(esquemaOrdenConEstimada),
   });
 
   const { lineas, proveedorId } = form.values;
@@ -68,6 +69,7 @@ export function OrdenCompraFormPage() {
       crearOrdenCompra({
         proveedorId: v.proveedorId,
         fecha: v.fecha,
+        fechaEstimada: v.fechaEstimada || undefined,
         lineas: v.lineas.map(({ sku, cantidad, precio }) => ({ sku, cantidad, precio })),
       }),
     onSuccess: (orden) => {
@@ -134,6 +136,13 @@ export function OrdenCompraFormPage() {
               required
               min={hoyISO()}
               {...form.getInputProps('fecha')}
+            />
+            <TextInput
+              label="Fecha estimada de llegada"
+              description="Opcional. Es la fecha que el vendedor ve como próxima llegada de estos productos."
+              type="date"
+              min={form.values.fecha || hoyISO()}
+              {...form.getInputProps('fechaEstimada')}
             />
           </Stack>
         </Card>

@@ -59,6 +59,7 @@ const FILTROS: { value: Filtro; label: string }[] = [
   { value: 'Emitida', label: 'Emitidas' },
   { value: 'AceptadaCliente', label: 'Aceptadas' },
   { value: 'Rechazada', label: 'Rechazadas' },
+  { value: 'Cancelada', label: 'Canceladas' },
   { value: 'Vencida', label: 'Vencidas' },
 ];
 

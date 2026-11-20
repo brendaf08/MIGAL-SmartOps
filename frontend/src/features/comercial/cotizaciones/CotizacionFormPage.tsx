@@ -40,6 +40,7 @@ import { avisarRepetidos } from '@/features/documentos-ocr/avisos';
 import { usePrecargaDocumento } from '@/features/documentos-ocr/usePrecargaDocumento';
 import classes from './CotizacionForm.module.css';
 import { useCatalogoVigente } from '@/features/catalogo/catalogoVigente';
+import { DesgloseStock } from '../DesgloseStock';
 
 /** Valores iniciales: un formulario vacío para una cotización nueva, o los datos de la cotización a modificar. */
 function valoresIniciales(cotizacion?: Cotizacion): ValoresCotizacion {
@@ -95,7 +96,15 @@ function CotizacionForm({ cotizacion }: CotizacionFormProps) {
   // Copia local del catálogo vigente para los selectores y las búsquedas por SKU (API real).
   useCatalogoVigente();
   const editando = cotizacion !== undefined;
-  const soloLectura = cotizacion !== undefined && cotizacion.estado !== 'Emitida';
+  // Emitida, aceptada o validada sin venta se pueden modificar; las dos últimas vuelven a emitida y piden un motivo.
+  const soloLectura =
+    cotizacion !== undefined &&
+    (!['Emitida', 'AceptadaCliente', 'ValidadaMigal'].includes(cotizacion.estado) ||
+      Boolean(cotizacion.ventaId));
+  const requiereMotivo =
+    cotizacion !== undefined && cotizacion.estado !== 'Emitida' && !soloLectura;
+  const [motivoCambio, setMotivoCambio] = useState('');
+  const [errorMotivo, setErrorMotivo] = useState<string | null>(null);
   const hoy = hoyIso();
   const [pendiente, setPendiente] = useState<ValoresCotizacion | null>(null);
   const clientes = useQuery({ queryKey: ['clientes'], queryFn: listarClientes }).data ?? [];
@@ -144,7 +153,16 @@ function CotizacionForm({ cotizacion }: CotizacionFormProps) {
   });
 
   const enviar = (valores: ValoresCotizacion) => {
-    if (editando) guardar.mutate(datosDesde(valores));
+    if (requiereMotivo && motivoCambio.trim().length < 10) {
+      setErrorMotivo('Indicar el motivo del cambio (mínimo 10 caracteres).');
+      return;
+    }
+    setErrorMotivo(null);
+    if (editando)
+      guardar.mutate({
+        ...datosDesde(valores),
+        ...(requiereMotivo ? { motivoCambio: motivoCambio.trim() } : {}),
+      });
     else setPendiente(valores);
   };
 
@@ -170,7 +188,7 @@ function CotizacionForm({ cotizacion }: CotizacionFormProps) {
         title={editando ? 'Editar cotización' : 'Nueva cotización'}
         description={
           editando
-            ? 'Solo las cotizaciones emitidas se pueden modificar.'
+            ? 'Se puede modificar una cotización emitida, aceptada o validada que aún no tenga venta.'
             : 'Emitir una cotización a un cliente. No reserva existencias.'
         }
         breadcrumbs={
@@ -199,8 +217,16 @@ function CotizacionForm({ cotizacion }: CotizacionFormProps) {
       >
         {soloLectura && (
           <Alert tone="info" title="Cotización de solo lectura">
-            La cotización está en estado {STATUS.cotizacion[cotizacion.estado][1]} y no se puede
-            modificar.
+            {cotizacion.ventaId
+              ? 'La cotización ya originó una venta. Para cambiarla, cancelar la venta y emitir una cotización nueva.'
+              : `La cotización está en estado ${STATUS.cotizacion[cotizacion.estado][1]} y no se puede modificar.`}
+          </Alert>
+        )}
+        {requiereMotivo && (
+          <Alert tone="warning" title="Al guardar, la cotización vuelve a Emitida">
+            El cliente tendrá que aceptarla de nuevo
+            {cotizacion.estado === 'ValidadaMigal' ? ' y MIGAL tendrá que validarla otra vez' : ''}.
+            El cambio queda en el historial con su motivo.
           </Alert>
         )}
         <fieldset className={classes.fieldset} disabled={soloLectura}>
@@ -251,6 +277,28 @@ function CotizacionForm({ cotizacion }: CotizacionFormProps) {
                 />
               </div>
             </Card>
+
+            <DesgloseStock
+              lineas={values.lineas
+                .filter((l) => l.sku && l.cantidad > 0)
+                .map((l) => ({ sku: l.sku, cantidad: l.cantidad }))}
+            />
+
+            {requiereMotivo && (
+              <Card title="Motivo del cambio">
+                <Textarea
+                  label="Motivo del cambio"
+                  description="Obligatorio, mínimo 10 caracteres. Se guarda en el historial."
+                  required
+                  autosize
+                  minRows={2}
+                  maxLength={500}
+                  value={motivoCambio}
+                  onChange={(e) => setMotivoCambio(e.currentTarget.value)}
+                  error={errorMotivo}
+                />
+              </Card>
+            )}
 
             <Card title="Condiciones">
               <Stack gap="md">

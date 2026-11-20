@@ -66,7 +66,8 @@ public final class SolicitudesComercial {
 			@NotEmpty @Valid List<LineaCotizacion> lineas,
 			@DecimalMin("0") @Digits(integer = 12, fraction = 2) BigDecimal descuento,
 			@Min(1) @Max(60) Integer validezDias,
-			String condicionesComerciales) {
+			String condicionesComerciales,
+			@Size(max = 500) String motivoCambio) {
 
 		public DatosCotizacion datos() {
 			List<LineaDatos> lineasDatos = lineas.stream()

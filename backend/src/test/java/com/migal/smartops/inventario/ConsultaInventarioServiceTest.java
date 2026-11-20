@@ -203,6 +203,13 @@ class ConsultaInventarioServiceTest {
 		assertEquals(TipoOperacion.ENTRADA, todos.getContent().get(0).tipoOperacion());
 		assertEquals(1, salidas.getTotalElements());
 		assertEquals(0, futuro.getTotalElements());
+		// Solo los movimientos indicados, como los que acaba de registrar una operación.
+		long primero = todos.getContent().get(1).id();
+		Page<MovimientoDetalle> soloUno = consultas.kardex(null, sku(producto), null, null, null, null, null, null, null,
+				java.util.List.of(primero), 1, 20);
+		assertEquals(1, soloUno.getTotalElements());
+		assertEquals(primero, soloUno.getContent().get(0).id());
+
 		assertEquals(CodigoError.VALIDACION_FALLIDA, assertThrows(ErrorDeNegocio.class,
 				() -> consultas.kardex(null, null, null, "otro", null, null, null, 1, 20)).codigo());
 		assertEquals(CodigoError.VALIDACION_FALLIDA, assertThrows(ErrorDeNegocio.class,

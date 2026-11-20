@@ -367,16 +367,14 @@ components:
         Conversión de una cotización aceptada y validada en venta. Las líneas, los precios, el descuento y el
         cliente se toman de la cotización; el cuerpo no los admite.
       additionalProperties: false
-      required: [idCotizacion]
+      required: [idCotizacion, fechaEntregaRequerida]
       properties:
         idCotizacion:
           description: Cotización aceptada y validada que origina la venta. Referencia a Cotizacion.id.
           $ref: ../componentes/esquemas-comunes.yaml#/Identificador
         fechaEntregaRequerida:
-          description: Fecha en que el cliente requiere la entrega. Opcional; no puede ser anterior a hoy.
-          anyOf:
-            - $ref: ../componentes/esquemas-comunes.yaml#/Fecha
-            - type: 'null'
+          description: Fecha en que el cliente requiere la entrega. Obligatoria; no puede ser anterior a hoy.
+          $ref: ../componentes/esquemas-comunes.yaml#/Fecha
       example:
         idCotizacion: "301"
         fechaEntregaRequerida: "2026-12-04"
@@ -406,7 +404,7 @@ components:
         validación, y la venta que de ella resulta (ADR-003). La venta siempre tiene cliente activo y un producto
         no puede repetirse entre las líneas.
       additionalProperties: false
-      required: [clienteId, descuento, lineas]
+      required: [clienteId, descuento, fechaEntregaRequerida, lineas]
       properties:
         clienteId:
           description: Cliente activo de la venta. Obligatorio.
@@ -423,10 +421,8 @@ components:
           description: Fecha límite de vigencia de la cotización registrada. Si se omite, el servidor la asigna.
           $ref: ../componentes/esquemas-comunes.yaml#/Fecha
         fechaEntregaRequerida:
-          description: Fecha en que el cliente requiere la entrega. Opcional; no puede ser anterior a hoy.
-          anyOf:
-            - $ref: ../componentes/esquemas-comunes.yaml#/Fecha
-            - type: 'null'
+          description: Fecha en que el cliente requiere la entrega. Obligatoria; no puede ser anterior a hoy.
+          $ref: ../componentes/esquemas-comunes.yaml#/Fecha
         lineas:
           type: array
           minItems: 1

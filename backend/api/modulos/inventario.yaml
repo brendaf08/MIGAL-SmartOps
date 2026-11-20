@@ -46,6 +46,21 @@ components:
       schema:
         type: boolean
         default: false
+    GuiaFiltro:
+      name: guiaId
+      in: query
+      required: false
+      description: Limita el listado a los movimientos de salida generados por la guía de despacho indicada.
+      schema:
+        $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+    MovimientosFiltro:
+      name: movimientoIds
+      in: query
+      required: false
+      description: Limita el listado a los movimientos indicados, separados por coma (por ejemplo, los que acaba de registrar una operación).
+      schema:
+        type: string
+        pattern: '^[0-9]{1,18}(,[0-9]{1,18})*$'
     RecepcionFiltro:
       name: recepcionId
       in: query
@@ -724,6 +739,8 @@ paths:
         - $ref: ../componentes/parametros.yaml#/desde
         - $ref: ../componentes/parametros.yaml#/hasta
         - $ref: '#/components/parameters/RecepcionFiltro'
+        - $ref: '#/components/parameters/GuiaFiltro'
+        - $ref: '#/components/parameters/MovimientosFiltro'
         - $ref: ../componentes/parametros.yaml#/page
         - $ref: ../componentes/parametros.yaml#/pageSize
       responses:

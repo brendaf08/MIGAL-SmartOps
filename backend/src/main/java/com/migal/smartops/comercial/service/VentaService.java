@@ -4,6 +4,7 @@ import com.migal.smartops.catalogo.model.Producto;
 import com.migal.smartops.catalogo.service.ProductoService;
 import com.migal.smartops.comercial.model.Cliente;
 import com.migal.smartops.comercial.model.Cotizacion;
+import com.migal.smartops.comercial.model.OrigenRechazoCotizacion;
 import com.migal.smartops.comercial.model.DetalleVenta;
 import com.migal.smartops.comercial.model.EstadoCotizacion;
 import com.migal.smartops.comercial.model.EstadoVenta;
@@ -270,7 +271,16 @@ public class VentaService {
 		}
 		despacho.anularGuiaDeVenta(idVenta);
 		reservasInventario.liberar(venta.getLineas().stream().map(DetalleVenta::getId).toList());
-		venta.cancelar(usuarios.consultar(idUsuario), reloj.instant(), texto);
+		Usuario autorizante = usuarios.consultar(idUsuario);
+		Instant ahora = reloj.instant();
+		venta.cancelar(autorizante, ahora, texto);
+		// La cotización de origen queda cancelada para que se vea la trazabilidad; si el cliente vuelve, se duplica.
+		Cotizacion origen = venta.getCotizacion();
+		if (origen.getEstado() == EstadoCotizacion.VALIDADA) {
+			String motivoCotizacion = "Venta cancelada: " + texto;
+			origen.registrarCancelacion(OrigenRechazoCotizacion.CLIENTE, autorizante, ahora,
+					motivoCotizacion.length() > 500 ? motivoCotizacion.substring(0, 500) : motivoCotizacion);
+		}
 		return detalle(venta);
 	}
 

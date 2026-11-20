@@ -49,6 +49,8 @@ public class CotizacionService {
 	private static final ZoneId ZONA = ZoneId.of("America/Lima");
 	private static final int VALIDEZ_MAXIMA_DIAS = 60;
 	private static final int LONGITUD_MAXIMA_MOTIVO = 500;
+	private static final int MOTIVO_MINIMO = 10;
+	private static final int VALIDEZ_POR_DEFECTO_DIAS = 7;
 
 	/** Línea solicitada en una cotización nueva o modificada. */
 	public record LineaDatos(long productoId, BigDecimal cantidad, BigDecimal precioUnitario) {
@@ -61,6 +63,14 @@ public class CotizacionService {
 
 	/** Cantidad de un producto que se traslada a la cotización nueva durante una división. */
 	public record LineaDivision(long productoId, BigDecimal cantidad) {
+	}
+
+	/** Cambio del historial de una cotización, con el nombre de quien lo hizo. */
+	public record CambioVista(Instant fecha, String usuario, String estadoAnterior, String estadoNuevo, String motivo) {
+	}
+
+	/** Cotización con su venta de origen (si ya la tiene) y su historial de cambios, para el detalle. */
+	public record VistaCotizacion(Cotizacion cotizacion, Long ventaId, List<CambioVista> historial) {
 	}
 
 	/** Cotización original y cotización nueva resultantes de una división. */
@@ -119,6 +129,17 @@ public class CotizacionService {
 
 	/** Consulta una cotización con sus líneas y su estado vigente. */
 	@Transactional(readOnly = true)
+	public VistaCotizacion detalle(long id) {
+		Cotizacion cotizacion = consultar(id);
+		List<CambioVista> historial = cotizacion.getHistorial().stream()
+				.map(c -> new CambioVista(c.getFecha(),
+						(c.getUsuario().getNombres() + " " + c.getUsuario().getApellidos()).trim(), c.getEstadoAnterior(),
+						c.getEstadoNuevo(), c.getMotivo()))
+				.sorted(java.util.Comparator.comparing(CambioVista::fecha).reversed()).toList();
+		return new VistaCotizacion(cotizacion, cotizaciones.idVenta(id).orElse(null), historial);
+	}
+
+	@Transactional(readOnly = true)
 	public Cotizacion consultar(long id) {
 		return cotizaciones.findById(id).orElseThrow(CotizacionService::noEncontrada);
 	}
@@ -148,6 +169,43 @@ public class CotizacionService {
 		vencerVencidas();
 		Cotizacion cotizacion = bloquear(id);
 		exigirVigenteYEmitida(cotizacion);
+		return aplicarDatos(cotizacion, datos);
+	}
+
+	/**
+	 * Modifica una cotización emitida, aceptada o validada que aún no originó una venta. Si estaba aceptada o validada,
+	 * vuelve a emitida (el cliente debe aceptarla de nuevo y MIGAL validarla otra vez) y el cambio queda en el historial
+	 * con su motivo, que es obligatorio. Una cotización con venta no se modifica: se cancela la venta y se emite otra.
+	 */
+	@Transactional
+	public Cotizacion actualizar(long id, DatosCotizacion datos, String motivoCambio, long idUsuario) {
+		vencerVencidas();
+		Cotizacion cotizacion = bloquear(id);
+		EstadoCotizacion estado = cotizacion.getEstado();
+		if (estado == EstadoCotizacion.EMITIDA) {
+			return aplicarDatos(cotizacion, datos);
+		}
+		if (estado == EstadoCotizacion.VENCIDA) {
+			throw vencida();
+		}
+		if (estado != EstadoCotizacion.ACEPTADA && estado != EstadoCotizacion.VALIDADA) {
+			throw noEditable();
+		}
+		if (cotizaciones.tieneVenta(id)) {
+			throw new ErrorDeNegocio(CodigoError.COTIZACION_NO_EDITABLE,
+					"La cotización ya originó una venta: cancelar la venta y emitir una cotización nueva.");
+		}
+		String motivo = motivoCambio == null ? "" : motivoCambio.trim();
+		if (motivo.length() < MOTIVO_MINIMO || motivo.length() > LONGITUD_MAXIMA_MOTIVO) {
+			throw validacion("El motivo del cambio es obligatorio (entre " + MOTIVO_MINIMO + " y "
+					+ LONGITUD_MAXIMA_MOTIVO + " caracteres).");
+		}
+		Cotizacion modificada = aplicarDatos(cotizacion, datos);
+		modificada.volverAEmitida(usuarios.consultar(idUsuario), reloj.instant(), motivo);
+		return cotizaciones.saveAndFlush(modificada);
+	}
+
+	private Cotizacion aplicarDatos(Cotizacion cotizacion, DatosCotizacion datos) {
 		Cliente cliente = clienteDe(datos.clienteId());
 		BigDecimal descuento = validarCuerpo(datos);
 		Set<Long> productosSolicitados = new HashSet<>();
@@ -169,6 +227,56 @@ public class CotizacionService {
 		cotizacion.actualizarDatos(cliente, vencimiento(cotizacion.getFechaEmision(), datos.validezDias()),
 				datos.condicionesComerciales(), descuento);
 		return cotizaciones.saveAndFlush(cotizacion);
+	}
+
+	/**
+	 * Cancela una cotización aceptada o validada que aún no originó una venta. Con origen cliente la registran el
+	 * Vendedor y el Administrador; con origen MIGAL, solo el Administrador. El motivo es obligatorio y queda en el
+	 * historial. Una cotización con venta se cancela al cancelar la venta.
+	 */
+	@Transactional
+	public Cotizacion cancelar(long id, OrigenRechazoCotizacion origen, String motivo, long idUsuario, RolUsuario rol) {
+		String texto = motivo == null ? "" : motivo.trim();
+		if (texto.isEmpty() || texto.length() > LONGITUD_MAXIMA_MOTIVO) {
+			throw validacion("El motivo de la cancelación es obligatorio y no puede superar 500 caracteres.");
+		}
+		if (origen == OrigenRechazoCotizacion.MIGAL && !rol.incluye(RolUsuario.ADMINISTRADOR)) {
+			throw new ErrorDeNegocio(CodigoError.PERMISO_INSUFICIENTE,
+					"Solo el Administrador registra la cancelación de MIGAL.");
+		}
+		vencerVencidas();
+		Cotizacion cotizacion = bloquear(id);
+		if (cotizacion.getEstado() != EstadoCotizacion.ACEPTADA && cotizacion.getEstado() != EstadoCotizacion.VALIDADA) {
+			throw noConvertible();
+		}
+		if (cotizaciones.tieneVenta(id)) {
+			throw new ErrorDeNegocio(CodigoError.COTIZACION_NO_EDITABLE,
+					"La cotización ya originó una venta: se cancela cancelando la venta.");
+		}
+		cotizacion.registrarCancelacion(origen, usuarios.consultar(idUsuario), reloj.instant(), texto);
+		return cotizaciones.saveAndFlush(cotizacion);
+	}
+
+	/**
+	 * Emite una cotización nueva con las líneas, el cliente, el descuento y las condiciones de una rechazada, cancelada
+	 * o vencida, para retomarla si el cliente vuelve. La copia nace emitida, con la validez de una cotización nueva.
+	 */
+	@Transactional
+	public Cotizacion duplicar(long id, long idUsuario) {
+		Cotizacion origen = cotizaciones.findById(id).orElseThrow(CotizacionService::noEncontrada);
+		EstadoCotizacion estado = origen.getEstado();
+		if (estado != EstadoCotizacion.RECHAZADA && estado != EstadoCotizacion.CANCELADA
+				&& estado != EstadoCotizacion.VENCIDA) {
+			throw noConvertible();
+		}
+		Instant ahora = reloj.instant();
+		Cotizacion copia = new Cotizacion(origen.getCliente(), usuarios.consultar(idUsuario), ahora,
+				vencimiento(ahora, VALIDEZ_POR_DEFECTO_DIAS), origen.getCondicionesComerciales(), origen.getDescuento());
+		for (DetalleCotizacion linea : origen.getLineas()) {
+			copia.agregarLinea(productoVigente(linea.getProducto().getId()), linea.getCantidadCotizada(),
+					linea.getPrecioUnitario());
+		}
+		return cotizaciones.saveAndFlush(copia);
 	}
 
 	/** Registra la aceptación del cliente: emitida pasa a aceptada. No reserva existencias. */

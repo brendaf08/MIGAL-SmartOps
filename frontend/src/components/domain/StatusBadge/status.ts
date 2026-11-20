@@ -14,6 +14,7 @@ export const STATUS = {
     AceptadaCliente: ['brand', 'Aceptada por el cliente', 'check'],
     ValidadaMigal: ['success', 'Validada por MIGAL', 'status-ok'],
     Rechazada: ['danger', 'Rechazada', 'status-danger'],
+    Cancelada: ['danger', 'Cancelada', 'status-danger'],
     Vencida: ['neutral', 'Vencida', 'clock'],
   },
   venta: {

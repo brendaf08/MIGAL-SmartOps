@@ -398,10 +398,12 @@ class Sembrador:
         if not self.forzar and self.api.get("/ordenes-compra", proveedorId=reyfam, pageSize=1)["total"] > 0:
             print("  ya existen órdenes de compra de demostración; se omite (usar --forzar para repetir).")
             return
-        for ruc, lineas, destino, descripcion in ORDENES:
+        for numero, (ruc, lineas, destino, descripcion) in enumerate(ORDENES):
             validas = [(s, c, p) for s, c, p in lineas if self.producto(s)]
             orden = self.api.post("/ordenes-compra", {
                 "proveedorId": self.proveedores[ruc],
+                # Llegada estimada escalonada (5, 9, 13... días): alimenta la "próxima llegada" que ve el vendedor.
+                "fechaEntregaEstimada": (date.today() + timedelta(days=5 + 4 * numero)).isoformat(),
                 "lineas": [{"sku": s, "cantidadComprada": c, "costoUnitario": p} for s, c, p in validas]})
             self.contar("órdenes de compra")
             if destino == "pendiente":
@@ -436,7 +438,10 @@ class Sembrador:
             return
         lineas = [{"sku": i["sku"], "cantidadComprada": 200, "costoUnitario": max(float(i["precioCompra"]), 0.5)}
                   for i in coincidencias[:10]]
-        self.api.post("/ordenes-compra", {"proveedorId": mejor["id"], "lineas": lineas})
+        self.api.post("/ordenes-compra", {
+            "proveedorId": mejor["id"],
+            "fechaEntregaEstimada": (date.today() + timedelta(days=7)).isoformat(),
+            "lineas": lineas})
         self.contar("órdenes de compra (reposición por alertas)")
 
     # --- Ventas pendientes de abastecimiento (para planificar compras) ---------------------------------------

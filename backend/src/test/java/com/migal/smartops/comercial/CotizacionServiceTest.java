@@ -165,6 +165,50 @@ class CotizacionServiceTest {
 	}
 
 	@Test
+	void modificarUnaCotizacionAceptadaExigeMotivoYLaDevuelveAEmitida() {
+		Cotizacion nueva = emitida();
+		servicio.registrarAceptacion(nueva.getId());
+		servicio.registrarValidacion(nueva.getId());
+		DatosCotizacion cambio = datos(idCliente, "0", linea(idProducto, "10", "30.00"));
+		assertCodigo(CodigoError.VALIDACION_FALLIDA,
+				() -> servicio.actualizar(nueva.getId(), cambio, "corto", vendedor.getId()));
+		Cotizacion editada = servicio.actualizar(nueva.getId(), cambio, "El cliente pidió menos cantidad",
+				vendedor.getId());
+		assertEquals(EstadoCotizacion.EMITIDA, editada.getEstado());
+		assertEquals(null, editada.getFechaAceptacionCliente());
+		assertEquals(null, editada.getFechaValidacionMigal());
+		assertEquals(1, editada.getHistorial().size());
+		assertEquals(0, new BigDecimal("300.00").compareTo(editada.total()));
+	}
+
+	@Test
+	void cancelarUnaCotizacionAceptadaRegistraOrigenYRespetaLosRoles() {
+		Cotizacion nueva = emitida();
+		assertCodigo(CodigoError.COTIZACION_NO_CONVERTIBLE, () -> servicio.cancelar(nueva.getId(),
+				OrigenRechazoCotizacion.CLIENTE, "El cliente desistió", vendedor.getId(), RolUsuario.VENDEDOR));
+		servicio.registrarAceptacion(nueva.getId());
+		assertCodigo(CodigoError.PERMISO_INSUFICIENTE, () -> servicio.cancelar(nueva.getId(),
+				OrigenRechazoCotizacion.MIGAL, "Sin abastecimiento", vendedor.getId(), RolUsuario.VENDEDOR));
+		Cotizacion cancelada = servicio.cancelar(nueva.getId(), OrigenRechazoCotizacion.CLIENTE,
+				"El cliente desistió", vendedor.getId(), RolUsuario.VENDEDOR);
+		assertEquals(EstadoCotizacion.CANCELADA, cancelada.getEstado());
+		assertEquals(OrigenRechazoCotizacion.CLIENTE, cancelada.getOrigenRechazo());
+	}
+
+	@Test
+	void duplicaUnaCotizacionCanceladaComoEmitidaNuevaYNoUnaVigente() {
+		Cotizacion nueva = emitida();
+		assertCodigo(CodigoError.COTIZACION_NO_CONVERTIBLE, () -> servicio.duplicar(nueva.getId(), vendedor.getId()));
+		servicio.registrarAceptacion(nueva.getId());
+		servicio.cancelar(nueva.getId(), OrigenRechazoCotizacion.CLIENTE, "El cliente desistió", vendedor.getId(),
+				RolUsuario.VENDEDOR);
+		Cotizacion copia = servicio.duplicar(nueva.getId(), vendedor.getId());
+		assertEquals(EstadoCotizacion.EMITIDA, copia.getEstado());
+		assertTrue(!copia.getId().equals(nueva.getId()));
+		assertEquals(0, nueva.total().compareTo(copia.total()));
+	}
+
+	@Test
 	void laTareaProgramadaVenceLaCotizacionYSeRechazaLaAceptacionPosterior() {
 		Cotizacion nueva = emitida();
 		CotizacionService posterior = servicioEn(EMISION.plusSeconds(10L * 86_400));

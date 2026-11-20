@@ -1,3 +1,4 @@
+import { CotizacionImprimiblePage } from '@/features/comercial/CotizacionImprimiblePage';
 import { CotizacionPage } from '@/features/comercial/CotizacionPage';
 import { CotizacionesPage } from '@/features/comercial/CotizacionesPage';
 import { CotizacionFormPage } from '@/features/comercial/cotizaciones/CotizacionFormPage';
@@ -8,5 +9,6 @@ export const RUTAS: RutaModulo[] = [
   { path: '', element: <CotizacionesPage /> },
   { path: 'nueva', element: <CotizacionFormPage />, roles: ['Vendedor'] },
   { path: ':id', element: <CotizacionPage /> },
+  { path: ':id/imprimir', element: <CotizacionImprimiblePage /> },
   { path: ':id/editar', element: <CotizacionFormPage />, roles: ['Vendedor'] },
 ];

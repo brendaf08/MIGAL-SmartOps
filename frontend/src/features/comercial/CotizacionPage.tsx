@@ -222,7 +222,8 @@ export function CotizacionPage() {
             <Button
               variant="default"
               leftSection={<Icon name="print" />}
-              onClick={() => window.print()}
+              component={Link}
+              to={`/cotizaciones/${id}/imprimir`}
             >
               Imprimir
             </Button>

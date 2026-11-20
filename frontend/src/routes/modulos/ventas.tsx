@@ -1,3 +1,4 @@
+import { VentaImprimiblePage } from '@/features/comercial/ventas/VentaImprimiblePage';
 import { VentaDetallePage } from '@/features/comercial/ventas/VentaDetallePage';
 import { VentasPage } from '@/features/comercial/ventas/VentasPage';
 import type { RutaModulo } from './tipos';
@@ -6,4 +7,5 @@ import type { RutaModulo } from './tipos';
 export const RUTAS: RutaModulo[] = [
   { path: '', element: <VentasPage /> },
   { path: ':id', element: <VentaDetallePage /> },
+  { path: ':id/imprimir', element: <VentaImprimiblePage /> },
 ];

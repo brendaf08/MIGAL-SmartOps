@@ -18,7 +18,7 @@ dependencies = [
 desarrollo = [
     "pytest==9.2.0",
     "respx==0.22.0",
-    "jsonschema==4.23.0",
+    "jsonschema==4.26.0",
     "pyyaml==6.0.2",
     "ruff==0.11.5",
 ]

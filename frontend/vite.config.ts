@@ -12,9 +12,10 @@ export default defineConfig({
   server: {
     port: 5173,
     // La API se sirve en el mismo origen durante el desarrollo, por lo que no requiere CORS. El destino se
-    // sobrescribe con VITE_API_DESTINO.
+    // sobrescribe con VITE_API_DESTINO. Se conserva el Host original (changeOrigin: false) para que Spring reconozca
+    // el mismo origen frente al encabezado Origin del navegador.
     proxy: {
-      '/api': { target: process.env.VITE_API_DESTINO ?? 'http://localhost:8080', changeOrigin: true },
+      '/api': { target: process.env.VITE_API_DESTINO ?? 'http://localhost:8080', changeOrigin: false },
     },
   },
   test: {

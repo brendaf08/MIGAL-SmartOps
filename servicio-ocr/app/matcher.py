@@ -65,7 +65,11 @@ def vocabulario(candidatos: list[Candidato]) -> Counter[str]:
     palabras: Counter[str] = Counter()
     for candidato in candidatos:
         for palabra in set(candidato.normalizado.texto.split()):
-            if palabra not in candidato.normalizado.medidas and palabra.isalpha() and len(palabra) >= LONGITUD_MINIMA_CORRECCION:
+            if (
+                palabra not in candidato.normalizado.medidas
+                and palabra.isalpha()
+                and len(palabra) >= LONGITUD_MINIMA_CORRECCION
+            ):
                 palabras[palabra] += 1
     return palabras
 

@@ -132,6 +132,8 @@ test('SIMULADO PARCIAL: cotización → venta/reserva → despacho (selectores d
   await expect(page.getByRole('combobox', { name: 'Cotización aceptada' })).toHaveValue(
     new RegExp(`^${cotizacion},`),
   );
+  const fechaEntrega = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
+  await page.getByLabel(/Fecha de entrega requerida/).fill(fechaEntrega);
   await page.getByRole('button', { name: 'Confirmar venta' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Confirmar venta' }).click();
   await expect(page.getByRole('heading', { name: /Venta .* registrada/ })).toBeVisible();
@@ -195,7 +197,7 @@ test('SIMULADO PARCIAL: compra → recepción → inventario (selector de produc
   // CU-13: el Almacenero registra el conteo físico; sin cantidades la confirmación queda bloqueada.
   const confirmar = page.getByRole('button', { name: 'Confirmar recepción' });
   await expect(confirmar).toBeDisabled();
-  await page.getByRole('textbox', { name: /^Cantidad recibida de / }).fill('2');
+  await page.getByRole('textbox', { name: /^Cantidad recibida (?:en .+ )?de / }).fill('2');
   await expect(confirmar).toBeEnabled();
   await confirmar.click();
   await page.getByRole('dialog').getByRole('button', { name: 'Confirmar recepción' }).click();

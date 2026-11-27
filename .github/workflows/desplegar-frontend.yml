@@ -1,0 +1,90 @@
+# Despliega el frontend en Vercel una vez superada la verificación: vista previa en cada Pull Request y producción
+# al integrar en main. Requiere los secretos VERCEL_TOKEN, VERCEL_ORG_ID y VERCEL_PROJECT_ID; sin ellos el trabajo se omite.
+# No se utiliza la integración Git de Vercel para que ningún despliegue ocurra sin pasar por las comprobaciones.
+name: Desplegar frontend
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/desplegar-frontend.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/desplegar-frontend.yml'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+  VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+# Producción nunca se cancela a mitad de un despliegue; las vistas previas sí se reemplazan.
+concurrency:
+  group: desplegar-frontend-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+
+  desplegar:
+    needs: verificar
+    # Los PR de bifurcaciones no reciben secretos.
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ github.event_name == 'push' && 'production' || 'preview' }}
+      url: ${{ steps.desplegar.outputs.url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Comprobar configuración
+        id: config
+        env:
+          TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ] || [ -z "$VERCEL_ORG_ID" ] || [ -z "$VERCEL_PROJECT_ID" ]; then
+            echo "Sin secretos de Vercel: despliegue omitido."
+            echo "listo=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "listo=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Obtener configuración del proyecto
+        if: steps.config.outputs.listo == 'true'
+        run: npx --yes vercel@latest pull --yes --environment=${{ github.event_name == 'push' && 'production' || 'preview' }} --token="$VERCEL_TOKEN"
+
+      - name: Compilar
+        if: steps.config.outputs.listo == 'true'
+        run: npx --yes vercel@latest build ${{ github.event_name == 'push' && '--prod' || '' }} --token="$VERCEL_TOKEN"
+
+      - name: Desplegar
+        id: desplegar
+        if: steps.config.outputs.listo == 'true'
+        run: |
+          url=$(npx --yes vercel@latest deploy --prebuilt ${{ github.event_name == 'push' && '--prod' || '' }} --token="$VERCEL_TOKEN")
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "Despliegue: $url" >> "$GITHUB_STEP_SUMMARY"

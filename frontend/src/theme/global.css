@@ -152,27 +152,6 @@ body {
     scroll-behavior: auto !important;
   }
 }
-
-/*
- * Modo almacén (por equipo, atributo data-warehouse en la raíz): los controles miden de 52 a 56 px
- * (--control-xl) y los ítems de navegación, lo mismo. No aplica al teléfono, que ya usa 44 px.
- */
-@mixin larger-than $mantine-breakpoint-sm {
-  :root[data-warehouse='true'] {
-    & .mantine-Input-input,
-    & .mantine-Button-root,
-    & .mantine-Tabs-tab {
-      height: auto;
-      min-height: var(--control-xl);
-    }
-
-    & .mantine-ActionIcon-root {
-      min-width: var(--control-xl);
-      min-height: var(--control-xl);
-    }
-  }
-}
-
 /*
  * Impresión de cualquier pantalla (por ejemplo, una cotización): el navegador no imprime los fondos y el tema oscuro usa
  * texto claro, por lo que la hoja salía en blanco. Se fuerza texto oscuro sobre blanco y se oculta la navegación y los

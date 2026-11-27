@@ -100,6 +100,12 @@ export interface FiltrosKardex {
   desde: string;
   /** Fecha `aaaa-mm-dd`, inclusiva. */
   hasta: string;
+  /** Identificador de una recepción: limita el listado a sus movimientos de entrada. */
+  recepcionId: string;
+  /** Identificador de una guía de despacho: limita el listado a sus movimientos de salida. */
+  guiaId: string;
+  /** Identificadores de movimientos concretos, separados por coma (los que acaba de registrar una operación). */
+  movimientoIds: string;
 }
 
 export const SIN_FILTROS_KARDEX: FiltrosKardex = {
@@ -109,6 +115,9 @@ export const SIN_FILTROS_KARDEX: FiltrosKardex = {
   ubicacion: '',
   desde: '',
   hasta: '',
+  recepcionId: '',
+  guiaId: '',
+  movimientoIds: '',
 };
 
 /**
@@ -182,6 +191,9 @@ export const consultarKardex = async (
     origen: filtros.origen ? filtros.origen.toLowerCase() : undefined,
     desde: filtros.desde,
     hasta: filtros.hasta,
+    recepcionId: filtros.recepcionId || undefined,
+    guiaId: filtros.guiaId || undefined,
+    movimientoIds: filtros.movimientoIds || undefined,
     page,
     pageSize,
   });
@@ -242,6 +254,8 @@ const listarAlertasReal = async (): Promise<Alerta[]> => {
       almacen1: 0,
       almacen2: 0,
       reservado: 0,
+      planificado: 0,
+      precio: 0,
       minimo: a.stockMinimo,
     };
     return [{ ...base, libre: a.libre, nivel, faltante: a.faltante }];
@@ -262,3 +276,38 @@ export const listarAlertas = (): Promise<Alerta[]> =>
           return b.faltante - a.faltante || a.sku.localeCompare(b.sku);
         }),
       );
+
+/** Producto que falta para las ventas pendientes de abastecimiento, según `FaltanteVenta` del contrato de inventario. */
+export interface FaltanteVenta {
+  sku: string;
+  nombre: string;
+  unidad: string;
+  /** Lo vendido que aún no tiene reserva. */
+  faltante: number;
+  /** Lo ya pedido en órdenes de compra pendientes o parciales. */
+  planificado: number;
+  /** Lo que aún no tiene orden de compra. */
+  porCubrir: number;
+  ventas: number;
+  /** Ventas que originan el faltante, de la fecha de entrega más próxima a la más lejana. */
+  origenes: OrigenFaltante[];
+}
+
+/** Venta que origina parte del faltante de un producto, con su trazabilidad a la cotización de origen. */
+export interface OrigenFaltante {
+  ventaId: string;
+  ventaCodigo: string;
+  cotizacionId: string;
+  cotizacionCodigo: string;
+  cliente: string;
+  fechaVenta: string;
+  /** Fecha (AAAA-MM-DD) en que el cliente requiere la entrega; nula si no se indicó. */
+  fechaEntregaRequerida: string | null;
+  faltante: number;
+}
+
+/** Productos que faltan para las ventas pendientes de abastecimiento. Con datos simulados no hay ventas de este tipo. */
+export const listarFaltantesVentas = (): Promise<FaltanteVenta[]> =>
+  API_REAL
+    ? api.get<{ items: FaltanteVenta[] }>('/inventario/faltantes').then((p) => p.items)
+    : mockRequest<FaltanteVenta[]>(() => []);

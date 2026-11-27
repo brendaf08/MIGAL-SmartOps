@@ -146,11 +146,13 @@ components:
       allOf:
         - $ref: '#/components/schemas/GuiaResumen'
         - type: object
-          required: [direccionEntrega, fechaDespacho, lineas]
+          required: [tipoEntrega, direccionEntrega, fechaDespacho, lineas]
           properties:
+            tipoEntrega:
+              $ref: '#/components/schemas/TipoEntrega'
             direccionEntrega:
               type: string
-              description: Dirección de entrega copiada de la venta al emitir la guía.
+              description: Dirección del envío (la indicada al emitir o la del cliente) o “Retiro en tienda”.
             fechaDespacho:
               description: Fecha programada para la salida. Nula cuando no se programa.
               anyOf:
@@ -171,6 +173,7 @@ components:
         fechaEmision: "2026-11-06T09:15:00-05:00"
         fechaSalidaReal: "2026-11-07T14:32:10-05:00"
         usuarioResponsableId: "7"
+        tipoEntrega: envio
         direccionEntrega: Av. Javier Prado Este 4200, San Borja, Lima
         fechaDespacho: null
         lineas:
@@ -202,7 +205,7 @@ components:
       description: >-
         Resumen de una venta con todas sus cantidades reservadas y sin guía emitida. Contiene solo los datos
         necesarios para generar la guía; el detalle completo de la venta corresponde al módulo comercial.
-      required: [idVenta, codigoVenta, fecha, cliente, direccionEntrega, cantidadLineas, estado]
+      required: [idVenta, codigoVenta, fecha, cliente, direccionEntrega, tipoEntregaSugerido, cantidadLineas, estado]
       properties:
         idVenta:
           $ref: ../componentes/esquemas-comunes.yaml#/Identificador
@@ -216,6 +219,9 @@ components:
         direccionEntrega:
           type: string
           description: Dirección de entrega registrada en la venta.
+        tipoEntregaSugerido:
+          $ref: '#/components/schemas/TipoEntrega'
+          description: retiro_tienda para un cliente de mostrador; envio para los demás.
         cantidadLineas:
           type: integer
           minimum: 1
@@ -242,18 +248,112 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/DespachoVentaPendiente'
+    TipoEntrega:
+      type: string
+      enum: [envio, retiro_tienda]
+      description: >-
+        Forma de entrega. envio lleva la mercadería a una dirección; retiro_tienda es la venta de mostrador, en la que
+        el cliente se la lleva del local. El Vendedor solo gestiona guías de retiro_tienda.
+    GuiaSolicitudSalidaUbicacion:
+      type: object
+      required: [ubicacionId, cantidad]
+      additionalProperties: false
+      properties:
+        ubicacionId:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        cantidad:
+          type: number
+          exclusiveMinimum: 0
+          description: Cantidad del producto que sale de esa ubicación.
+    GuiaSolicitudSalidaProducto:
+      type: object
+      required: [productoId, ubicaciones]
+      additionalProperties: false
+      properties:
+        productoId:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        ubicaciones:
+          type: array
+          minItems: 1
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/GuiaSolicitudSalidaUbicacion'
     GuiaSolicitudEmision:
       type: object
       description: >-
-        Emisión de la guía de una venta. Solo se identifica la venta; las líneas, las cantidades y las ubicaciones
-        se toman de la venta y de sus reservas.
+        Emisión de la guía de una venta. Además de la venta se indica cómo se entrega (tipoEntrega, envio por defecto),
+        la dirección del envío (opcional: por defecto la del cliente; ignorada en un retiro en tienda) y, opcionalmente,
+        de qué ubicaciones sale cada producto (salidas). Con salidas, las reservas de ese producto se reasignan a las
+        ubicaciones elegidas y la salida de Kardex queda en ellas; la suma debe ser la cantidad vendida y cada ubicación
+        debe tener stock libre suficiente (STOCK_INSUFICIENTE). Sin salidas se conservan las reservas de la venta.
       required: [idVenta]
       additionalProperties: false
       properties:
         idVenta:
           $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        tipoEntrega:
+          $ref: '#/components/schemas/TipoEntrega'
+        direccionEntrega:
+          type: [string, 'null']
+          maxLength: 255
+        salidas:
+          type: [array, 'null']
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/GuiaSolicitudSalidaProducto'
       example:
         idVenta: "39"
+        tipoEntrega: envio
+        direccionEntrega: Av. Pachacútec 75, San Juan de Miraflores
+        salidas:
+          - productoId: "42"
+            ubicaciones:
+              - {ubicacionId: "102", cantidad: 100}
+              - {ubicacionId: "103", cantidad: 50}
+    GuiaOpcionUbicacion:
+      type: object
+      required: [ubicacionId, nombre, disponible, asignada]
+      properties:
+        ubicacionId:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        nombre:
+          type: string
+        disponible:
+          $ref: ../componentes/esquemas-comunes.yaml#/CantidadNoNegativa
+          description: Lo que esa ubicación puede aportar a la línea (stock libre más lo que la línea ya reservó allí).
+        asignada:
+          $ref: ../componentes/esquemas-comunes.yaml#/CantidadNoNegativa
+          description: Lo que la línea tiene reservado hoy en esa ubicación.
+    GuiaOpcionProducto:
+      type: object
+      required: [productoId, sku, nombre, unidad, cantidad, ubicaciones]
+      properties:
+        productoId:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        sku:
+          type: string
+        nombre:
+          type: string
+        unidad:
+          type: string
+        cantidad:
+          $ref: ../componentes/esquemas-comunes.yaml#/Cantidad
+          description: Cantidad vendida de la línea.
+        ubicaciones:
+          type: array
+          items:
+            $ref: '#/components/schemas/GuiaOpcionUbicacion'
+    GuiaOpcionesSalida:
+      type: object
+      description: Productos de una venta lista para despachar con las ubicaciones desde las que puede salir cada uno.
+      required: [idVenta, productos]
+      properties:
+        idVenta:
+          $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+        productos:
+          type: array
+          items:
+            $ref: '#/components/schemas/GuiaOpcionProducto'
     GuiaSolicitudReimpresion:
       type: object
       description: Reimpresión de la guía con su motivo obligatorio.
@@ -392,7 +492,7 @@ paths:
         y combinables; q busca por código de la guía o por cliente, y el rango de fechas es inclusivo y se aplica
         sobre la fecha de emisión. El orden predeterminado es fechaEmision:desc; los campos ordenables son
         fechaEmision y codigo. Operación de solo lectura que no genera movimientos de Kardex.
-      x-roles: [almacenero, administrador]
+      x-roles: [almacenero, vendedor, administrador]
       x-herramienta-agente: true
       security:
         - bearerAuth: []
@@ -425,14 +525,16 @@ paths:
       tags: [Despacho]
       summary: Emitir la guía de despacho de una venta
       description: >-
-        Emite la guía de despacho de una venta con todas sus cantidades reservadas (CU-06, pasos 3 a 6). La venta
-        debe estar en estado pendiente_despacho; tras la emisión pasa a lista_para_despacho. La guía se crea en estado
+        Emite la guía de despacho de una venta con todas sus cantidades reservadas (CU-06, pasos 3 a 6). Se elige cómo
+        se entrega (envío o retiro en tienda) y, si se desea, de qué ubicaciones sale cada producto. El Almacenero
+        emite cualquier guía; el Vendedor solo las de retiro en tienda (PERMISO_INSUFICIENTE si intenta un envío).
+        La venta debe estar en estado pendiente_despacho; tras la emisión pasa a lista_para_despacho. La guía se crea en estado
         emitida, con las líneas y la dirección de entrega de la venta. La emisión no modifica el inventario, no
         genera movimientos de Kardex y no requiere Idempotency-Key, porque la unicidad por venta impide duplicados.
         Si la venta ya tiene guía, se rechaza con GUIA_EXISTENTE aunque su estado haya cambiado. Si la venta no
         está en pendiente_despacho, se rechaza con VENTA_NO_DESPACHABLE. Si alguna línea no tiene reservada la
         cantidad completa, se rechaza con RESERVA_INCOMPLETA. Devuelve 201 con la guía creada.
-      x-roles: [almacenero]
+      x-roles: [almacenero, vendedor]
       security:
         - bearerAuth: []
       requestBody:
@@ -471,7 +573,7 @@ paths:
       description: >-
         Devuelve una guía con sus líneas y, por cada línea, sus ubicaciones de salida tomadas de las reservas de la
         venta (CU-06). Operación de solo lectura.
-      x-roles: [almacenero, administrador]
+      x-roles: [almacenero, vendedor, administrador]
       x-herramienta-agente: true
       security:
         - bearerAuth: []
@@ -501,7 +603,7 @@ paths:
       description: >-
         Devuelve los datos del documento de la guía para su impresión (CU-06, paso 7). La consulta no registra
         ninguna impresión ni reimpresión, y no modifica el inventario. Operación de solo lectura.
-      x-roles: [almacenero, administrador]
+      x-roles: [almacenero, vendedor, administrador]
       x-herramienta-agente: true
       security:
         - bearerAuth: []
@@ -537,7 +639,7 @@ paths:
         Idempotent-Replayed. Si la guía no está en emitida, se rechaza con SALIDA_NO_CONFIRMABLE. Si alguna línea no
         tiene reservada la cantidad completa, se rechaza con RESERVA_INCOMPLETA y no se genera ningún movimiento.
         Si otra operación modifica el mismo inventario, se rechaza con PETICION_CONCURRENTE.
-      x-roles: [almacenero]
+      x-roles: [almacenero, vendedor]
       security:
         - bearerAuth: []
       parameters:
@@ -619,7 +721,7 @@ paths:
         operación no admite cuerpo, no modifica el inventario y no genera movimientos de Kardex. Si la guía no está
         en salida_confirmada, se rechaza con 409 TRANSICION_NO_PERMITIDA. El servidor registra la fecha de entrega.
         Devuelve 200 con la guía actualizada.
-      x-roles: [almacenero]
+      x-roles: [almacenero, vendedor]
       security:
         - bearerAuth: []
       parameters:
@@ -642,6 +744,40 @@ paths:
         '500':
           $ref: ../componentes/errores.yaml#/Error500
 
+  /ventas-pendientes-despacho/{idVenta}/salidas:
+    get:
+      operationId: consultarOpcionesSalidaVenta
+      tags: [Despacho]
+      summary: Consultar de qué ubicaciones puede salir cada producto de una venta
+      description: >-
+        Para cada producto de la venta devuelve las ubicaciones desde las que puede salir, con lo disponible (stock
+        libre más lo que la propia línea ya tiene reservado allí) y lo asignado hoy. Sirve para elegir el origen de la
+        salida al emitir la guía. Operación de solo lectura.
+      x-roles: [almacenero, vendedor, administrador]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: idVenta
+          in: path
+          required: true
+          schema:
+            $ref: ../componentes/esquemas-comunes.yaml#/Identificador
+      responses:
+        '200':
+          description: Opciones de salida por producto.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GuiaOpcionesSalida'
+        '401':
+          $ref: ../componentes/errores.yaml#/Error401
+        '403':
+          $ref: ../componentes/errores.yaml#/Error403
+        '404':
+          $ref: ../componentes/errores.yaml#/Error404
+        '500':
+          $ref: ../componentes/errores.yaml#/Error500
+
   /ventas-pendientes-despacho:
     get:
       operationId: listarVentasPendientesDespacho
@@ -653,7 +789,7 @@ paths:
         módulo comercial (CU-10). Las ventas con cantidades pendientes de abastecimiento no aparecen en el listado.
         El filtro q busca por código de venta o por cliente, y el rango desde y hasta se aplica sobre la fecha de la
         venta, de modo inclusivo. El orden es fijo por fecha ascendente y código ascendente. Operación de solo lectura.
-      x-roles: [almacenero, administrador]
+      x-roles: [almacenero, vendedor, administrador]
       x-herramienta-agente: true
       security:
         - bearerAuth: []

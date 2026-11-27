@@ -89,6 +89,7 @@ describe('Cobertura de la navegación', () => {
       Demostración: NAV.flatMap((g) => g.items).map((i) => i.label),
       Vendedor: [
         'Disponibilidad',
+        'Despachos',
         'Documentos OCR',
         'Cotizaciones',
         'Ventas',

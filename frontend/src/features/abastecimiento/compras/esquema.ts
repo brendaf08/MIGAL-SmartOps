@@ -13,6 +13,8 @@ export const esquemaOrden = z.object({
     .string()
     .min(1, 'Ingresar la fecha de la orden.')
     .refine((f) => f >= hoyISO(), 'La fecha no puede ser anterior a hoy.'),
+  /** Fecha en que el proveedor entregaría la orden; opcional. Alimenta la próxima llegada que ve el vendedor. */
+  fechaEstimada: z.string(),
   lineas: z
     .array(
       z.object({
@@ -28,5 +30,13 @@ export const esquemaOrden = z.object({
         'Revisar cada línea: el producto es obligatorio, la cantidad debe ser un entero mayor que 0 y el precio mayor que 0.',
     }),
 });
+
+export const esquemaOrdenConEstimada = esquemaOrden.refine(
+  (v) => v.fechaEstimada === '' || v.fechaEstimada >= v.fecha,
+  {
+    path: ['fechaEstimada'],
+    message: 'La llegada estimada no puede ser anterior a la fecha de la orden.',
+  },
+);
 
 export type ValoresOrden = z.infer<typeof esquemaOrden>;

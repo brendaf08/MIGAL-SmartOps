@@ -11,7 +11,7 @@ import {
 import { useDebouncedValue } from '@mantine/hooks';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router';
+import { useLocation, useNavigate, useSearchParams } from 'react-router';
 import { MovementBadge } from '@/components/domain/MovementBadge/MovementBadge';
 import { PageHeader } from '@/components/layout/PageHeader/PageHeader';
 import type { Column } from '@/components/ui/DataTable/DataTable';
@@ -94,6 +94,21 @@ function etiquetasDe(f: FiltrosKardex) {
   if (f.ubicacion) etiquetas.push({ clave: 'ubicacion', texto: `Ubicación: ${f.ubicacion}` });
   if (f.desde) etiquetas.push({ clave: 'desde', texto: `Desde ${formatDate(f.desde)}` });
   if (f.hasta) etiquetas.push({ clave: 'hasta', texto: `Hasta ${formatDate(f.hasta)}` });
+  if (f.recepcionId) {
+    etiquetas.push({
+      clave: 'recepcionId',
+      texto: 'Solo los movimientos de la recepción registrada',
+    });
+  }
+  if (f.guiaId) {
+    etiquetas.push({ clave: 'guiaId', texto: 'Solo los movimientos de la salida registrada' });
+  }
+  if (f.movimientoIds) {
+    etiquetas.push({
+      clave: 'movimientoIds',
+      texto: 'Solo los movimientos que acabas de registrar',
+    });
+  }
   return etiquetas;
 }
 
@@ -103,7 +118,14 @@ export function KardexPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const enHoja = useMatches({ base: true, sm: false });
-  const [filtros, setFiltros] = useState<FiltrosKardex>(SIN_FILTROS_KARDEX);
+  const [params] = useSearchParams();
+  // `?recepcion=ID` (desde la constancia de una recepción) abre el Kardex solo con los movimientos de esa recepción.
+  const [filtros, setFiltros] = useState<FiltrosKardex>({
+    ...SIN_FILTROS_KARDEX,
+    recepcionId: params.get('recepcion') ?? '',
+    guiaId: params.get('guia') ?? '',
+    movimientoIds: params.get('movimientos') ?? '',
+  });
   const [page, setPage] = useState(1);
   const [hojaAbierta, setHojaAbierta] = useState(false);
   /** Fila creada por el registro de movimiento; se monta sin resaltado y lo recibe al entrar. */

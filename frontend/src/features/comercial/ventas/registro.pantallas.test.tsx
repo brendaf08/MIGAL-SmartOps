@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it } from 'vitest';
 import { axe } from 'vitest-axe';
@@ -43,16 +43,24 @@ describe('calcularAtencion', () => {
     });
   });
 
-  it.each<ModalidadAtencion>(['pendienteAbastecimiento', 'pendienteCliente'])(
-    'con %s no atiende las líneas sin cobertura, pero sí las cubiertas',
-    (modalidad) => {
-      const r = calcularAtencion([linea('CEM', 40), linea('FIE', 11)], stock, modalidad);
+  it('con pendienteAbastecimiento reserva lo disponible y deja pendiente solo lo que falta', () => {
+    const r = calcularAtencion(
+      [linea('CEM', 40), linea('FIE', 11)],
+      stock,
+      'pendienteAbastecimiento',
+    );
 
-      expect(r.lineas.map((l) => l.atendida)).toEqual([40, 0]);
-      expect(r.lineas[1]!.pendiente).toBe(11);
-      expect(r).toMatchObject({ estado: 'PendienteAbastecimiento', entrega: 'Parcial' });
-    },
-  );
+    expect(r.lineas.map((l) => l.atendida)).toEqual([40, 10]);
+    expect(r.lineas[1]!.pendiente).toBe(1);
+    expect(r).toMatchObject({ estado: 'PendienteAbastecimiento', entrega: 'Parcial' });
+  });
+
+  it('con pendienteCliente no atiende las líneas sin cobertura, pero sí las cubiertas', () => {
+    const r = calcularAtencion([linea('CEM', 40), linea('FIE', 11)], stock, 'pendienteCliente');
+
+    expect(r.lineas.map((l) => l.atendida)).toEqual([40, 0]);
+    expect(r.lineas[1]!.pendiente).toBe(11);
+  });
 
   it('sin modalidad no atiende lo no cubierto', () => {
     expect(calcularAtencion([linea('TUB', 3)], stock, null).lineas[0]!.atendida).toBe(0);
@@ -126,12 +134,20 @@ async function elegirCliente(texto: string) {
   await userEvent.click(await screen.findByRole('option', { name: texto, hidden: true }));
 }
 
+/** La fecha de entrega requerida es obligatoria: se indica una fecha futura. */
+async function indicarEntrega() {
+  fireEvent.change(screen.getByLabelText(/Fecha de entrega requerida/), {
+    target: { value: '2099-12-31' },
+  });
+}
+
 describe('Registro de venta', () => {
   it(
     'registra una venta con stock suficiente y muestra la constancia',
     async () => {
       renderApp('/ventas/nueva', 'Vendedor');
       await elegirCliente('Constructora Los Andes S.A.C. (20456789012)');
+      await indicarEntrega();
       await agregarLinea(1, 'CEM-001', 10);
 
       await userEvent.click(screen.getByRole('button', { name: 'Confirmar venta' }));
@@ -156,6 +172,7 @@ describe('Registro de venta', () => {
     async () => {
       renderApp('/ventas/nueva', 'Vendedor');
       await elegirCliente('Constructora Los Andes S.A.C. (20456789012)');
+      await indicarEntrega();
       await agregarLinea(1, 'FIE-003', 5);
 
       expect(
@@ -164,7 +181,10 @@ describe('Registro de venta', () => {
       await userEvent.click(screen.getByRole('radio', { name: 'Atender parcialmente' }));
       await userEvent.click(screen.getByRole('button', { name: 'Confirmar venta' }));
       const dialogo = await screen.findByRole('dialog', { name: 'Confirmar la venta' });
-      expect(within(dialogo).getByText('Quedan 5 unidades pendientes.')).toBeInTheDocument();
+      expect(
+        within(dialogo).getByText(/Quedan 5 unidades pendientes en 1 producto/),
+      ).toBeInTheDocument();
+      expect(within(dialogo).getByText(/faltan 5 de 5/)).toBeInTheDocument();
       await userEvent.click(within(dialogo).getByRole('button', { name: 'Confirmar venta' }));
 
       expect(
@@ -181,6 +201,7 @@ describe('Registro de venta', () => {
     async () => {
       renderApp('/ventas/nueva', 'Vendedor');
       await elegirCliente('Constructora Los Andes S.A.C. (20456789012)');
+      await indicarEntrega();
       await agregarLinea(1, 'CEM-001', 1);
 
       const descuento = screen.getByRole('textbox', { name: 'Descuento en soles' });
@@ -200,6 +221,7 @@ describe('Registro de venta', () => {
     async () => {
       renderApp('/ventas/nueva', 'Vendedor');
       await elegirCliente('Continuar sin cliente');
+      await indicarEntrega();
       await agregarLinea(1, 'CEM-001', 2);
 
       await userEvent.click(screen.getByRole('button', { name: 'Confirmar venta' }));
@@ -216,6 +238,7 @@ describe('Registro de venta', () => {
   it('bloquea la confirmación sin líneas y muestra el motivo', async () => {
     renderApp('/ventas/nueva', 'Vendedor');
     await elegirCliente('Continuar sin cliente');
+    await indicarEntrega();
 
     expect(screen.getByRole('button', { name: 'Confirmar venta' })).toBeDisabled();
     expect(await screen.findByText('Agregar al menos un producto.')).toBeInTheDocument();
@@ -227,6 +250,19 @@ describe('Registro de venta', () => {
     expect(await screen.findByRole('combobox', { name: 'Producto de la línea 1' })).toHaveValue(
       'TUB-006, Tubo PVC desagüe 4 in x 3 m',
     );
+  });
+
+  it('desde una cotización fija el origen, el cliente y los productos: no se pueden cambiar', async () => {
+    renderApp('/ventas/nueva?cotizacion=COT-0230', 'Vendedor');
+
+    const producto = await screen.findByRole('combobox', { name: 'Producto de la línea 1' });
+    expect(producto).toBeDisabled();
+    expect(screen.getByRole('radio', { name: 'Manual' })).toBeDisabled();
+    expect(screen.getByRole('radio', { name: 'Desde un documento' })).toBeDisabled();
+    expect(screen.getByRole('combobox', { name: 'Cotización aceptada' })).toBeDisabled();
+    expect(screen.getByRole('combobox', { name: 'Cliente' })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'Agregar producto' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Quitar la línea/ })).not.toBeInTheDocument();
   });
 
   it('no ofrece una cotización que no está aceptada', async () => {

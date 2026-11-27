@@ -6,7 +6,7 @@ package com.migal.smartops.comercial.model;
  */
 public enum EstadoCotizacion {
 
-	EMITIDA, ACEPTADA, VALIDADA, RECHAZADA, VENCIDA;
+	EMITIDA, ACEPTADA, VALIDADA, RECHAZADA, CANCELADA, VENCIDA;
 
 	/** Valor persistido y expuesto en el contrato. */
 	public String valor() {

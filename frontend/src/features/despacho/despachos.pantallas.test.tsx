@@ -48,8 +48,13 @@ describe('Lista de despachos', () => {
     const dialog = await screen.findByRole('dialog', {
       name: 'Generar la orden de despacho de la venta V-0041',
     });
-    expect(dialog).toHaveTextContent('Dirección de entrega: Av. Argentina 1870, Callao.');
-    expect(dialog).toHaveTextContent('Cemento Sol tipo I, bolsa 42.5 kg');
+    expect(within(dialog).getByLabelText(/Dirección de entrega/)).toHaveValue(
+      'Av. Argentina 1870, Callao',
+    );
+    expect(dialog).toHaveTextContent('¿De dónde sale cada producto?');
+    expect(
+      await within(dialog).findByText('Cemento Sol tipo I, bolsa 42.5 kg'),
+    ).toBeInTheDocument();
 
     await userEvent.click(
       within(dialog).getByRole('button', { name: 'Generar orden de despacho' }),
@@ -88,8 +93,22 @@ describe('Lista de despachos', () => {
     expect(REIMPRESIONES).toEqual([{ ordenId: 'D-0031', motivo: 'Impresión dañada' }]);
   });
 
-  it('no permite a un Vendedor acceder a los despachos', async () => {
+  it('permite al Vendedor generar órdenes solo para retiro en tienda', async () => {
     renderApp('/despachos', 'Vendedor');
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Generar orden de despacho para V-0041' }),
+    );
+    const dialog = await screen.findByRole('dialog', {
+      name: 'Generar la orden de despacho de la venta V-0041',
+    });
+    expect(within(dialog).getByRole('radio', { name: 'Envío a una dirección' })).toBeDisabled();
+    expect(within(dialog).getByRole('radio', { name: /Retiro en tienda/ })).toBeChecked();
+    expect(within(dialog).queryByLabelText(/Dirección de entrega/)).not.toBeInTheDocument();
+  });
+
+  it('no permite a un Reponedor acceder a los despachos', async () => {
+    renderApp('/despachos', 'Reponedor');
 
     const titulo = await screen.findByRole('heading', { level: 1 });
     expect(titulo).not.toHaveTextContent('Despachos');

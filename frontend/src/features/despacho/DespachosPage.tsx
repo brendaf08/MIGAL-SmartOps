@@ -11,14 +11,20 @@ import { PageHeader } from '@/components/layout/PageHeader/PageHeader';
 import { Card } from '@/components/ui/Card/Card';
 import { type Column } from '@/components/ui/DataTable/DataTable';
 import { Icon } from '@/components/ui/Icon/Icon';
-import { ConfirmDialog } from '@/components/ui/Modal/ConfirmDialog';
 import { Modal } from '@/components/ui/Modal/Modal';
 import { QueryTable } from '@/components/ui/QueryTable/QueryTable';
 import { SearchInput } from '@/components/ui/SearchInput/SearchInput';
 import { Tabs } from '@/components/ui/Tabs/Tabs';
-import { formatDate, formatNumber } from '@/lib/format';
+import { formatDate } from '@/lib/format';
 import { listarOrdenes, reservaCompleta } from './api';
-import { generarOrden, reimprimirOrden, ventasParaOrden, type VentaParaOrden } from './ordenes/api';
+import { GenerarOrdenModal } from './ordenes/GenerarOrdenModal';
+import {
+  generarOrden,
+  reimprimirOrden,
+  ventasParaOrden,
+  type DatosEmision,
+  type VentaParaOrden,
+} from './ordenes/api';
 import { usePermisos } from '@/features/seguridad/permisos';
 import type { EstadoGuia, OrdenDespacho } from './types';
 
@@ -100,7 +106,8 @@ export function DespachosPage() {
   };
 
   const generar = useMutation({
-    mutationFn: (ventaId: string) => generarOrden(ventaId),
+    mutationFn: ({ ventaId, datos }: { ventaId: string; datos: DatosEmision }) =>
+      generarOrden(ventaId, datos),
     onSuccess: (orden) => {
       cerrarSeleccion();
       invalidar();
@@ -140,8 +147,8 @@ export function DespachosPage() {
       header: 'Orden',
       render: (v) => (v.orden ? `Con orden ${v.orden.id}` : 'Sin orden'),
     },
-    // Generar la orden es del Almacenero (POST /guias-despacho); el Administrador solo consulta.
-    ...(puede('operarDespacho')
+    // Generar la orden es del Almacenero; el Vendedor la genera solo para retiros en tienda; el Administrador consulta.
+    ...(puede('operarDespacho') || puede('despacharRetiro')
       ? [
           {
             key: 'accion',
@@ -206,21 +213,12 @@ export function DespachosPage() {
         />
       </Card>
 
-      <ConfirmDialog
-        open={!!seleccion && !seleccion.orden}
-        title={`Generar la orden de despacho de la venta ${seleccion?.venta.id ?? ''}`}
-        description={`Cliente: ${seleccion?.cliente ?? ''}.`}
-        consequences={[
-          `Dirección de entrega: ${seleccion?.direccion ?? ''}.`,
-          ...(seleccion?.venta.lineas ?? []).map(
-            (l) => `Productos: ${formatNumber(l.atendida)} x ${l.nombre}`,
-          ),
-        ]}
-        confirmLabel="Generar orden de despacho"
-        cancelLabel="Cancelar"
+      <GenerarOrdenModal
+        venta={seleccion && !seleccion.orden ? seleccion : null}
+        soloRetiro={!puede('operarDespacho')}
         loading={generar.isPending}
-        onConfirm={() => seleccion && generar.mutate(seleccion.venta.id)}
-        onCancel={cerrarSeleccion}
+        onClose={cerrarSeleccion}
+        onSubmit={(datos) => seleccion && generar.mutate({ ventaId: seleccion.venta.id, datos })}
       />
 
       <Modal

@@ -1,5 +1,7 @@
 package com.migal.smartops.inventario.service;
 
+import com.migal.smartops.comun.errores.CodigoError;
+import com.migal.smartops.comun.errores.ErrorDeNegocio;
 import com.migal.smartops.inventario.model.Inventario;
 import com.migal.smartops.inventario.model.MovimientoKardex;
 import com.migal.smartops.inventario.model.ReservaStock;
@@ -14,6 +16,8 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeSet;
@@ -39,6 +43,14 @@ public class ReservaInventarioService {
 
 	/** Cantidad reservada de una línea de venta en un inventario. */
 	public record Asignacion(long idReserva, long idInventario, long idUbicacion, BigDecimal cantidad) {
+	}
+
+	/** Cantidad de una línea que debe salir de una ubicación concreta. */
+	public record SalidaLinea(long idUbicacion, BigDecimal cantidad) {
+	}
+
+	/** Ubicación desde la que puede salir una línea: lo disponible (libre más lo ya reservado por la línea) y lo asignado. */
+	public record OpcionUbicacion(long idUbicacion, String nombre, BigDecimal disponible, BigDecimal asignada) {
 	}
 
 	/** Entrada de una línea de recepción. */
@@ -95,6 +107,79 @@ public class ReservaInventarioService {
 			pendiente = pendiente.subtract(tomada);
 		}
 		return asignaciones;
+	}
+
+	/**
+	 * Ubicaciones desde las que puede salir una línea de venta, con la cantidad que cada una puede aportar: su stock
+	 * libre más lo que la propia línea ya tiene reservado allí. Solo lectura; la tienda aparece primero.
+	 */
+	@Transactional(readOnly = true)
+	public List<OpcionUbicacion> opcionesSalida(long idDetalleVenta, long idProducto) {
+		Map<Long, BigDecimal> asignada = new HashMap<>();
+		for (ReservaStock r : reservas.findActivasPorDetalleVenta(idDetalleVenta)) {
+			asignada.merge(r.getInventario().getAlmacen().getId(), r.getCantidadReservada(), BigDecimal::add);
+		}
+		List<Inventario> existencias = new ArrayList<>(inventarios.findByProductoId(idProducto));
+		existencias.sort(Comparator.comparing((Inventario i) -> !esTienda(i)).thenComparing(Inventario::getId));
+		List<OpcionUbicacion> opciones = new ArrayList<>();
+		for (Inventario i : existencias) {
+			BigDecimal propia = asignada.getOrDefault(i.getAlmacen().getId(), BigDecimal.ZERO);
+			BigDecimal disponible = i.getCantidadFisica().subtract(reservas.sumaActivas(i.getId())).add(propia);
+			if (disponible.signum() > 0 || propia.signum() > 0) {
+				opciones.add(new OpcionUbicacion(i.getAlmacen().getId(), i.getAlmacen().getNombre(), disponible, propia));
+			}
+		}
+		return opciones;
+	}
+
+	/**
+	 * Cambia las ubicaciones de las que sale una línea de venta ya reservada: libera sus reservas activas y reserva de
+	 * nuevo en las ubicaciones indicadas, de modo que la salida de Kardex quede en el lugar que el almacenero eligió.
+	 * La suma debe ser la cantidad vendida de la línea y cada ubicación debe tener stock libre suficiente (contando lo
+	 * que la propia línea ya tenía allí). Si ya coincide con las reservas actuales no cambia nada.
+	 */
+	@Transactional
+	public void reasignarSalida(long idUsuario, long idDetalleVenta, long idProducto, BigDecimal cantidadVendida,
+			List<SalidaLinea> salidas) {
+		BigDecimal suma = BigDecimal.ZERO;
+		HashSet<Long> vistas = new HashSet<>();
+		for (SalidaLinea s : salidas) {
+			if (s.cantidad() == null || s.cantidad().signum() <= 0) {
+				throw new ErrorDeNegocio(CodigoError.VALIDACION_FALLIDA, "Cada cantidad de salida debe ser mayor que 0.");
+			}
+			if (!vistas.add(s.idUbicacion())) {
+				throw new ErrorDeNegocio(CodigoError.VALIDACION_FALLIDA, "Una ubicación se repite en la salida de un producto.");
+			}
+			suma = suma.add(s.cantidad());
+		}
+		if (suma.compareTo(cantidadVendida) != 0) {
+			throw new ErrorDeNegocio(CodigoError.VALIDACION_FALLIDA,
+					"La suma de las salidas de un producto debe ser igual a su cantidad vendida.");
+		}
+		List<Inventario> bloqueados = inventarios.bloquearPorProducto(idProducto);
+		List<ReservaStock> actuales = reservas.findActivasPorDetalleVenta(idDetalleVenta);
+		Map<Long, BigDecimal> actual = new HashMap<>();
+		actuales.forEach(r -> actual.merge(r.getInventario().getAlmacen().getId(), r.getCantidadReservada(), BigDecimal::add));
+		boolean igual = actual.size() == salidas.size() && salidas.stream()
+				.allMatch(s -> actual.containsKey(s.idUbicacion()) && actual.get(s.idUbicacion()).compareTo(s.cantidad()) == 0);
+		if (igual) {
+			return;
+		}
+		Instant ahora = reloj.instant();
+		actuales.forEach(r -> r.liberar(ahora));
+		reservas.flush();
+		Usuario responsable = usuarios.getReferenceById(idUsuario);
+		for (SalidaLinea s : salidas) {
+			Inventario inventario = bloqueados.stream().filter(i -> i.getAlmacen().getId() == s.idUbicacion()).findFirst()
+					.orElseThrow(() -> new ErrorDeNegocio(CodigoError.STOCK_INSUFICIENTE,
+							"El producto no tiene existencias en una de las ubicaciones elegidas."));
+			BigDecimal libre = inventario.getCantidadFisica().subtract(reservas.sumaActivas(inventario.getId()));
+			if (libre.compareTo(s.cantidad()) < 0) {
+				throw new ErrorDeNegocio(CodigoError.STOCK_INSUFICIENTE, "No hay stock libre suficiente en "
+						+ inventario.getAlmacen().getNombre() + ": disponible " + libre.stripTrailingZeros().toPlainString() + ".");
+			}
+			reservas.saveAndFlush(new ReservaStock(idDetalleVenta, inventario, idProducto, s.cantidad(), responsable));
+		}
 	}
 
 	/** Libera todas las reservas activas de las líneas indicadas (cancelación de la venta). Devuelve cuántas liberó. */

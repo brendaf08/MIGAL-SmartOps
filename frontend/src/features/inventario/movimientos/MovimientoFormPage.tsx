@@ -177,9 +177,10 @@ export function MovimientoFormPage() {
               <Button
                 leftSection={<Icon name="kardex" />}
                 onClick={() =>
-                  void navigate('/kardex', {
-                    state: { changedKey: resultado.movimientos[0]?.id },
-                  })
+                  void navigate(
+                    `/kardex?movimientos=${resultado.movimientos.map((m) => m.id).join(',')}`,
+                    { state: { changedKey: resultado.movimientos[0]?.id } },
+                  )
                 }
               >
                 Ver movimientos en el Kardex

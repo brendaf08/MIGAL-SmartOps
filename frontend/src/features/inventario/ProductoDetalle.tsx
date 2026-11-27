@@ -3,6 +3,7 @@ import { StockBar } from '@/components/domain/StockBar/StockBar';
 import { StockLocations } from '@/components/domain/StockLocations/StockLocations';
 import { StockSummary } from '@/components/domain/StockSummary/StockSummary';
 import { Modal } from '@/components/ui/Modal/Modal';
+import { formatNumber } from '@/lib/format';
 import { resumen, ubicacionesDe } from './calculos';
 import type { ProductoDisponibilidad } from './types';
 
@@ -35,6 +36,12 @@ export function ProductoDetalle({ producto, onClose }: ProductoDetalleProps) {
             minimo={producto.minimo}
           />
           <StockLocations ubicaciones={ubicacionesDe(producto)} unidad={producto.unidad} />
+          {producto.planificado > 0 && (
+            <Text size="sm">
+              Previsto: {formatNumber(producto.planificado)} {producto.unidad} por recibir de
+              órdenes de compra. No cuenta como stock hasta recepcionarlo.
+            </Text>
+          )}
         </Stack>
       )}
     </Modal>

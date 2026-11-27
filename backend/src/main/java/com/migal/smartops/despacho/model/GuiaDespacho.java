@@ -42,6 +42,10 @@ public class GuiaDespacho {
 	@Column(name = "codigo", insertable = false, updatable = false)
 	private String codigo;
 
+	/** Forma de entrega: envío a una dirección o retiro en tienda (venta de mostrador). */
+	@Column(name = "tipo_entrega", nullable = false, length = 20, updatable = false)
+	private String tipoEntrega;
+
 	@Column(name = "direccion_entrega", nullable = false, length = 255, updatable = false)
 	private String direccionEntrega;
 
@@ -69,9 +73,15 @@ public class GuiaDespacho {
 		// Requerido por JPA.
 	}
 
-	/** Emite la guía de una venta en estado emitida. La dirección de entrega se copia de la venta. */
+	/** Emite una guía de envío en estado emitida. */
 	public GuiaDespacho(Venta venta, String direccionEntrega) {
+		this(venta, TipoEntrega.ENVIO, direccionEntrega);
+	}
+
+	/** Emite la guía de una venta en estado emitida, con su forma de entrega y la dirección o el punto de retiro. */
+	public GuiaDespacho(Venta venta, TipoEntrega tipoEntrega, String direccionEntrega) {
 		this.venta = venta;
+		this.tipoEntrega = tipoEntrega.valor();
 		this.direccionEntrega = direccionEntrega;
 		this.estado = EstadoGuia.EMITIDA.valor();
 	}
@@ -108,6 +118,10 @@ public class GuiaDespacho {
 
 	public Long getId() {
 		return id;
+	}
+
+	public TipoEntrega getTipoEntrega() {
+		return TipoEntrega.de(tipoEntrega);
 	}
 
 	public Venta getVenta() {

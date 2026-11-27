@@ -53,7 +53,7 @@ public class CotizacionController {
 	private static final String ROLES_VENDEDOR = "hasRole('VENDEDOR')";
 	private static final String ROLES_ADMINISTRADOR = "hasRole('ADMINISTRADOR')";
 	private static final String ROLES_RECHAZO = "hasAnyRole('VENDEDOR','ADMINISTRADOR')";
-	private static final String ESTADOS = "^(emitida|aceptada|validada|rechazada|vencida)(,(emitida|aceptada|validada|rechazada|vencida))*$";
+	private static final String ESTADOS = "^(emitida|aceptada|validada|rechazada|cancelada|vencida)(,(emitida|aceptada|validada|rechazada|cancelada|vencida))*$";
 
 	private static final Map<String, String> CAMPOS_ORDENABLES = Map.of(
 			"fechaEmision", "fechaEmision",
@@ -98,13 +98,15 @@ public class CotizacionController {
 	@GetMapping("/{id}")
 	@PreAuthorize(ROLES_CONSULTA)
 	public CotizacionDto consultar(@PathVariable String id) {
-		return CotizacionDto.de(cotizaciones.consultar(Identificadores.numero(id)));
+		return CotizacionDto.de(cotizaciones.detalle(Identificadores.numero(id)));
 	}
 
 	@PutMapping("/{id}")
 	@PreAuthorize(ROLES_VENDEDOR)
-	public CotizacionDto actualizar(@PathVariable String id, @Valid @RequestBody CotizacionRegistro solicitud) {
-		return CotizacionDto.de(cotizaciones.actualizar(Identificadores.numero(id), solicitud.datos()));
+	public CotizacionDto actualizar(@AuthenticationPrincipal UsuarioAutenticado actor, @PathVariable String id,
+			@Valid @RequestBody CotizacionRegistro solicitud) {
+		return CotizacionDto.de(cotizaciones.actualizar(Identificadores.numero(id), solicitud.datos(),
+				solicitud.motivoCambio(), actor.id()));
 	}
 
 	@PostMapping("/{id}/aceptacion")
@@ -144,6 +146,34 @@ public class CotizacionController {
 				CotizacionDto.class,
 				() -> CotizacionDto.de(cotizaciones.registrarRechazo(idCotizacion, origen, solicitud.motivo(),
 						actor.id(), actor.rol())));
+		return respuesta(resultado);
+	}
+
+	@PostMapping("/{id}/cancelacion")
+	@PreAuthorize(ROLES_RECHAZO)
+	public ResponseEntity<CotizacionDto> registrarCancelacion(
+			@RequestHeader(value = "Idempotency-Key", required = false) String clave,
+			@AuthenticationPrincipal UsuarioAutenticado actor, @PathVariable String id,
+			@Valid @RequestBody RechazoRegistro solicitud) {
+		long idCotizacion = Identificadores.numero(id);
+		OrigenRechazoCotizacion origen = OrigenRechazoCotizacion.de(solicitud.origen());
+		Resultado<CotizacionDto> resultado = idempotencia.ejecutar(actor.id(),
+				"POST /cotizaciones/{id}/cancelacion", clave, Map.of("id", idCotizacion, "solicitud", solicitud), 200,
+				CotizacionDto.class,
+				() -> CotizacionDto.de(cotizaciones.cancelar(idCotizacion, origen, solicitud.motivo(), actor.id(),
+						actor.rol())));
+		return respuesta(resultado);
+	}
+
+	@PostMapping("/{id}/duplicado")
+	@PreAuthorize(ROLES_VENDEDOR)
+	public ResponseEntity<CotizacionDto> duplicar(
+			@RequestHeader(value = "Idempotency-Key", required = false) String clave,
+			@AuthenticationPrincipal UsuarioAutenticado actor, @PathVariable String id) {
+		long idCotizacion = Identificadores.numero(id);
+		Resultado<CotizacionDto> resultado = idempotencia.ejecutar(actor.id(),
+				"POST /cotizaciones/{id}/duplicado", clave, new Referencia(idCotizacion), 201, CotizacionDto.class,
+				() -> CotizacionDto.de(cotizaciones.duplicar(idCotizacion, actor.id())));
 		return respuesta(resultado);
 	}
 

@@ -15,6 +15,7 @@ import { ConfirmDialog } from '@/components/ui/Modal/ConfirmDialog';
 import { formatNumber } from '@/lib/format';
 import { confirmarSalida, obtenerOrden, registrarEntrega, reservaCompleta } from './api';
 import type { LineaDespacho } from './types';
+import { TIPO_ENTREGA_ETIQUETA } from './tipoEntrega';
 import { usePermisos } from '@/features/seguridad/permisos';
 
 const columns: Column<LineaDespacho>[] = [
@@ -31,6 +32,14 @@ const columns: Column<LineaDespacho>[] = [
     header: 'Reservado',
     numeric: true,
     render: (l) => formatNumber(l.reservado),
+  },
+  {
+    key: 'salidas',
+    header: 'Sale de',
+    render: (l) =>
+      l.salidas && l.salidas.length > 0
+        ? l.salidas.map((s) => `${s.ubicacion}: ${formatNumber(s.cantidad)}`).join(' · ')
+        : '—',
   },
 ];
 
@@ -99,6 +108,9 @@ export function DespachoPage() {
   if (!orden) return <Skeleton height={240} />;
 
   const completa = reservaCompleta(orden.lineas);
+  // El Vendedor solo gestiona los retiros en tienda (ventas de mostrador); el Almacenero, todo.
+  const puedeOperar =
+    puede('operarDespacho') || (orden.tipoEntrega === 'retiro_tienda' && puede('despacharRetiro'));
   const pendiente = orden.estado === 'Emitida';
   const sinReservar = orden.lineas.filter((l) => l.reservado < l.cantidad).length;
 
@@ -108,7 +120,11 @@ export function DespachoPage() {
         title={`Orden de despacho ${orden.id}`}
         breadcrumbs={[{ label: 'Despachos', href: '/despachos' }, { label: orden.id }]}
         status={<StatusBadge entity="guia" value={orden.estado} />}
-        description={`Venta ${orden.venta}, ${orden.cliente}, Entrega ${orden.entrega.toLowerCase()}`}
+        description={`Venta ${orden.venta}, ${orden.cliente}, Entrega ${orden.entrega.toLowerCase()}${
+          orden.tipoEntrega
+            ? `. ${TIPO_ENTREGA_ETIQUETA[orden.tipoEntrega]}${orden.direccion && orden.tipoEntrega === 'envio' ? `: ${orden.direccion}` : ''}`
+            : ''
+        }`}
         actions={
           <>
             <Button
@@ -119,7 +135,7 @@ export function DespachoPage() {
             >
               Imprimir orden
             </Button>
-            {orden.estado === 'SalidaConfirmada' && puede('operarDespacho') && (
+            {orden.estado === 'SalidaConfirmada' && puedeOperar && (
               <Button
                 leftSection={<Icon name="check" />}
                 loading={entregar.isPending}
@@ -143,7 +159,10 @@ export function DespachoPage() {
               <Button variant="default" onClick={() => void navigate('/despachos')}>
                 Volver a despachos
               </Button>
-              <Button leftSection={<Icon name="kardex" />} onClick={() => void navigate('/kardex')}>
+              <Button
+                leftSection={<Icon name="kardex" />}
+                onClick={() => void navigate(`/kardex?guia=${encodeURIComponent(orden.id)}`)}
+              >
                 Ver movimientos en el Kardex
               </Button>
             </>
@@ -169,7 +188,7 @@ export function DespachoPage() {
           rowKey="sku"
         />
       </Card>
-      {pendiente && puede('operarDespacho') && (
+      {pendiente && puedeOperar && (
         <ActionBar
           aria-label="Resumen y confirmación de la salida"
           summary={

@@ -1,4 +1,5 @@
 import { Button, NumberInput } from '@mantine/core';
+import { useEffect, useRef } from 'react';
 import { formatCurrency } from '@/lib/format';
 import { ProductoSelect, type OpcionProducto } from '../ProductoSelect/ProductoSelect';
 import { DataTable, type Column } from '../DataTable/DataTable';
@@ -16,7 +17,9 @@ import classes from './LineasEditor.module.css';
 export interface LineasEditorProps {
   lineas: LineaEditable[];
   onChange: (lineas: LineaEditable[]) => void;
-  productos: readonly OpcionProducto[];
+  productos: readonly (OpcionProducto & { precio?: number })[];
+  /** Completa el precio de cada línea con el de referencia del producto cuando está en 0 o al elegir el producto. */
+  precargarPrecio?: boolean;
   /** Muestra el precio unitario, el subtotal por línea y los totales. */
   conPrecio?: boolean;
   /** Muestra el descuento global en soles; requiere `conPrecio`. */
@@ -27,6 +30,8 @@ export interface LineasEditorProps {
   error?: string;
   /** SKU que se ofrecen primero en cada selector. */
   sugeridos?: readonly string[];
+  /** Las líneas vienen de otro documento (por ejemplo, una cotización) y no se pueden modificar. */
+  soloLectura?: boolean;
 }
 
 /**
@@ -38,14 +43,35 @@ export function LineasEditor({
   onChange,
   productos,
   conPrecio = false,
+  precargarPrecio = false,
   conDescuento = false,
   descuento = 0,
   onDescuentoChange,
   error,
   sugeridos,
+  soloLectura = false,
 }: LineasEditorProps) {
+  const precioDe = (sku: string) => productos.find((p) => p.sku === sku)?.precio ?? 0;
   const actualizar = (id: number, cambio: Partial<LineaEditable>) =>
     onChange(lineas.map((l) => (l.id === id ? { ...l, ...cambio } : l)));
+
+  // Las líneas que llegan sin precio (por ejemplo, desde el OCR) toman el precio de referencia del producto una sola
+  // vez; si después el usuario borra el precio para escribir otro, no se vuelve a completar.
+  const completadas = useRef(new Set<string>());
+  useEffect(() => {
+    if (!precargarPrecio) return;
+    let cambio = false;
+    const nuevas = lineas.map((l) => {
+      const clave = `${l.id}:${l.sku}`;
+      if (!l.sku || l.precio !== 0 || completadas.current.has(clave) || precioDe(l.sku) <= 0)
+        return l;
+      completadas.current.add(clave);
+      cambio = true;
+      return { ...l, precio: precioDe(l.sku) };
+    });
+    if (cambio) onChange(nuevas);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lineas, productos, precargarPrecio]);
   const quitar = (id: number) => onChange(lineas.filter((l) => l.id !== id));
   const agregar = () =>
     onChange([...lineas, { id: siguienteIdLinea(lineas), sku: '', cantidad: 1, precio: 0 }]);
@@ -62,8 +88,16 @@ export function LineasEditor({
           productos={productos}
           sugeridos={sugeridos}
           miw={200}
+          disabled={soloLectura}
           value={l.sku || null}
-          onChange={(sku) => actualizar(l.id, { sku: sku ?? '' })}
+          onChange={(sku) => {
+            const conPrecioDeReferencia = precargarPrecio && !!sku && precioDe(sku) > 0;
+            if (sku) completadas.current.add(`${l.id}:${sku}`);
+            actualizar(l.id, {
+              sku: sku ?? '',
+              ...(conPrecioDeReferencia && sku ? { precio: precioDe(sku) } : {}),
+            });
+          }}
         />
       ),
     },
@@ -79,7 +113,8 @@ export function LineasEditor({
           hideControls
           miw={80}
           maw={120}
-          value={l.cantidad}
+          disabled={soloLectura}
+          value={l.cantidad || ''}
           onChange={(v) => actualizar(l.id, { cantidad: Number(v) || 0 })}
         />
       ),
@@ -95,6 +130,7 @@ export function LineasEditor({
                 aria-label={`Precio de la línea ${l.id}`}
                 miw={110}
                 maw={150}
+                disabled={soloLectura}
                 value={l.precio}
                 onChange={(v) => actualizar(l.id, { precio: Number(v) || 0 })}
               />
@@ -108,22 +144,26 @@ export function LineasEditor({
           },
         ] satisfies Column<LineaEditable>[])
       : []),
-    {
-      key: 'acciones',
-      header: 'Quitar',
-      render: (l) => (
-        <Button
-          variant="subtle"
-          color="danger"
-          size="compact-sm"
-          leftSection={<Icon name="trash" size={16} />}
-          aria-label={`Quitar la línea ${l.id}`}
-          onClick={() => quitar(l.id)}
-        >
-          Quitar
-        </Button>
-      ),
-    },
+    ...(soloLectura
+      ? []
+      : ([
+          {
+            key: 'acciones',
+            header: 'Quitar',
+            render: (l) => (
+              <Button
+                variant="subtle"
+                color="danger"
+                size="compact-sm"
+                leftSection={<Icon name="trash" size={16} />}
+                aria-label={`Quitar la línea ${l.id}`}
+                onClick={() => quitar(l.id)}
+              >
+                Quitar
+              </Button>
+            ),
+          },
+        ] satisfies Column<LineaEditable>[])),
   ];
 
   const subtotal = subtotalLineas(lineas);
@@ -150,6 +190,7 @@ export function LineasEditor({
                   aria-label="Descuento en soles"
                   maw={150}
                   max={subtotal}
+                  disabled={soloLectura}
                   value={descuento}
                   onChange={(v) => onDescuentoChange?.(Number(v) || 0)}
                 />
@@ -168,11 +209,13 @@ export function LineasEditor({
           {error}
         </p>
       )}
-      <div className={classes.actions}>
-        <Button variant="default" leftSection={<Icon name="plus" />} onClick={agregar}>
-          Agregar producto
-        </Button>
-      </div>
+      {!soloLectura && (
+        <div className={classes.actions}>
+          <Button variant="default" leftSection={<Icon name="plus" />} onClick={agregar}>
+            Agregar producto
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

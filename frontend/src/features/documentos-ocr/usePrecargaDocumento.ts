@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router';
-import type { LineaEditable } from '@/components/ui/LineasEditor/calculos';
+import { consolidarLineas, type LineaEditable } from '@/components/ui/LineasEditor/calculos';
 import { obtenerDocumento, type LineaOcr } from './api';
 
 /**
@@ -18,7 +18,9 @@ export function lineasDeDocumento(lineas: readonly LineaOcr[]): LineaEditable[] 
  * Con `?documento=ID` en la dirección (que deja la revisión del OCR al volver al flujo de origen), entrega una sola vez
  * las líneas del documento a `alCargar`. Devuelve si hay un documento por cargar, para avisar al usuario.
  */
-export function usePrecargaDocumento(alCargar: (lineas: LineaEditable[]) => void) {
+export function usePrecargaDocumento(
+  alCargar: (lineas: LineaEditable[], repetidos: string[]) => void,
+) {
   const [params] = useSearchParams();
   const id = params.get('documento') ?? '';
   const habilitado = id !== '';
@@ -40,7 +42,8 @@ export function usePrecargaDocumento(alCargar: (lineas: LineaEditable[]) => void
   useEffect(() => {
     if (query.data && !entregado.current) {
       entregado.current = true;
-      callback.current(lineasDeDocumento(query.data.lineas));
+      const { lineas, repetidos } = consolidarLineas(lineasDeDocumento(query.data.lineas));
+      callback.current(lineas, repetidos);
     }
   }, [query.data]);
 

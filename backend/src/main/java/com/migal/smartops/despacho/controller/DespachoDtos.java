@@ -4,12 +4,15 @@ import com.migal.smartops.comercial.model.DetalleVenta;
 import com.migal.smartops.comercial.model.Venta;
 import com.migal.smartops.despacho.model.GuiaDespacho;
 import com.migal.smartops.despacho.model.ReimpresionGuia;
+import com.migal.smartops.despacho.model.TipoEntrega;
 import com.migal.smartops.despacho.service.DespachoService.Cambio;
 import com.migal.smartops.despacho.service.DespachoService.GuiaDetalle;
 import com.migal.smartops.despacho.service.DespachoService.LineaGuia;
+import com.migal.smartops.despacho.service.DespachoService.OpcionesProducto;
 import com.migal.smartops.despacho.service.DespachoService.ResultadoSalida;
 import com.migal.smartops.despacho.service.DespachoService.UbicacionSalida;
 import com.migal.smartops.inventario.service.MovimientoDetalle;
+import com.migal.smartops.inventario.service.ReservaInventarioService.OpcionUbicacion;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -65,7 +68,7 @@ public final class DespachoDtos {
 	/** {@code GuiaDespacho}: guía con sus líneas y sus ubicaciones de salida. */
 	public record GuiaDespachoDto(String id, String codigo, String idVenta, String codigoVenta, String cliente,
 			String estado, Instant fechaEmision, Instant fechaSalidaReal, Instant fechaEntrega,
-			String usuarioResponsableId, String direccionEntrega, LocalDate fechaDespacho,
+			String usuarioResponsableId, String tipoEntrega, String direccionEntrega, LocalDate fechaDespacho,
 			List<GuiaLineaDto> lineas) {
 
 		public static GuiaDespachoDto de(GuiaDetalle detalle) {
@@ -73,7 +76,7 @@ public final class DespachoDtos {
 			GuiaResumenDto resumen = GuiaResumenDto.de(guia);
 			return new GuiaDespachoDto(resumen.id(), resumen.codigo(), resumen.idVenta(), resumen.codigoVenta(),
 					resumen.cliente(), resumen.estado(), resumen.fechaEmision(), resumen.fechaSalidaReal(),
-					resumen.fechaEntrega(), resumen.usuarioResponsableId(), guia.getDireccionEntrega(),
+					resumen.fechaEntrega(), resumen.usuarioResponsableId(), guia.getTipoEntrega().valor(), guia.getDireccionEntrega(),
 					guia.getFechaDespacho(), detalle.lineas().stream().map(GuiaLineaDto::de).toList());
 		}
 	}
@@ -122,14 +125,49 @@ public final class DespachoDtos {
 		}
 	}
 
+	/** {@code GuiaOpcionUbicacion}: ubicación desde la que puede salir un producto. */
+	public record OpcionUbicacionDto(String ubicacionId, String nombre, BigDecimal disponible, BigDecimal asignada) {
+
+		static OpcionUbicacionDto de(OpcionUbicacion o) {
+			return new OpcionUbicacionDto(String.valueOf(o.idUbicacion()), o.nombre(), o.disponible(), o.asignada());
+		}
+	}
+
+	/** {@code GuiaOpcionProducto}: producto de la venta con sus ubicaciones posibles de salida. */
+	public record OpcionProductoDto(String productoId, String sku, String nombre, String unidad, BigDecimal cantidad,
+			List<OpcionUbicacionDto> ubicaciones) {
+
+		static OpcionProductoDto de(OpcionesProducto o) {
+			DetalleVenta d = o.linea();
+			return new OpcionProductoDto(String.valueOf(d.getProducto().getId()), d.getProducto().getSku(),
+					d.getProducto().getNombreOficial(), d.getProducto().getUnidadMedida(), d.getCantidadVendida(),
+					o.ubicaciones().stream().map(OpcionUbicacionDto::de).toList());
+		}
+	}
+
+	/** {@code GuiaOpcionesSalida}: opciones de salida de todos los productos de una venta lista para despachar. */
+	public record OpcionesSalidaDto(String idVenta, List<OpcionProductoDto> productos) {
+
+		public static OpcionesSalidaDto de(long idVenta, List<OpcionesProducto> opciones) {
+			return new OpcionesSalidaDto(String.valueOf(idVenta), opciones.stream().map(OpcionProductoDto::de).toList());
+		}
+	}
+
+	/** Un cliente de mostrador (dirección “Retiro en tienda”) sugiere el retiro; los demás, el envío. */
+	private static String sugerido(Venta venta) {
+		String direccion = Objects.toString(venta.getCliente().getDireccionReferencia(), "");
+		return direccion.toLowerCase().startsWith("retiro en tienda") ? TipoEntrega.RETIRO_TIENDA.valor()
+				: TipoEntrega.ENVIO.valor();
+	}
+
 	/** {@code DespachoVentaPendiente}: resumen de una venta lista para emitir su guía. */
 	public record VentaPendienteDto(String idVenta, String codigoVenta, LocalDate fecha, String cliente,
-			String direccionEntrega, int cantidadLineas, String estado) {
+			String direccionEntrega, String tipoEntregaSugerido, int cantidadLineas, String estado) {
 
 		static VentaPendienteDto de(Venta venta) {
 			return new VentaPendienteDto(String.valueOf(venta.getId()), venta.getCodigo(),
 					venta.getFechaVenta().atZone(ZONA).toLocalDate(), venta.getCliente().getNombreRazonSocial(),
-					Objects.toString(venta.getCliente().getDireccionReferencia(), ""), venta.getLineas().size(),
+					Objects.toString(venta.getCliente().getDireccionReferencia(), ""), sugerido(venta), venta.getLineas().size(),
 					venta.getEstado().valor());
 		}
 	}

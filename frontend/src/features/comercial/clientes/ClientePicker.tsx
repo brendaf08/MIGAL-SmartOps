@@ -15,6 +15,8 @@ export interface ClientePickerProps {
   value: string | null;
   onChange: (value: string | null) => void;
   error?: string;
+  /** Bloquea el cambio de cliente (por ejemplo, cuando viene de una cotización aceptada). */
+  bloqueado?: boolean;
 }
 
 const etiqueta = (c: Cliente) =>
@@ -27,7 +29,7 @@ const etiqueta = (c: Cliente) =>
  * y permite registrar un cliente nuevo, que queda seleccionado al guardarse. Los inactivos se muestran
  * deshabilitados con la causa.
  */
-export function ClientePicker({ value, onChange, error }: ClientePickerProps) {
+export function ClientePicker({ value, onChange, error, bloqueado = false }: ClientePickerProps) {
   const query = useQuery({ queryKey: ['clientes'], queryFn: listarClientes });
   const [registrando, setRegistrando] = useState(false);
 
@@ -52,12 +54,15 @@ export function ClientePicker({ value, onChange, error }: ClientePickerProps) {
           label="Cliente"
           placeholder="Buscar por nombre o documento"
           searchable
-          clearable
+          clearable={!bloqueado}
           nothingFoundMessage="Ningún cliente coincide con la búsqueda"
           data={data}
           value={value}
           onChange={onChange}
-          disabled={query.isLoading}
+          disabled={query.isLoading || bloqueado}
+          description={
+            bloqueado ? 'Es el cliente de la cotización y no se puede cambiar.' : undefined
+          }
           error={query.isError ? 'No se pudieron cargar los clientes.' : error}
         />
       </div>
@@ -65,6 +70,7 @@ export function ClientePicker({ value, onChange, error }: ClientePickerProps) {
         variant="default"
         leftSection={<Icon name="plus" size={16} />}
         onClick={() => setRegistrando(true)}
+        disabled={bloqueado}
       >
         Registrar cliente nuevo
       </Button>

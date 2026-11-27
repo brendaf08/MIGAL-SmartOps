@@ -61,6 +61,50 @@ class ConsultaInventarioServiceTest {
 	}
 
 	@Test
+	void elPlanificadoSumaLoPendienteDeLasOrdenesDeCompraSinTocarLaExistencia() {
+		long producto = escenario.producto("10");
+		escenario.inventario(producto, deposito, "50");
+		String ruc = String.valueOf(20000000000L + Math.abs(java.util.UUID.randomUUID().getLeastSignificantBits()) % 99999999L);
+		long proveedor = jdbc.queryForObject(
+				"INSERT INTO proveedor (ruc, razon_social, contacto) VALUES (?, 'Proveedor prueba', 'Contacto') RETURNING id_proveedor",
+				Long.class, ruc);
+		long parcial = ordenCompra(proveedor, "parcial", producto, "100");
+		long pendiente = ordenCompra(proveedor, "pendiente", producto, "30");
+		long completada = ordenCompra(proveedor, "completada", producto, "999");
+		long recepcion = jdbc.queryForObject("""
+				INSERT INTO orden_recepcion (id_orden, id_usuario_responsable, fecha_recepcion, estado, fecha_validacion)
+				VALUES (?, ?, CURRENT_DATE, 'validada', now()) RETURNING id_recepcion
+				""", Long.class, parcial, usuario);
+		jdbc.update("INSERT INTO detalle_recepcion (id_recepcion, id_producto, id_almacen_destino, cantidad_recibida) VALUES (?, ?, ?, 40)",
+				recepcion, producto, deposito);
+		try {
+			ProductoExistencias p = consultas.existencias(producto);
+
+			// 100 - 40 recibidos en la orden parcial, más 30 de la pendiente; la completada no cuenta.
+			assertEquals(0, new BigDecimal("90").compareTo(p.planificado()));
+			assertEquals(0, new BigDecimal("50").compareTo(p.fisico()));
+			assertEquals(0, new BigDecimal("50").compareTo(p.libre()));
+		} finally {
+			jdbc.update("DELETE FROM detalle_recepcion WHERE id_recepcion = ?", recepcion);
+			jdbc.update("DELETE FROM orden_recepcion WHERE id_recepcion = ?", recepcion);
+			for (long orden : new long[] {parcial, pendiente, completada}) {
+				jdbc.update("DELETE FROM detalle_compra WHERE id_orden = ?", orden);
+				jdbc.update("DELETE FROM orden_compra WHERE id_orden = ?", orden);
+			}
+			jdbc.update("DELETE FROM proveedor WHERE id_proveedor = ?", proveedor);
+		}
+	}
+
+	private long ordenCompra(long proveedor, String estado, long producto, String cantidad) {
+		long orden = jdbc.queryForObject(
+				"INSERT INTO orden_compra (id_proveedor, id_usuario_responsable, estado) VALUES (?, ?, ?) RETURNING id_orden",
+				Long.class, proveedor, usuario, estado);
+		jdbc.update("INSERT INTO detalle_compra (id_orden, id_producto, cantidad_comprada, costo_unitario) VALUES (?, ?, ?, 1)",
+				orden, producto, new BigDecimal(cantidad));
+		return orden;
+	}
+
+	@Test
 	void consolidaLasExistenciasYLasOrdenaConLaTiendaPrimero() {
 		long producto = escenario.producto("10");
 		escenario.inventario(producto, deposito, "120");
@@ -159,6 +203,13 @@ class ConsultaInventarioServiceTest {
 		assertEquals(TipoOperacion.ENTRADA, todos.getContent().get(0).tipoOperacion());
 		assertEquals(1, salidas.getTotalElements());
 		assertEquals(0, futuro.getTotalElements());
+		// Solo los movimientos indicados, como los que acaba de registrar una operación.
+		long primero = todos.getContent().get(1).id();
+		Page<MovimientoDetalle> soloUno = consultas.kardex(null, sku(producto), null, null, null, null, null, null, null,
+				java.util.List.of(primero), 1, 20);
+		assertEquals(1, soloUno.getTotalElements());
+		assertEquals(primero, soloUno.getContent().get(0).id());
+
 		assertEquals(CodigoError.VALIDACION_FALLIDA, assertThrows(ErrorDeNegocio.class,
 				() -> consultas.kardex(null, null, null, "otro", null, null, null, 1, 20)).codigo());
 		assertEquals(CodigoError.VALIDACION_FALLIDA, assertThrows(ErrorDeNegocio.class,

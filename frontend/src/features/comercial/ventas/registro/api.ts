@@ -87,6 +87,8 @@ export const cotizacionUtilizable = (id: string): Cotizacion | undefined =>
 export interface EntradaVenta {
   clienteId?: string;
   cotizacionId?: string;
+  /** Fecha (AAAA-MM-DD) en que el cliente requiere la entrega; obligatoria. */
+  fechaEntregaRequerida: string;
   descuento: number;
   lineas: { sku: string; nombre: string; cantidad: number; precio: number }[];
   modalidad: ModalidadAtencion | null;
@@ -119,7 +121,10 @@ async function registrarVentaReal(entrada: EntradaVenta): Promise<ResultadoVenta
   if (entrada.cotizacionId) {
     respuesta = await api.post<VentaApi>(
       '/ventas',
-      { idCotizacion: entrada.cotizacionId },
+      {
+        idCotizacion: entrada.cotizacionId,
+        fechaEntregaRequerida: entrada.fechaEntregaRequerida,
+      },
       entrada.claveIdempotencia,
     );
   } else {
@@ -132,7 +137,12 @@ async function registrarVentaReal(entrada: EntradaVenta): Promise<ResultadoVenta
     );
     respuesta = await api.post<VentaApi>(
       '/ventas/directas',
-      { clienteId: entrada.clienteId ?? null, descuento: entrada.descuento, lineas },
+      {
+        clienteId: entrada.clienteId ?? null,
+        descuento: entrada.descuento,
+        fechaEntregaRequerida: entrada.fechaEntregaRequerida,
+        lineas,
+      },
       entrada.claveIdempotencia,
     );
   }
@@ -170,6 +180,7 @@ export const registrarVenta = (entrada: EntradaVenta): Promise<ResultadoVenta> =
           fecha: new Date().toISOString().slice(0, 10),
           clienteId: entrada.clienteId,
           cotizacionId: entrada.cotizacionId,
+          entregaRequerida: entrada.fechaEntregaRequerida,
           estado: atencion.estado,
           entrega: atencion.entrega,
           descuento: entrada.descuento,

@@ -4,6 +4,7 @@ import com.migal.smartops.catalogo.model.Producto;
 import com.migal.smartops.catalogo.service.ProductoService;
 import com.migal.smartops.comercial.model.Cliente;
 import com.migal.smartops.comercial.model.Cotizacion;
+import com.migal.smartops.comercial.model.OrigenRechazoCotizacion;
 import com.migal.smartops.comercial.model.DetalleVenta;
 import com.migal.smartops.comercial.model.EstadoCotizacion;
 import com.migal.smartops.comercial.model.EstadoVenta;
@@ -75,7 +76,13 @@ public class VentaService {
 
 	/** Datos de una venta directa. Sin fecha de vencimiento, la cotización vence en la fecha de la operación. */
 	public record DatosVentaDirecta(Long clienteId, BigDecimal descuento, String condicionesComerciales,
-			LocalDate fechaVencimiento, List<LineaDirecta> lineas) {
+			LocalDate fechaVencimiento, List<LineaDirecta> lineas, LocalDate fechaEntregaRequerida) {
+
+		/** Sin fecha de entrega requerida. */
+		public DatosVentaDirecta(Long clienteId, BigDecimal descuento, String condicionesComerciales,
+				LocalDate fechaVencimiento, List<LineaDirecta> lineas) {
+			this(clienteId, descuento, condicionesComerciales, fechaVencimiento, lineas, null);
+		}
 	}
 
 	private final VentaRepository ventas;
@@ -164,10 +171,17 @@ public class VentaService {
 	 */
 	@Transactional
 	public VentaDetalle registrarDesdeCotizacion(long idUsuario, long idCotizacion) {
+		return registrarDesdeCotizacion(idUsuario, idCotizacion, null);
+	}
+
+	/** Igual que {@link #registrarDesdeCotizacion(long, long)}, con la fecha en que el cliente requiere la entrega. */
+	@Transactional
+	public VentaDetalle registrarDesdeCotizacion(long idUsuario, long idCotizacion, LocalDate fechaEntregaRequerida) {
+		validarFechaEntrega(fechaEntregaRequerida);
 		Cotizacion cotizacion = cotizaciones.bloquearPorId(idCotizacion)
 				.orElseThrow(() -> ErrorDeNegocio.validacionDeCampo("idCotizacion", "La cotización indicada no existe."));
 		validarConvertible(cotizacion);
-		return materializar(idUsuario, cotizacion);
+		return materializar(idUsuario, cotizacion, fechaEntregaRequerida);
 	}
 
 	/**
@@ -195,6 +209,7 @@ public class VentaService {
 		if (descuento.signum() < 0 || descuento.compareTo(subtotal.setScale(2, RoundingMode.HALF_UP)) > 0) {
 			throw validacion("El descuento no puede ser negativo ni superar el subtotal de las líneas.");
 		}
+		validarFechaEntrega(datos.fechaEntregaRequerida());
 		LocalDate hoy = hoy();
 		LocalDate vencimiento = datos.fechaVencimiento() == null ? hoy : datos.fechaVencimiento();
 		if (vencimiento.isBefore(hoy)) {
@@ -215,7 +230,7 @@ public class VentaService {
 		cotizacion.registrarAceptacion(ahora);
 		cotizacion.registrarValidacion(ahora);
 		cotizaciones.saveAndFlush(cotizacion);
-		return materializar(idUsuario, cotizacion);
+		return materializar(idUsuario, cotizacion, datos.fechaEntregaRequerida());
 	}
 
 	/**
@@ -256,7 +271,16 @@ public class VentaService {
 		}
 		despacho.anularGuiaDeVenta(idVenta);
 		reservasInventario.liberar(venta.getLineas().stream().map(DetalleVenta::getId).toList());
-		venta.cancelar(usuarios.consultar(idUsuario), reloj.instant(), texto);
+		Usuario autorizante = usuarios.consultar(idUsuario);
+		Instant ahora = reloj.instant();
+		venta.cancelar(autorizante, ahora, texto);
+		// La cotización de origen queda cancelada para que se vea la trazabilidad; si el cliente vuelve, se duplica.
+		Cotizacion origen = venta.getCotizacion();
+		if (origen.getEstado() == EstadoCotizacion.VALIDADA) {
+			String motivoCotizacion = "Venta cancelada: " + texto;
+			origen.registrarCancelacion(OrigenRechazoCotizacion.CLIENTE, autorizante, ahora,
+					motivoCotizacion.length() > 500 ? motivoCotizacion.substring(0, 500) : motivoCotizacion);
+		}
 		return detalle(venta);
 	}
 
@@ -265,9 +289,16 @@ public class VentaService {
 	}
 
 	/** Crea la venta a partir de una cotización validada, reserva cada línea y fija el estado según la cobertura. */
-	private VentaDetalle materializar(long idUsuario, Cotizacion cotizacion) {
+	private void validarFechaEntrega(LocalDate fecha) {
+		if (fecha != null && fecha.isBefore(hoy())) {
+			throw validacion("La fecha de entrega requerida no puede ser anterior a hoy.");
+		}
+	}
+
+	private VentaDetalle materializar(long idUsuario, Cotizacion cotizacion, LocalDate fechaEntregaRequerida) {
 		Usuario responsable = usuarios.consultar(idUsuario);
 		Venta venta = new Venta(cotizacion, responsable, reloj.instant(), cotizacion.getDescuento());
+		venta.fijarFechaEntregaRequerida(fechaEntregaRequerida);
 		cotizacion.getLineas().stream().sorted(Comparator.comparing(l -> l.getProducto().getId()))
 				.forEach(l -> venta.agregarLinea(l.getProducto(), l.getCantidadCotizada(), l.getPrecioUnitario()));
 		ventas.saveAndFlush(venta);

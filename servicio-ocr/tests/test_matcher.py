@@ -151,3 +151,28 @@ def test_el_prefiltro_conserva_el_mejor_candidato_en_catalogos_grandes() -> None
     grande = preparar_catalogo([*relleno, *CATALOGO])
 
     assert coincidencias("lad kk 18 huecos", grande, 0.6)[0].sku == "LAD-018"
+
+
+def test_los_plurales_se_emparejan_con_el_producto_en_singular() -> None:
+    assert coincidencias('3 fierros corrugados 1/2"', CANDIDATOS, 0.6)[0].sku == "FIE-012"
+    assert coincidencias("5 ladrillos king kong 18 huecos", CANDIDATOS, 0.6)[0].sku == "LAD-018"
+
+
+def test_una_letra_mal_escrita_se_corrige_con_el_catalogo() -> None:
+    # Falta una letra, sobra una, letra cambiada e intercambio de dos letras.
+    assert coincidencias('fierro corugado 1/2"', CANDIDATOS, 0.6)[0].sku == "FIE-012"
+    assert coincidencias("cemmento sol", CANDIDATOS, 0.6)[0].sku == "CEM-001"
+    assert coincidencias("cenento sol", CANDIDATOS, 0.6)[0].sku == "CEM-001"
+    assert coincidencias("cemetno sol", CANDIDATOS, 0.6)[0].sku == "CEM-001"
+
+
+def test_una_palabra_corregida_tiene_menos_confianza_que_la_escrita_bien() -> None:
+    bien = coincidencias("cemento sol tipo I", CANDIDATOS, 0.6)[0].confianza
+    mal = coincidencias("cemnto sol tipo I", CANDIDATOS, 0.6)[0].confianza
+    assert 0.6 <= mal < bien
+
+
+def test_no_corrige_palabras_cortas_ni_inventa_coincidencias() -> None:
+    assert coincidencias("xyz", CANDIDATOS, 0.6) == []
+    # Una palabra a más de una letra de distancia no se corrige.
+    assert coincidencias("cmnto", CANDIDATOS, 0.6) == []

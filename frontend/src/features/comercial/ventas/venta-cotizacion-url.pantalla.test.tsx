@@ -1,4 +1,4 @@
-import { cleanup, screen } from '@testing-library/react';
+import { cleanup, fireEvent, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { renderApp } from '@/test/renderApp';
 import type * as RegistroVentaApi from './registro/api';
@@ -43,6 +43,11 @@ describe('conversión de cotización en venta', () => {
     expect(await screen.findByRole('combobox', { name: 'Producto de la línea 1' })).toHaveValue(
       'CEM-001, Cemento Sol tipo I, bolsa 42.5 kg',
     );
+    // La fecha de entrega requerida es obligatoria: sin ella no se puede confirmar.
+    expect(screen.getByRole('button', { name: 'Confirmar venta' })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText(/Fecha de entrega requerida/), {
+      target: { value: '2099-12-31' },
+    });
     expect(screen.getByRole('button', { name: 'Confirmar venta' })).toBeEnabled();
   });
 });

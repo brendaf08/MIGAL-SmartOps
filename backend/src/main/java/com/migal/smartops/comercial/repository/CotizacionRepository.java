@@ -14,6 +14,14 @@ import org.springframework.data.repository.query.Param;
 /** Acceso a datos de las cotizaciones. Las transiciones de estado bloquean la fila antes de modificarla (ADR-010). */
 public interface CotizacionRepository extends JpaRepository<Cotizacion, Long>, JpaSpecificationExecutor<Cotizacion> {
 
+	/** Indica si la cotización ya originó una venta. */
+	@Query("select count(v) > 0 from Venta v where v.cotizacion.id = :id")
+	boolean tieneVenta(@Param("id") Long id);
+
+	/** Identificador de la venta que originó la cotización, si la hay. */
+	@Query("select v.id from Venta v where v.cotizacion.id = :id")
+	java.util.Optional<Long> idVenta(@Param("id") Long id);
+
 	/** Bloquea la cotización hasta el fin de la transacción para que dos transiciones no se apliquen en paralelo. */
 	@Lock(LockModeType.PESSIMISTIC_WRITE)
 	@Query("select c from Cotizacion c where c.id = :id")

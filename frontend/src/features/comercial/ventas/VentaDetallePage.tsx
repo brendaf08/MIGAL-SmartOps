@@ -5,7 +5,6 @@ import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { Constancia, type CambioStock } from '@/components/domain/Constancia/Constancia';
 import { StatusBadge } from '@/components/domain/StatusBadge/StatusBadge';
-import { StockBar } from '@/components/domain/StockBar/StockBar';
 import { PageHeader } from '@/components/layout/PageHeader/PageHeader';
 import { ActionBar } from '@/components/ui/ActionBar/ActionBar';
 import { Alert } from '@/components/ui/Alert/Alert';
@@ -21,7 +20,6 @@ import {
   ESTADOS_COMPLETABLES,
   cancelarVenta,
   completarVenta,
-  existenciaDe,
   obtenerVenta,
   pendienteDe,
   planAtencion,
@@ -31,6 +29,7 @@ import {
   type ResultadoCompletar,
 } from './api';
 import type { LineaVenta } from './tipos';
+import classes from './Ventas.module.css';
 import { useCatalogoVigente } from '@/features/catalogo/catalogoVigente';
 import { usePermisos } from '@/features/seguridad/permisos';
 
@@ -175,7 +174,25 @@ export function VentaDetallePage() {
         title={`Venta ${venta.id}`}
         breadcrumbs={[{ label: 'Ventas', href: '/ventas' }, { label: venta.id }]}
         status={<StatusBadge entity="venta" value={venta.estado} variant="sello" />}
-        description={`${cliente}, ${formatDate(venta.fecha)}`}
+        description={[
+          `${cliente}, ${formatDate(venta.fecha)}`,
+          venta.entregaRequerida
+            ? `entrega requerida el ${formatDate(venta.entregaRequerida)}`
+            : null,
+          venta.cotizacionId ? `cotización ${venta.cotizacionId}` : null,
+        ]
+          .filter(Boolean)
+          .join(', ')}
+        actions={
+          <Button
+            variant="default"
+            component={Link}
+            to={`/ventas/${venta.id}/imprimir`}
+            leftSection={<Icon name="print" />}
+          >
+            Imprimir
+          </Button>
+        }
       />
       {resultado && (
         <Constancia
@@ -214,16 +231,38 @@ export function VentaDetallePage() {
             Atención parcial: se atendieron {formatNumber(atendidas)} de {formatNumber(solicitadas)}{' '}
             unidades; las {formatNumber(unidadesPendientes(venta))} restantes quedan pendientes.
           </Text>
-          {plan.map((a) => (
-            <StockBar
-              key={a.sku}
-              compact
-              libre={existenciaDe(a.sku).libre}
-              reservado={existenciaDe(a.sku).reservado}
-              unidad={unidadDe(a.sku)}
-              label={`Disponibilidad de ${a.nombre}`}
-            />
-          ))}
+          <div className={classes.faltantesWrap}>
+            <table className={classes.faltantes}>
+              <caption className={classes.soloLectores}>
+                Productos con cantidades pendientes
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Producto</th>
+                  <th scope="col">Pendiente</th>
+                  <th scope="col">Se puede atender hoy</th>
+                  <th scope="col">Falta abastecer</th>
+                </tr>
+              </thead>
+              <tbody>
+                {plan
+                  .filter((a) => a.pendiente > 0)
+                  .map((a) => (
+                    <tr key={a.sku}>
+                      <th scope="row">
+                        {a.nombre}
+                        <small>{a.sku}</small>
+                      </th>
+                      <td>{formatNumber(a.pendiente)}</td>
+                      <td>{formatNumber(a.atendible)}</td>
+                      <td>
+                        <strong>{formatNumber(a.pendiente - a.atendible)}</strong> {unidadDe(a.sku)}
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
         </Alert>
       )}
       {activa && (puede('cancelarVenta') || puede('completarVenta')) && (

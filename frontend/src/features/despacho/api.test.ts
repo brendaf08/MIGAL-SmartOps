@@ -27,6 +27,7 @@ const guiaApi = (sobrescritos: Record<string, unknown> = {}) => ({
   fechaSalidaReal: null,
   fechaEntrega: null,
   usuarioResponsableId: null,
+  tipoEntrega: 'envio',
   direccionEntrega: 'Av. Javier Prado Este 4200, San Borja, Lima',
   fechaDespacho: null,
   lineas: [
@@ -95,12 +96,15 @@ describe('despacho (API real)', () => {
         cliente: 'Constructora Los Andes S.A.C.',
         estado: 'Emitida',
         entrega: 'Completa',
+        tipoEntrega: 'envio',
+        direccion: expect.any(String),
         lineas: [
           {
             sku: 'CEM-001',
             nombre: 'Cemento Sol tipo I, bolsa 42.5 kg',
             cantidad: 200,
             reservado: 200,
+            salidas: expect.any(Array),
           },
         ],
       },

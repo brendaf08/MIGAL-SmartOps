@@ -1,4 +1,4 @@
-import { Button, Radio, Select, Stack, Text } from '@mantine/core';
+import { Button, Radio, Select, Stack, Text, TextInput } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -16,6 +16,7 @@ import { FormPage } from '@/components/ui/FormPage/FormPage';
 import { Icon } from '@/components/ui/Icon/Icon';
 import { LineasEditor } from '@/components/ui/LineasEditor/LineasEditor';
 import {
+  consolidarLineas,
   subtotalLineas,
   totalLineas,
   type LineaEditable,
@@ -23,6 +24,7 @@ import {
 import { ConfirmDialog } from '@/components/ui/Modal/ConfirmDialog';
 import { opcionesProducto } from '@/features/catalogo/opciones';
 import { PRODUCTOS } from '@/features/inventario/fixtures';
+import { hoyIso } from '@/features/comercial/calculos';
 import { formatCurrency, formatNumber } from '@/lib/format';
 import { ClientePicker, SIN_CLIENTE } from '../../clientes/ClientePicker';
 import type { Cotizacion } from '../../types';
@@ -36,6 +38,7 @@ import {
 } from './api';
 import { calcularAtencion, MODALIDADES, type ModalidadAtencion } from './atencion';
 import { crearEsquemaVenta } from './esquema';
+import { avisarRepetidos } from '@/features/documentos-ocr/avisos';
 import { usePrecargaDocumento } from '@/features/documentos-ocr/usePrecargaDocumento';
 import classes from './VentaForm.module.css';
 import { useCatalogoVigente } from '@/features/catalogo/catalogoVigente';
@@ -81,9 +84,13 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
   // Cada apertura de la confirmación inicia una intención nueva; sus reintentos reutilizan la misma clave.
   const [claveRegistro, setClaveRegistro] = useState(() => crypto.randomUUID());
   const [resultado, setResultado] = useState<ResultadoVenta | null>(null);
+  // Bajo la clave `cotizaciones`, para que validar, aceptar o convertir una cotización renueve esta lista; siempre se
+  // vuelve a consultar al abrir el formulario, porque una cotización recién validada debe aparecer en el acto.
   const cotizaciones = useQuery({
-    queryKey: ['cotizaciones-aceptadas'],
+    queryKey: ['cotizaciones', 'convertibles'],
     queryFn: listarCotizacionesAceptadas,
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   const stock = stockLibre();
@@ -93,6 +100,7 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
       cotizacionId: inicial?.id ?? null,
       lineas: carga?.lineas ?? [],
       descuento: carga?.descuento ?? 0,
+      fechaEntrega: '',
       modalidad: null,
     },
     validate: zod4Resolver(crearEsquemaVenta(stock)),
@@ -101,9 +109,10 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
   const cotizacionPrecargada = useRef(!cotizacionParam || Boolean(inicial));
   useEffect(() => {
     if (!cotizacionParam || !cotizaciones.isSuccess || cotizacionPrecargada.current) return;
-    cotizacionPrecargada.current = true;
     const cotizacion = cotizaciones.data.find((c) => c.id === cotizacionParam);
+    // Con la lista aún sin la cotización (datos previos), se espera a la consulta actualizada antes de rendirse.
     if (!cotizacion) return;
+    cotizacionPrecargada.current = true;
     const cargaCotizacion = lineasDeCotizacion(cotizacion);
     form.setValues({
       cliente: clienteDeCotizacion(cotizacion),
@@ -113,11 +122,14 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
       modalidad: null,
     });
   }, [cotizacionParam, cotizaciones.data, cotizaciones.isSuccess, form]);
-  const precarga = usePrecargaDocumento((lineas) => {
+  const precarga = usePrecargaDocumento((lineas, repetidos) => {
     form.setFieldValue('lineas', lineas);
+    avisarRepetidos(repetidos);
     setOrigen('documento');
   });
 
+  /** Con una cotización elegida, sus productos, precios y descuento son los de la cotización y no se editan. */
+  const desdeCotizacion = origen === 'cotizacion' && values.cotizacionId !== null;
   const pedido = values.lineas.map((l) => ({ sku: l.sku, cantidad: l.cantidad }));
   const sinCobertura = calcularAtencion(pedido, stock, null).totalPendiente > 0;
   const vista = calcularAtencion(pedido, stock, values.modalidad);
@@ -135,6 +147,9 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
     if (values.cliente === null) return 'Elegir el cliente o continuar sin cliente.';
     if (sinCobertura && values.modalidad === null)
       return 'Elegir cómo atender las líneas sin existencias.';
+    if (!values.fechaEntrega) return 'Indicar la fecha de entrega requerida por el cliente.';
+    if (values.fechaEntrega < hoyIso())
+      return 'La fecha de entrega requerida no puede ser anterior a hoy.';
     if (values.descuento < 0 || values.descuento > subtotal)
       return 'El descuento no puede ser negativo ni mayor que el subtotal.';
     return null;
@@ -144,6 +159,7 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
     mutationFn: (entrada: EntradaVenta) => registrarVenta(entrada),
     onSuccess: async (r) => {
       await queryClient.invalidateQueries({ queryKey: ['ventas'] });
+      await queryClient.invalidateQueries({ queryKey: ['cotizaciones'] });
       setConfirmando(false);
       setResultado(r);
     },
@@ -157,9 +173,18 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
     },
   });
 
+  /** Cambiar el origen descarta lo cargado (cliente, productos y descuento) para no mezclar datos de otro origen. */
   const cambiarOrigen = (valor: string) => {
     setOrigen(valor as Origen);
-    form.setFieldValue('cotizacionId', null);
+    form.setValues({
+      cliente: null,
+      cotizacionId: null,
+      lineas: [],
+      descuento: 0,
+      fechaEntrega: '',
+      modalidad: null,
+    });
+    form.clearErrors();
   };
 
   const elegirCotizacion = (id: string | null) => {
@@ -184,8 +209,9 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
       cotizacionId: origen === 'cotizacion' ? (values.cotizacionId ?? undefined) : undefined,
       descuento: values.descuento,
       modalidad: values.modalidad as ModalidadAtencion | null,
+      fechaEntregaRequerida: values.fechaEntrega,
       claveIdempotencia: claveRegistro,
-      lineas: values.lineas.map((l) => ({
+      lineas: consolidarLineas(values.lineas).lineas.map((l) => ({
         sku: l.sku,
         nombre: PRODUCTOS.find((p) => p.sku === l.sku)?.nombre ?? l.sku,
         cantidad: l.cantidad,
@@ -237,6 +263,47 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
         libre,
         unidad: p?.unidad ?? '',
       };
+    });
+
+  /** Desglose de lo que falta con el stock libre actual, independiente de la modalidad que se elija. */
+  const desglose = calcularAtencion(pedido, stock, 'parcial')
+    .lineas.filter((l) => l.pendiente > 0)
+    .map((l) => {
+      const p = PRODUCTOS.find((x) => x.sku === l.sku);
+      return { ...l, nombre: p?.nombre ?? l.sku, unidad: p?.unidad ?? '' };
+    });
+  const columnasDesglose: Column<(typeof desglose)[number]>[] = [
+    { key: 'nombre', header: 'Producto', primary: true },
+    {
+      key: 'solicitada',
+      header: 'Solicitada',
+      numeric: true,
+      render: (f) => formatNumber(f.solicitada),
+    },
+    {
+      key: 'atendida',
+      header: 'Disponible',
+      numeric: true,
+      render: (f) => formatNumber(f.atendida),
+    },
+    {
+      key: 'pendiente',
+      header: 'Falta abastecer',
+      numeric: true,
+      render: (f) => (
+        <strong>
+          {formatNumber(f.pendiente)} {f.unidad}
+        </strong>
+      ),
+    },
+  ];
+
+  /** Detalle de lo que falta: solo los productos con cantidad pendiente, con su nombre y unidad. */
+  const faltantes = vista.lineas
+    .filter((l) => l.pendiente > 0)
+    .map((l) => {
+      const p = PRODUCTOS.find((x) => x.sku === l.sku);
+      return { ...l, nombre: p?.nombre ?? l.sku, unidad: p?.unidad ?? '' };
     });
 
   const columnas: Column<(typeof filas)[number]>[] = [
@@ -299,12 +366,26 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
               value={values.cliente}
               onChange={(v) => form.setFieldValue('cliente', v)}
               error={form.errors.cliente as string | undefined}
+              bloqueado={origen === 'cotizacion' && values.cotizacionId !== null}
             />
-            <Radio.Group label="Origen de los productos" value={origen} onChange={cambiarOrigen}>
+            <Radio.Group
+              label="Origen de los productos"
+              description={
+                cotizacionParam
+                  ? 'La venta se registra desde la cotización elegida; el origen no se puede cambiar.'
+                  : undefined
+              }
+              value={origen}
+              onChange={cambiarOrigen}
+            >
               <Stack gap="xs" mt="xs">
-                <Radio value="manual" label="Manual" />
+                <Radio value="manual" label="Manual" disabled={Boolean(cotizacionParam)} />
                 <Radio value="cotizacion" label="Desde una cotización aceptada" />
-                <Radio value="documento" label="Desde un documento" />
+                <Radio
+                  value="documento"
+                  label="Desde un documento"
+                  disabled={Boolean(cotizacionParam)}
+                />
               </Stack>
             </Radio.Group>
             {origen === 'cotizacion' && (
@@ -318,9 +399,11 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
                 }))}
                 value={values.cotizacionId}
                 onChange={elegirCotizacion}
+                disabled={Boolean(cotizacionParam)}
               />
             )}
             {cotizaciones.isSuccess &&
+              !cotizaciones.isFetching &&
               cotizacionParam &&
               !(cotizaciones.data ?? []).some((c) => c.id === cotizacionParam) && (
                 <Alert tone="warning" title="Cotización no disponible">
@@ -336,6 +419,16 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
             )}
           </Stack>
         </Card>
+        <Card title="Entrega">
+          <TextInput
+            label="Fecha de entrega requerida"
+            description="Es la fecha en que el cliente necesita los productos; ayuda a planificar el abastecimiento."
+            required
+            type="date"
+            min={hoyIso()}
+            {...form.getInputProps('fechaEntrega')}
+          />
+        </Card>
         <Card title="Productos">
           {precarga.habilitado && (
             <Alert tone="info" title="Productos cargados desde el documento">
@@ -347,7 +440,9 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
             onChange={(lineas) => form.setFieldValue('lineas', lineas)}
             productos={opcionesProducto()}
             conPrecio
+            precargarPrecio
             conDescuento
+            soloLectura={desdeCotizacion}
             descuento={values.descuento}
             onDescuentoChange={(d) => form.setFieldValue('descuento', d)}
             error={form.errors.lineas as string | undefined}
@@ -370,17 +465,25 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
         )}
         {sinCobertura && (
           <Card title="Atención de las líneas sin existencias">
-            <Radio.Group
-              label="Modalidad de atención"
-              description="Las líneas que superan el stock libre no pueden atenderse completas."
-              {...form.getInputProps('modalidad')}
-            >
-              <Stack gap="xs" mt="xs">
-                {(Object.keys(MODALIDADES) as ModalidadAtencion[]).map((m) => (
-                  <Radio key={m} value={m} label={MODALIDADES[m]} />
-                ))}
-              </Stack>
-            </Radio.Group>
+            <Stack gap="md">
+              <DataTable
+                caption="Productos sin existencias suficientes"
+                columns={columnasDesglose}
+                rows={desglose}
+                rowKey="sku"
+              />
+              <Radio.Group
+                label="Modalidad de atención"
+                description="Las líneas que superan el stock libre no pueden atenderse completas."
+                {...form.getInputProps('modalidad')}
+              >
+                <Stack gap="xs" mt="xs">
+                  {(Object.keys(MODALIDADES) as ModalidadAtencion[]).map((m) => (
+                    <Radio key={m} value={m} label={MODALIDADES[m]} />
+                  ))}
+                </Stack>
+              </Radio.Group>
+            </Stack>
           </Card>
         )}
       </FormPage>
@@ -390,7 +493,16 @@ function RegistroVenta({ onOtra }: { onOtra: () => void }) {
         consequences={[
           `Se reservará el stock de ${plural(vista.lineas.filter((l) => l.atendida > 0).length, 'producto', 'productos')}. La salida del Kardex se registra al confirmar el despacho.`,
           ...(vista.totalPendiente > 0
-            ? [`Quedan ${formatNumber(vista.totalPendiente)} unidades pendientes.`]
+            ? [
+                `Quedan ${formatNumber(vista.totalPendiente)} unidades pendientes en ${plural(faltantes.length, 'producto', 'productos')}:`,
+                ...faltantes
+                  .slice(0, 8)
+                  .map(
+                    (f) =>
+                      `• ${f.nombre}: faltan ${formatNumber(f.pendiente)} de ${formatNumber(f.solicitada)} ${f.unidad}`,
+                  ),
+                ...(faltantes.length > 8 ? [`… y ${faltantes.length - 8} productos más.`] : []),
+              ]
             : []),
         ]}
         confirmLabel="Confirmar venta"

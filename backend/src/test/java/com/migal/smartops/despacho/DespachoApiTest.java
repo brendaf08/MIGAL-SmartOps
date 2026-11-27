@@ -214,9 +214,11 @@ class DespachoApiTest {
 		mvc.perform(get("/api/v1/guias-despacho" + FILTRO).header("Authorization", bearer("dsp-admin")))
 				.andExpect(status().isOk())
 				.andExpect(cumple(contrato));
+		// El Vendedor consulta el listado, pero solo ve los retiros en tienda: la guía de envío no aparece.
 		mvc.perform(get("/api/v1/guias-despacho" + FILTRO).header("Authorization", bearer("dsp-vendedor")))
-				.andExpect(status().isForbidden())
-				.andExpect(cumple(contratoSoloRespuesta));
+				.andExpect(status().isOk())
+				.andExpect(cumple(contrato))
+				.andExpect(jsonPath("$.items", hasSize(0)));
 	}
 
 	@Test

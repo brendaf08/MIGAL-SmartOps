@@ -8,7 +8,9 @@ import { PRODUCTOS } from '@/features/inventario/fixtures';
 import { siguienteCodigo } from '@/lib/codigos';
 import { ORDENES } from '../fixtures';
 import { obtenerOrden, ordenDesde, type GuiaApi } from '../api';
-import type { OrdenDespacho } from '../types';
+import type { OrdenDespacho, TipoEntrega } from '../types';
+
+export type { TipoEntrega };
 
 /** Dirección de entrega de prueba por cliente; el modelo de cliente aún no registra direcciones. */
 const DIRECCIONES_ENTREGA: Record<string, string> = {
@@ -27,6 +29,8 @@ export interface VentaParaOrden {
   venta: Venta;
   cliente: string;
   direccion: string;
+  /** retiro_tienda para un cliente de mostrador; envio para los demás. */
+  tipoEntregaSugerido: TipoEntrega;
   orden?: OrdenDespacho;
 }
 
@@ -40,6 +44,7 @@ interface VentaPendienteApi {
   idVenta: string;
   cliente: string;
   direccionEntrega: string;
+  tipoEntregaSugerido?: TipoEntrega;
 }
 
 /**
@@ -53,6 +58,7 @@ async function ventasParaOrdenReal(): Promise<VentaParaOrden[]> {
       venta: await obtenerVenta(p.idVenta),
       cliente: p.cliente,
       direccion: p.direccionEntrega,
+      tipoEntregaSugerido: p.tipoEntregaSugerido ?? 'envio',
     })),
   );
 }
@@ -66,17 +72,92 @@ export const ventasParaOrden = (): Promise<VentaParaOrden[]> =>
           venta,
           cliente: nombreCliente(venta.clienteId),
           direccion: DIRECCIONES_ENTREGA[venta.clienteId ?? ''] ?? DIRECCION_NO_REGISTRADA,
+          tipoEntregaSugerido: 'envio',
           orden: ordenDeVenta(venta.id),
         })),
       );
 
+/** Ubicación desde la que puede salir un producto: lo disponible y lo que la línea ya tiene reservado allí. */
+export interface OpcionUbicacion {
+  ubicacionId: string;
+  nombre: string;
+  disponible: number;
+  asignada: number;
+}
+
+/** Producto de la venta con las ubicaciones posibles de salida (GuiaOpcionProducto). */
+export interface OpcionProducto {
+  productoId: string;
+  sku: string;
+  nombre: string;
+  unidad: string;
+  cantidad: number;
+  ubicaciones: OpcionUbicacion[];
+}
+
+/** Datos que se eligen al generar la orden: cómo se entrega y de dónde sale cada producto. */
+export interface DatosEmision {
+  tipoEntrega: TipoEntrega;
+  /** Dirección del envío; en un retiro en tienda no se envía. */
+  direccion?: string;
+  salidas: { productoId: string; ubicaciones: { ubicacionId: string; cantidad: number }[] }[];
+}
+
+/** De qué ubicaciones puede salir cada producto de una venta lista para despachar. */
+export const opcionesSalida = (ventaId: string): Promise<OpcionProducto[]> =>
+  API_REAL
+    ? api
+        .get<{ productos: OpcionProducto[] }>(
+          `/ventas-pendientes-despacho/${encodeURIComponent(ventaId)}/salidas`,
+        )
+        .then((r) => r.productos)
+    : mockRequest<OpcionProducto[]>(() => {
+        const venta = VENTAS.find((v) => v.id === ventaId);
+        if (!venta) throw new Error('Venta no encontrada');
+        return venta.lineas.map((l) => {
+          const p = PRODUCTOS.find((x) => x.sku === l.sku);
+          return {
+            productoId: l.sku,
+            sku: l.sku,
+            nombre: l.nombre,
+            unidad: p?.unidad ?? 'unidad',
+            cantidad: l.atendida,
+            ubicaciones: [
+              {
+                ubicacionId: 'tienda',
+                nombre: 'Tienda principal',
+                disponible: Math.max(p?.tienda ?? 0, l.atendida),
+                asignada: l.atendida,
+              },
+              {
+                ubicacionId: 'almacen1',
+                nombre: 'Almacén 1',
+                disponible: p?.almacen1 ?? 0,
+                asignada: 0,
+              },
+            ],
+          };
+        });
+      });
+
 /**
  * CU-06, pasos 2 a 6. Crea la orden en estado `Emitida` a partir de una venta lista; la venta conserva su estado.
- * La cantidad despachable de cada línea es la atendida, que ya cuenta con reserva.
+ * Se elige la forma de entrega y las ubicaciones de salida de cada producto (las reservas se reasignan a ellas).
  */
-export const generarOrden = (ventaId: string): Promise<OrdenDespacho> =>
+export const generarOrden = (ventaId: string, datos?: DatosEmision): Promise<OrdenDespacho> =>
   API_REAL
-    ? api.post<GuiaApi>('/guias-despacho', { idVenta: ventaId }).then(ordenDesde)
+    ? api
+        .post<GuiaApi>('/guias-despacho', {
+          idVenta: ventaId,
+          ...(datos
+            ? {
+                tipoEntrega: datos.tipoEntrega,
+                ...(datos.direccion ? { direccionEntrega: datos.direccion } : {}),
+                salidas: datos.salidas,
+              }
+            : {}),
+        })
+        .then(ordenDesde)
     : mockRequest<OrdenDespacho>(() => {
         const venta = VENTAS.find((v) => v.id === ventaId);
         if (!venta || venta.estado !== 'ListaDespacho')
@@ -91,6 +172,8 @@ export const generarOrden = (ventaId: string): Promise<OrdenDespacho> =>
           cliente: nombreCliente(venta.clienteId),
           estado: 'Emitida',
           entrega: venta.entrega,
+          tipoEntrega: datos?.tipoEntrega ?? 'envio',
+          direccion: datos?.tipoEntrega === 'retiro_tienda' ? 'Retiro en tienda' : datos?.direccion,
           lineas: venta.lineas.map((l) => ({
             sku: l.sku,
             nombre: l.nombre,

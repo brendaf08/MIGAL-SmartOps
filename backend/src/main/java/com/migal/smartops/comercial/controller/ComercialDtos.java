@@ -3,6 +3,7 @@ package com.migal.smartops.comercial.controller;
 import com.migal.smartops.comercial.model.Cliente;
 import com.migal.smartops.comercial.model.Cotizacion;
 import com.migal.smartops.comercial.model.DetalleCotizacion;
+import com.migal.smartops.comercial.service.CotizacionService;
 import com.migal.smartops.comercial.service.CotizacionService.ResultadoDivision;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -51,11 +52,26 @@ public final class ComercialDtos {
 	public record RechazoDto(String origen, String usuarioId, Instant fechaRechazo, String motivo) {
 	}
 
+	/** {@code CambioCotizacion}. */
+	public record CambioDto(Instant fecha, String usuario, String estadoAnterior, String estadoNuevo, String motivo) {
+	}
+
 	/** {@code CotizacionRegistrada}. */
 	public record CotizacionDto(String id, String estado, ClienteResumenDto cliente, String usuarioResponsableId,
 			Instant fechaEmision, LocalDate fechaVencimiento, String condicionesComerciales, BigDecimal descuento,
 			List<LineaCotizacionDto> lineas, BigDecimal subtotal, BigDecimal total, Instant fechaAceptacionCliente,
-			Instant fechaValidacionMigal, RechazoDto rechazo) {
+			Instant fechaValidacionMigal, RechazoDto rechazo, String ventaId, List<CambioDto> historial) {
+
+		public static CotizacionDto de(CotizacionService.VistaCotizacion vista) {
+			CotizacionDto base = de(vista.cotizacion());
+			return new CotizacionDto(base.id(), base.estado(), base.cliente(), base.usuarioResponsableId(),
+					base.fechaEmision(), base.fechaVencimiento(), base.condicionesComerciales(), base.descuento(),
+					base.lineas(), base.subtotal(), base.total(), base.fechaAceptacionCliente(),
+					base.fechaValidacionMigal(), base.rechazo(),
+					vista.ventaId() == null ? null : String.valueOf(vista.ventaId()),
+					vista.historial().stream().map(c -> new CambioDto(c.fecha(), c.usuario(), c.estadoAnterior(),
+							c.estadoNuevo(), c.motivo())).toList());
+		}
 
 		public static CotizacionDto de(Cotizacion cotizacion) {
 			RechazoDto rechazo = cotizacion.getOrigenRechazo() == null ? null
@@ -68,7 +84,7 @@ public final class ComercialDtos {
 					cotizacion.getFechaVencimiento(), cotizacion.getCondicionesComerciales(),
 					cotizacion.getDescuento(), cotizacion.getLineas().stream().map(LineaCotizacionDto::de).toList(),
 					cotizacion.subtotal(), cotizacion.total(), cotizacion.getFechaAceptacionCliente(),
-					cotizacion.getFechaValidacionMigal(), rechazo);
+					cotizacion.getFechaValidacionMigal(), rechazo, null, List.of());
 		}
 	}
 
